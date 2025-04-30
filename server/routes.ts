@@ -583,10 +583,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/broadcast-programs", isManagerOrAdmin, async (req, res, next) => {
     try {
-      const validation = insertBroadcastProgramSchema.safeParse({
+      // Đảm bảo ngày luôn là đối tượng Date trước khi validate
+      const requestData = {
         ...req.body,
+        date: req.body.date ? new Date(req.body.date) : undefined,
         createdBy: req.user.id,
-      });
+      };
+      
+      console.log("Broadcast program data:", JSON.stringify(requestData, null, 2));
+      
+      const validation = insertBroadcastProgramSchema.safeParse(requestData);
       
       if (!validation.success) {
         return res.status(400).json({ 
@@ -614,9 +620,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const programId = parseInt(req.params.id);
       
+      // Đảm bảo ngày luôn là đối tượng Date trước khi validate
+      const requestData = {
+        ...req.body,
+        date: req.body.date ? new Date(req.body.date) : undefined,
+      };
+      
+      console.log("Update broadcast program data:", JSON.stringify(requestData, null, 2));
+      
       const validation = insertBroadcastProgramSchema
         .omit({ createdBy: true })
-        .safeParse(req.body);
+        .safeParse(requestData);
       
       if (!validation.success) {
         return res.status(400).json({ 

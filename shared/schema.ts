@@ -118,14 +118,17 @@ export const broadcastProgramsRelations = relations(broadcastPrograms, ({ one, m
   assignments: many(broadcastAssignments, { relationName: "programAssignments" }),
 }));
 
-export const insertBroadcastProgramSchema = createInsertSchema(broadcastPrograms)
-  .extend({
-    date: z.coerce.date() // Cho phép chuỗi ngày được chuyển đổi thành Date
-  })
+// Create base schema và sau đó ghi đè định nghĩa cho trường date
+const baseBroadcastProgramSchema = createInsertSchema(broadcastPrograms)
   .omit({
     id: true,
     createdAt: true,
   });
+
+// Tạo schema cuối cùng với date được xử lý đặc biệt
+export const insertBroadcastProgramSchema = baseBroadcastProgramSchema.extend({
+  date: z.string().or(z.date()),  // Chấp nhận cả chuỗi và Date
+});
 
 // Playlists
 export const playlists = pgTable("playlists", {
