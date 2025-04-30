@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -17,6 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Music, Radio, Store } from "lucide-react";
 
 const loginSchema = z.object({
@@ -42,6 +43,29 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("login");
+  const [needsInitialSetup, setNeedsInitialSetup] = useState<boolean>(false);
+  const [setupCheckLoading, setSetupCheckLoading] = useState<boolean>(true);
+  const [setupError, setSetupError] = useState<string | null>(null);
+  
+  // Check if initial setup is needed
+  useEffect(() => {
+    const checkInitialSetup = async () => {
+      try {
+        setSetupCheckLoading(true);
+        const response = await apiRequest("GET", "/api/check-initial-setup");
+        const data = await response.json();
+        setNeedsInitialSetup(data.needsInitialSetup);
+        setSetupError(null);
+      } catch (error) {
+        console.error("Lỗi khi kiểm tra trạng thái thiết lập:", error);
+        setSetupError("Không thể kiểm tra trạng thái thiết lập ban đầu");
+      } finally {
+        setSetupCheckLoading(false);
+      }
+    };
+    
+    checkInitialSetup();
+  }, []);
   
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -60,9 +84,16 @@ export default function AuthPage() {
       fullName: "",
       password: "",
       confirmPassword: "",
-      role: "user",
+      role: needsInitialSetup ? "admin" : "user", // Admin for initial setup
     },
   });
+
+  // Update register form when needsInitialSetup changes
+  useEffect(() => {
+    if (needsInitialSetup) {
+      registerForm.setValue("role", "admin");
+    }
+  }, [needsInitialSetup, registerForm]);
 
   // Handle form submission
   const onLoginSubmit = (values: LoginFormValues) => {
@@ -71,7 +102,29 @@ export default function AuthPage() {
 
   const onRegisterSubmit = (values: RegisterFormValues) => {
     const { confirmPassword, ...registerData } = values;
-    registerMutation.mutate(registerData);
+    
+    // Use init-admin endpoint for initial setup, otherwise use regular register
+    if (needsInitialSetup) {
+      // Initialize the first admin account
+      (async () => {
+        try {
+          const response = await apiRequest("POST", "/api/init-admin", registerData);
+          const user = await response.json();
+          // Reload the page after successful registration
+          window.location.reload();
+        } catch (error: any) {
+          console.error("Lỗi đăng ký admin:", error);
+          // Display error message
+          registerForm.setError("root", {
+            type: "manual",
+            message: error.message || "Đăng ký thất bại. Vui lòng thử lại.",
+          });
+        }
+      })();
+    } else {
+      // Regular registration through the auth context
+      registerMutation.mutate(registerData);
+    }
   };
 
   // Redirect if already logged in
@@ -158,10 +211,32 @@ export default function AuthPage() {
               </TabsContent>
               
               <TabsContent value="register">
-                {registerMutation.isError && (
+                {setupCheckLoading ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : setupError ? (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertDescription>{setupError}</AlertDescription>
+                  </Alert>
+                ) : needsInitialSetup ? (
+                  <Alert className="mb-4">
+                    <AlertDescription>
+                      Chưa có tài khoản nào trong hệ thống. Bạn đang tạo tài khoản admin đầu tiên.
+                    </AlertDescription>
+                  </Alert>
+                ) : registerMutation.isError && (
                   <Alert variant="destructive" className="mb-4">
                     <AlertDescription>
                       {registerMutation.error?.message || "Đăng ký thất bại. Vui lòng thử lại."}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {registerForm.formState.errors.root && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertDescription>
+                      {registerForm.formState.errors.root.message}
                     </AlertDescription>
                   </Alert>
                 )}

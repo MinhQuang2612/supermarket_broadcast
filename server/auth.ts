@@ -214,6 +214,16 @@ export function setupAuth(app: Express) {
       createdAt: user.createdAt,
     });
   });
+  
+  // Check if initial system setup is needed
+  app.get("/api/check-initial-setup", async (req, res, next) => {
+    try {
+      const userCount = await storage.getUserCount();
+      res.json({ needsInitialSetup: userCount === 0 });
+    } catch (error) {
+      next(error);
+    }
+  });
 
   // Change password
   app.post("/api/change-password", async (req, res, next) => {
