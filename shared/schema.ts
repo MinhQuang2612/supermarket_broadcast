@@ -77,6 +77,7 @@ export const audioFiles = pgTable("audio_files", {
   displayName: text("display_name").notNull(),
   fileSize: integer("file_size").notNull(),
   duration: integer("duration").notNull(), // in seconds
+  sampleRate: integer("sample_rate"), // in Hz (e.g., 44100, 48000)
   fileType: text("file_type").notNull(),
   group: text("group").notNull(), // "greetings", "promotions", "tips", "announcements", "music"
   status: text("status").notNull().default("unused"), // "used", "unused"

@@ -6,6 +6,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { z } from "zod";
+import * as mm from "music-metadata";
 import { 
   insertSupermarketSchema, 
   insertAudioFileSchema, 
@@ -431,12 +432,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Không có file âm thanh được tải lên" });
       }
       
+      let sampleRate = null;
+      try {
+        // Parse audio metadata to get the sample rate
+        const metadata = await mm.parseFile(req.file.path);
+        if (metadata.format && metadata.format.sampleRate) {
+          sampleRate = metadata.format.sampleRate;
+        }
+      } catch (metadataError) {
+        console.error("Error reading audio metadata:", metadataError);
+        // Continue without sample rate if there's an error
+      }
+      
       // Get file information
       const fileInfo = {
         filename: req.file.filename,
         displayName: req.body.displayName || path.parse(req.file.originalname).name,
         fileSize: req.file.size,
         duration: parseInt(req.body.duration) || 0, // In seconds
+        sampleRate: sampleRate, // Add the sample rate
         fileType: req.file.mimetype,
         group: req.body.group,
         status: "unused",
