@@ -289,6 +289,7 @@ export default function PlaylistCreation() {
     if (settings.promotions) addItemsForGroup("promotions", settings.promotions);
     if (settings.tips) addItemsForGroup("tips", settings.tips);
     if (settings.announcements) addItemsForGroup("announcements", settings.announcements);
+    if (settings.music) addItemsForGroup("music", settings.music);
     
     // Sort by play time
     newPlaylistItems.sort((a, b) => {
@@ -310,9 +311,10 @@ export default function PlaylistCreation() {
   const getGroupBadgeClass = (group: string) => {
     switch (group) {
       case "greetings": return "bg-primary-light/20 text-primary";
-      case "promotions": return "bg-accent-light/20 text-accent";
+      case "promotions": return "bg-orange-100 text-orange-700";
       case "tips": return "bg-success-light/20 text-success";
       case "announcements": return "bg-neutral-dark/20 text-neutral-dark";
+      case "music": return "bg-purple-100 text-purple-700";
       default: return "bg-neutral-light/50 text-neutral-dark";
     }
   };

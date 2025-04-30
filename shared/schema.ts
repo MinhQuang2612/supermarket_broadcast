@@ -78,7 +78,7 @@ export const audioFiles = pgTable("audio_files", {
   fileSize: integer("file_size").notNull(),
   duration: integer("duration").notNull(), // in seconds
   fileType: text("file_type").notNull(),
-  group: text("group").notNull(), // "greetings", "promotions", "tips", "announcements"
+  group: text("group").notNull(), // "greetings", "promotions", "tips", "announcements", "music"
   status: text("status").notNull().default("unused"), // "used", "unused"
   uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
@@ -209,6 +209,7 @@ export interface BroadcastProgramSettings {
   promotions?: GroupFrequencySettings;
   tips?: GroupFrequencySettings;
   announcements?: GroupFrequencySettings;
+  music?: GroupFrequencySettings;
 }
 
 export interface PlaylistItem {
