@@ -462,7 +462,7 @@ export default function SupermarketManagement() {
                   const status = row.getValue("status") as string;
                   const badgeClass = status === "active"
                     ? "bg-success-light/20 text-success"
-                    : "bg-neutral-medium/20 text-neutral-dark";
+                    : "bg-warning-light/20 text-warning";
                   const label = status === "active" ? "Đang hoạt động" : "Tạm dừng";
                   
                   return (
@@ -511,7 +511,7 @@ export default function SupermarketManagement() {
                             onClick={() => handleStatusChange(supermarket)}
                             className={
                               isActive 
-                                ? "h-8 w-8 text-accent hover:text-accent-dark" 
+                                ? "h-8 w-8 text-warning hover:text-warning-dark" 
                                 : "h-8 w-8 text-success hover:text-success-dark"
                             }
                           >
