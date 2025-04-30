@@ -200,15 +200,27 @@ export class DatabaseStorage implements IStorage {
 
   async isAudioFileUsed(id: number): Promise<boolean> {
     // Check if the audio file is used in any playlist
-    const usedPlaylists = await db
-      .select()
-      .from(playlists)
-      .where(sql`json_array_length(items) > 0 AND EXISTS (
-        SELECT 1 FROM json_each(items) 
-        WHERE json_extract(value, '$.audioFileId') = ${id}
-      )`);
-    
-    return usedPlaylists.length > 0;
+    try {
+      // Đơn giản hóa logic kiểm tra - lấy tất cả playlist và kiểm tra trong JavaScript
+      const allPlaylists = await db.select().from(playlists);
+      
+      // Kiểm tra trong từng playlist có item nào chứa audioFileId giống với tham số id không
+      for (const playlist of allPlaylists) {
+        if (!playlist.items || !Array.isArray(playlist.items)) continue;
+        
+        const hasAudioFile = playlist.items.some(
+          (item: PlaylistItem) => item && item.audioFileId === id
+        );
+        
+        if (hasAudioFile) return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Error checking if audio file is used:", error);
+      // Nếu có lỗi, cho phép xóa để tránh blocking người dùng
+      return false;
+    }
   }
 
   async getAudioFileCount(): Promise<number> {

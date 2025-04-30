@@ -115,7 +115,8 @@ export default function AudioPlayer({
       }
     } else {
       soundRef.current.play();
-      requestRef.current = requestAnimationFrame(animate);
+      // Khởi động animation frame ngay lập tức
+      animate();
     }
     
     setPlaying(!playing);

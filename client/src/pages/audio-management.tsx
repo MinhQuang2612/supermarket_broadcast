@@ -283,6 +283,7 @@ export default function AudioManagement() {
       case "promotions": return "Khuyến mãi";
       case "tips": return "Mẹo vặt";
       case "announcements": return "Thông báo";
+      case "music": return "Nhạc";
       default: return group;
     }
   };
@@ -291,9 +292,10 @@ export default function AudioManagement() {
   const getGroupBadgeClass = (group: string) => {
     switch (group) {
       case "greetings": return "bg-primary-light/20 text-primary";
-      case "promotions": return "bg-accent-light/20 text-accent";
+      case "promotions": return "bg-orange-100 text-orange-700"; // Màu cam cho khuyến mãi
       case "tips": return "bg-success-light/20 text-success";
-      case "announcements": return "bg-neutral-dark/20 text-neutral-dark";
+      case "announcements": return "bg-purple-100 text-purple-700"; // Màu tím cho thông báo
+      case "music": return "bg-blue-100 text-blue-700"; // Màu xanh dương cho nhạc
       default: return "bg-neutral-light/50 text-neutral-dark";
     }
   };
@@ -361,6 +363,7 @@ export default function AudioManagement() {
                   <SelectItem value="promotions">Khuyến mãi</SelectItem>
                   <SelectItem value="tips">Mẹo vặt</SelectItem>
                   <SelectItem value="announcements">Thông báo</SelectItem>
+                  <SelectItem value="music">Nhạc</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -576,6 +579,7 @@ export default function AudioManagement() {
                   <SelectItem value="promotions">Khuyến mãi</SelectItem>
                   <SelectItem value="tips">Mẹo vặt</SelectItem>
                   <SelectItem value="announcements">Thông báo</SelectItem>
+                  <SelectItem value="music">Nhạc</SelectItem>
                 </SelectContent>
               </Select>
             </div>
