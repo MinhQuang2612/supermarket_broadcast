@@ -34,6 +34,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   updateUserPassword(id: number, password: string): Promise<void>;
   updateUserStatus(id: number, status: string): Promise<void>;
+  deleteUser(id: number): Promise<void>;
   getUserCount(): Promise<number>;
   
   // Activity logs
@@ -178,6 +179,10 @@ export class MemStorage implements IStorage {
       user.status = status;
       this.usersMap.set(id, user);
     }
+  }
+  
+  async deleteUser(id: number): Promise<void> {
+    this.usersMap.delete(id);
   }
 
   async getUserCount(): Promise<number> {

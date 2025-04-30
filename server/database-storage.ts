@@ -72,6 +72,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id));
   }
 
+  async deleteUser(id: number): Promise<void> {
+    await db
+      .delete(users)
+      .where(eq(users.id, id));
+  }
+
   async getUserCount(): Promise<number> {
     const result = await db.select({ count: sql<number>`count(*)` }).from(users);
     // Convert count to number (PostgreSQL returns it as a string or bigint)
