@@ -119,6 +119,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete user (permanent) - Admin only
+  app.delete("/api/users/:id", isAdmin, async (req, res, next) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // Don't allow admins to delete themselves
+      if (userId === req.user.id) {
+        return res.status(400).json({ message: "Không thể xóa tài khoản của chính mình" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Không tìm thấy người dùng" });
+      }
+      
+      await storage.deleteUser(userId);
+      
+      // Log the activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "delete_user",
+        details: `Xóa vĩnh viễn tài khoản ${user.username} (${user.fullName})`,
+      });
+      
+      res.status(200).json({ message: "Đã xóa người dùng thành công" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Activity logs
   app.get("/api/activity-logs", isAdmin, async (req, res, next) => {
     try {

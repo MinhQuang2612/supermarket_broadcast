@@ -165,6 +165,33 @@ export default function UserManagement() {
       });
     },
   });
+  
+  // User permanent deletion mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await apiRequest("DELETE", `/api/users/${userId}`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Xóa người dùng thất bại");
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/activity-logs'] });
+      toast({
+        title: "Đã xóa người dùng thành công",
+        description: `Tài khoản đã được xóa vĩnh viễn.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Xóa người dùng thất bại",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // User form
   const userForm = useForm<UserFormValues>({
@@ -448,7 +475,11 @@ export default function UserManagement() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => {/* TODO: Implement permanent delete */}}
+                              onClick={() => {
+                                if (window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản "${user.fullName}"? Hành động này không thể hoàn tác.`)) {
+                                  deleteUserMutation.mutate(user.id);
+                                }
+                              }}
                               className="h-8 w-8 text-danger hover:text-danger-dark"
                             >
                               <Trash2 className="h-4 w-4" />
