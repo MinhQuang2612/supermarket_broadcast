@@ -102,9 +102,9 @@ export default function DataTable({
           <TableHeader>
             <TableRow>
               {columns.map((column) => (
-                <TableHeader key={column.id || column.accessorKey} className="font-medium text-xs uppercase">
+                <TableHead key={column.id || column.accessorKey} className="font-medium text-xs uppercase tracking-wider bg-neutral-50 py-3">
                   {column.header}
-                </TableHeader>
+                </TableHead>
               ))}
             </TableRow>
           </TableHeader>
