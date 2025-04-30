@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // User model
 export const users = pgTable("users", {
@@ -13,6 +14,13 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const usersRelations = relations(users, ({ many }) => ({
+  activityLogs: many(activityLogs),
+  uploadedAudioFiles: many(audioFiles, { relationName: "uploadedBy" }),
+  createdPrograms: many(broadcastPrograms, { relationName: "createdBy" }),
+  assignedBroadcasts: many(broadcastAssignments, { relationName: "assignedBy" }),
+}));
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -21,11 +29,18 @@ export const insertUserSchema = createInsertSchema(users).omit({
 // Activity logs
 export const activityLogs = pgTable("activity_logs", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
   action: text("action").notNull(),
   details: text("details").notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
+
+export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [activityLogs.userId],
+    references: [users.id],
+  }),
+}));
 
 export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
   id: true,
@@ -43,6 +58,10 @@ export const supermarkets = pgTable("supermarkets", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const supermarketsRelations = relations(supermarkets, ({ many }) => ({
+  broadcastAssignments: many(broadcastAssignments),
+}));
+
 export const insertSupermarketSchema = createInsertSchema(supermarkets).omit({
   id: true,
   createdAt: true,
@@ -58,9 +77,17 @@ export const audioFiles = pgTable("audio_files", {
   fileType: text("file_type").notNull(),
   group: text("group").notNull(), // "greetings", "promotions", "tips", "announcements"
   status: text("status").notNull().default("unused"), // "used", "unused"
-  uploadedBy: integer("uploaded_by").notNull(),
+  uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
 });
+
+export const audioFilesRelations = relations(audioFiles, ({ one }) => ({
+  uploader: one(users, {
+    fields: [audioFiles.uploadedBy],
+    references: [users.id],
+    relationName: "uploadedBy",
+  }),
+}));
 
 export const insertAudioFileSchema = createInsertSchema(audioFiles).omit({
   id: true,
@@ -72,10 +99,20 @@ export const broadcastPrograms = pgTable("broadcast_programs", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   date: timestamp("date").notNull(),
-  settings: json("settings").notNull(), // JSON with frequency settings for each audio group
-  createdBy: integer("created_by").notNull(),
+  settings: json("settings").notNull().$type<BroadcastProgramSettings>(), // JSON with frequency settings for each audio group
+  createdBy: integer("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const broadcastProgramsRelations = relations(broadcastPrograms, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [broadcastPrograms.createdBy],
+    references: [users.id],
+    relationName: "createdBy",
+  }),
+  playlists: many(playlists),
+  assignments: many(broadcastAssignments, { relationName: "programAssignments" }),
+}));
 
 export const insertBroadcastProgramSchema = createInsertSchema(broadcastPrograms).omit({
   id: true,
