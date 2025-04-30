@@ -236,12 +236,45 @@ export class DatabaseStorage implements IStorage {
 
   // Broadcast program operations
   async createBroadcastProgram(programData: InsertBroadcastProgram): Promise<BroadcastProgram> {
-    const [program] = await db
-      .insert(broadcastPrograms)
-      .values(programData)
-      .returning();
-    
-    return program;
+    try {
+      // Sử dụng cách tiếp cận truyền thống với Drizzle ORM
+      const [program] = await db
+        .insert(broadcastPrograms)
+        .values(programData)
+        .returning();
+      
+      return program;
+    } catch (drizzleError) {
+      console.error("Drizzle insert error:", drizzleError);
+      
+      // Fallback: Sử dụng SQL thuần
+      try {
+        console.log("Fallback to raw SQL for broadcast program creation");
+        const dateStr = programData.date instanceof Date 
+          ? programData.date.toISOString() 
+          : new Date(programData.date as string).toISOString();
+        
+        const result = await pool.query(
+          `INSERT INTO broadcast_programs (name, date, settings, created_by, created_at) 
+           VALUES ($1, $2, $3, $4, NOW()) 
+           RETURNING *`,
+          [
+            programData.name,
+            dateStr,
+            JSON.stringify(programData.settings),
+            programData.createdBy
+          ]
+        );
+        
+        if (result.rows && result.rows.length > 0) {
+          return result.rows[0] as BroadcastProgram;
+        }
+        throw new Error("Failed to insert broadcast program with raw SQL");
+      } catch (sqlError) {
+        console.error("Raw SQL insert error:", sqlError);
+        throw new Error(`Không thể tạo chương trình phát: ${sqlError.message || drizzleError.message}`);
+      }
+    }
   }
 
   async getBroadcastProgram(id: number): Promise<BroadcastProgram | undefined> {
@@ -258,13 +291,73 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateBroadcastProgram(id: number, programData: Partial<InsertBroadcastProgram>): Promise<BroadcastProgram> {
-    const [program] = await db
-      .update(broadcastPrograms)
-      .set(programData)
-      .where(eq(broadcastPrograms.id, id))
-      .returning();
-    
-    return program;
+    try {
+      // Sử dụng cách tiếp cận truyền thống với Drizzle ORM
+      const [program] = await db
+        .update(broadcastPrograms)
+        .set(programData)
+        .where(eq(broadcastPrograms.id, id))
+        .returning();
+      
+      return program;
+    } catch (drizzleError) {
+      console.error("Drizzle update error:", drizzleError);
+      
+      // Fallback: Sử dụng SQL thuần
+      try {
+        console.log("Fallback to raw SQL for broadcast program update");
+        
+        let dateValue = null;
+        if (programData.date) {
+          dateValue = programData.date instanceof Date 
+            ? programData.date.toISOString() 
+            : new Date(programData.date as string).toISOString();
+        }
+        
+        const updates = [];
+        const values = [];
+        let paramIndex = 1;
+        
+        if (programData.name) {
+          updates.push(`name = $${paramIndex}`);
+          values.push(programData.name);
+          paramIndex++;
+        }
+        
+        if (dateValue) {
+          updates.push(`date = $${paramIndex}`);
+          values.push(dateValue);
+          paramIndex++;
+        }
+        
+        if (programData.settings) {
+          updates.push(`settings = $${paramIndex}`);
+          values.push(JSON.stringify(programData.settings));
+          paramIndex++;
+        }
+        
+        if (updates.length === 0) {
+          throw new Error("No fields to update");
+        }
+        
+        values.push(id);
+        const result = await pool.query(
+          `UPDATE broadcast_programs 
+           SET ${updates.join(', ')}
+           WHERE id = $${paramIndex}
+           RETURNING *`,
+          values
+        );
+        
+        if (result.rows && result.rows.length > 0) {
+          return result.rows[0] as BroadcastProgram;
+        }
+        throw new Error("Failed to update broadcast program with raw SQL");
+      } catch (sqlError) {
+        console.error("Raw SQL update error:", sqlError);
+        throw new Error(`Không thể cập nhật chương trình phát: ${sqlError.message || drizzleError.message}`);
+      }
+    }
   }
 
   async deleteBroadcastProgram(id: number): Promise<void> {
