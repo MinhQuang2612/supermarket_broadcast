@@ -440,7 +440,7 @@ export default function PlaylistCreation() {
                       <div className="flex justify-center items-center h-60 bg-neutral-lightest rounded-md">
                         <p className="text-neutral-medium">Đang tải...</p>
                       </div>
-                    ) : playlistItems.length === 0 ? (
+                    ) : !playlistItems || playlistItems.length === 0 ? (
                       <div className="flex flex-col justify-center items-center h-60 bg-neutral-lightest rounded-md">
                         <AlertTriangle className="h-8 w-8 text-neutral-medium mb-2" />
                         <p className="text-neutral-medium">Chưa có file audio nào trong danh sách phát</p>

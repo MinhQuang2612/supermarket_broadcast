@@ -66,17 +66,23 @@ export default function PlaylistPreview() {
 
   // Load playlist items from existing playlist
   useEffect(() => {
-    if (existingPlaylist) {
-      const items = existingPlaylist.items as PlaylistItem[];
-      // Sort by play time
-      const sortedItems = [...items].sort((a, b) => {
-        const timeA = a.playTime.split(':').map(Number);
-        const timeB = b.playTime.split(':').map(Number);
-        return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
-      });
-      setPlaylistItems(sortedItems);
-      setCurrentAudioIndex(-1);
-      setIsPlaying(false);
+    if (existingPlaylist && existingPlaylist.items && Array.isArray(existingPlaylist.items)) {
+      try {
+        const items = existingPlaylist.items as PlaylistItem[];
+        // Sort by play time
+        const sortedItems = [...items].sort((a, b) => {
+          const timeA = a.playTime.split(':').map(Number);
+          const timeB = b.playTime.split(':').map(Number);
+          return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
+        });
+        setPlaylistItems(sortedItems);
+        setCurrentAudioIndex(-1);
+        setIsPlaying(false);
+      } catch (error) {
+        console.error("Error processing playlist items:", error);
+        // Fallback to empty array to avoid crashes
+        setPlaylistItems([]);
+      }
     } else {
       setPlaylistItems([]);
       setCurrentAudioIndex(-1);
