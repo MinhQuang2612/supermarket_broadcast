@@ -436,11 +436,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Parse audio metadata to get the sample rate
         const metadata = await mm.parseFile(req.file.path);
+        console.log(`Audio file metadata for ${req.file.originalname}:`, {
+          format: metadata.format,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype
+        });
+        
         if (metadata.format && metadata.format.sampleRate) {
           sampleRate = metadata.format.sampleRate;
+          console.log(`Extracted sample rate: ${sampleRate} Hz for file ${req.file.originalname}`);
+        } else {
+          console.log(`No sample rate found in metadata for ${req.file.originalname}`);
         }
       } catch (metadataError) {
-        console.error("Error reading audio metadata:", metadataError);
+        console.error(`Error reading audio metadata for ${req.file.originalname}:`, metadataError);
         // Continue without sample rate if there's an error
       }
       
