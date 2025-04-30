@@ -47,7 +47,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Key, Trash2, UserPlus } from "lucide-react";
+import { Pencil, Key, Trash2, UserPlus, Ban, Check } from "lucide-react";
 import { format } from "date-fns";
 
 // Zod schema for user creation
@@ -362,7 +362,7 @@ export default function UserManagement() {
                         label = "Admin";
                         break;
                       case "manager":
-                        badgeClass = "bg-accent-light/20 text-accent";
+                        badgeClass = "bg-blue-100 text-blue-700";
                         label = "Quản lý";
                         break;
                       case "user":
@@ -436,14 +436,24 @@ export default function UserManagement() {
                         )}
                         
                         {isAdmin && !isCurrentUser && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenDeleteDialog(user)}
-                            className="h-8 w-8 text-danger hover:text-danger-dark"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenDeleteDialog(user)}
+                              className={`h-8 w-8 ${user.status === "active" ? "text-warning hover:text-warning-dark" : "text-success hover:text-success-dark"}`}
+                            >
+                              {user.status === "active" ? <Ban className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {/* TODO: Implement permanent delete */}}
+                              className="h-8 w-8 text-danger hover:text-danger-dark"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
                         )}
                       </div>
                     );
@@ -513,7 +523,7 @@ export default function UserManagement() {
                           break;
                         case "change_password":
                           label = "Đổi mật khẩu";
-                          badgeClass = "bg-accent-light/20 text-accent";
+                          badgeClass = "bg-blue-100 text-blue-700";
                           break;
                         case "activate_user":
                           label = "Kích hoạt tài khoản";
