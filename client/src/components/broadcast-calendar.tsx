@@ -112,7 +112,7 @@ export default function BroadcastCalendar({
                       hasBroadcastProgram 
                         ? "bg-green-500"
                         : hasSchedule 
-                        ? "bg-blue-500"
+                        ? "bg-purple-500"
                         : ""
                     )}
                   ></span>
@@ -135,8 +135,8 @@ export default function BroadcastCalendar({
             <span className="text-sm font-medium text-green-700">Có chương trình phát</span>
           </div>
           <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
-            <span className="text-sm font-medium text-blue-700">Đã lên lịch</span>
+            <span className="w-3 h-3 rounded-full bg-purple-500 mr-2"></span>
+            <span className="text-sm font-medium text-purple-700">Đã lên lịch</span>
           </div>
         </div>
       </div>

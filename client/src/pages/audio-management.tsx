@@ -291,11 +291,11 @@ export default function AudioManagement() {
   // Get group badge class
   const getGroupBadgeClass = (group: string) => {
     switch (group) {
-      case "greetings": return "bg-primary-light/20 text-primary";
-      case "promotions": return "bg-orange-100 text-orange-700"; // Màu cam cho khuyến mãi
-      case "tips": return "bg-success-light/20 text-success";
-      case "announcements": return "bg-purple-100 text-purple-700"; // Màu tím cho thông báo
-      case "music": return "bg-blue-100 text-blue-700"; // Màu xanh dương cho nhạc
+      case "greetings": return "bg-blue-100 text-blue-700";         // Lời chào - Xanh dương
+      case "promotions": return "bg-orange-100 text-orange-700";    // Khuyến mãi - Cam
+      case "tips": return "bg-green-100 text-green-700";            // Mẹo vặt - Xanh lá
+      case "announcements": return "bg-purple-100 text-purple-700"; // Thông báo - Tím
+      case "music": return "bg-indigo-100 text-indigo-700";         // Nhạc - Chàm
       default: return "bg-neutral-light/50 text-neutral-dark";
     }
   };

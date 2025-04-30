@@ -97,9 +97,11 @@ export default function AudioPlayer({
   
   // Animation frame for time update
   const animate = () => {
-    if (soundRef.current && playing) {
-      setCurrentTime(soundRef.current.seek() || 0);
-      requestRef.current = requestAnimationFrame(animate);
+    if (soundRef.current) {
+      if (soundRef.current.playing()) {
+        setCurrentTime(soundRef.current.seek() || 0);
+        requestRef.current = requestAnimationFrame(animate);
+      }
     }
   };
   
