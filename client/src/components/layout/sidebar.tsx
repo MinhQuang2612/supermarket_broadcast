@@ -132,11 +132,14 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                   <a 
                     className={cn(
                       "flex items-center py-3 px-3 text-sm rounded-md hover:bg-neutral-lightest transition-colors",
-                      isActive && "bg-primary bg-opacity-10 text-primary border-l-4 border-primary",
+                      isActive ? "text-primary font-medium border-l-4 border-primary pl-2" : "",
                       collapsed && "justify-center"
                     )}
                   >
-                    <span className={collapsed ? "" : "w-6"}>{item.icon}</span>
+                    <span className={cn(
+                      collapsed ? "" : "w-6",
+                      isActive ? "text-primary" : "text-neutral-dark"
+                    )}>{item.icon}</span>
                     {!collapsed && <span className="ml-2">{item.title}</span>}
                   </a>
                 </Link>
