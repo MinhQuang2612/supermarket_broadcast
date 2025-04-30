@@ -583,25 +583,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/broadcast-programs", isManagerOrAdmin, async (req, res, next) => {
     try {
-      // Đảm bảo ngày luôn là đối tượng Date trước khi validate
-      const requestData = {
-        ...req.body,
-        date: req.body.date ? new Date(req.body.date) : undefined,
-        createdBy: req.user.id,
-      };
+      console.log("Original request:", JSON.stringify(req.body, null, 2));
       
-      console.log("Broadcast program data:", JSON.stringify(requestData, null, 2));
+      // Thay đổi cách tiếp cận: cố gắng chuyển đổi thủ công
+      let date = null;
+      try {
+        date = req.body.date ? new Date(req.body.date) : null;
+        console.log("Converted date:", date);
+      } catch (e) {
+        console.error("Error converting date:", e);
+      }
       
-      const validation = insertBroadcastProgramSchema.safeParse(requestData);
-      
-      if (!validation.success) {
+      // Đảm bảo date không phải null
+      if (date === null) {
         return res.status(400).json({ 
           message: "Dữ liệu không hợp lệ", 
-          errors: validation.error.format() 
+          errors: { date: ["Ngày không hợp lệ"] } 
         });
       }
       
-      const program = await storage.createBroadcastProgram(validation.data);
+      const requestData = {
+        name: req.body.name,
+        date: date,
+        settings: req.body.settings,
+        createdBy: req.user.id
+      };
+      
+      console.log("Modified request data:", JSON.stringify(requestData, null, 2));
+      
+      // Trực tiếp lưu vào cơ sở dữ liệu
+      const program = await storage.createBroadcastProgram(requestData);
       
       // Log the activity
       await storage.createActivityLog({
@@ -620,31 +631,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const programId = parseInt(req.params.id);
       
-      // Đảm bảo ngày luôn là đối tượng Date trước khi validate
-      const requestData = {
-        ...req.body,
-        date: req.body.date ? new Date(req.body.date) : undefined,
-      };
+      console.log("Original update request:", JSON.stringify(req.body, null, 2));
       
-      console.log("Update broadcast program data:", JSON.stringify(requestData, null, 2));
+      // Thay đổi cách tiếp cận: cố gắng chuyển đổi thủ công
+      let date = null;
+      try {
+        date = req.body.date ? new Date(req.body.date) : null;
+        console.log("Converted date:", date);
+      } catch (e) {
+        console.error("Error converting date:", e);
+      }
       
-      const validation = insertBroadcastProgramSchema
-        .omit({ createdBy: true })
-        .safeParse(requestData);
-      
-      if (!validation.success) {
+      // Đảm bảo date không phải null
+      if (date === null) {
         return res.status(400).json({ 
           message: "Dữ liệu không hợp lệ", 
-          errors: validation.error.format() 
+          errors: { date: ["Ngày không hợp lệ"] } 
         });
       }
+      
+      const requestData = {
+        name: req.body.name,
+        date: date,
+        settings: req.body.settings
+      };
       
       const existingProgram = await storage.getBroadcastProgram(programId);
       if (!existingProgram) {
         return res.status(404).json({ message: "Không tìm thấy chương trình phát" });
       }
       
-      const updatedProgram = await storage.updateBroadcastProgram(programId, validation.data);
+      const updatedProgram = await storage.updateBroadcastProgram(programId, requestData);
       
       // Log the activity
       await storage.createActivityLog({
