@@ -74,7 +74,8 @@ export class DatabaseStorage implements IStorage {
 
   async getUserCount(): Promise<number> {
     const result = await db.select({ count: sql<number>`count(*)` }).from(users);
-    return result[0].count;
+    // Convert count to number (PostgreSQL returns it as a string or bigint)
+    return parseInt(result[0].count.toString());
   }
 
   // Activity logs
