@@ -192,6 +192,9 @@ export default function SupermarketManagement() {
     form.reset({
       name: "",
       address: "",
+      ward: "",
+      district: "",
+      province: "",
       region: "north",
       status: "active",
     });
@@ -205,6 +208,9 @@ export default function SupermarketManagement() {
     form.reset({
       name: supermarket.name,
       address: supermarket.address,
+      ward: supermarket.ward || "",
+      district: supermarket.district || "",
+      province: supermarket.province || "",
       region: supermarket.region,
       status: supermarket.status,
     });
@@ -252,9 +258,14 @@ export default function SupermarketManagement() {
   const filteredSupermarkets = supermarkets.filter(supermarket => {
     const matchesRegion = regionFilter === "all" || supermarket.region === regionFilter;
     const matchesStatus = statusFilter === "all" || supermarket.status === statusFilter;
+    
+    const searchTermLower = searchTerm.toLowerCase();
     const matchesSearch = 
-      supermarket.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      supermarket.address.toLowerCase().includes(searchTerm.toLowerCase());
+      supermarket.name.toLowerCase().includes(searchTermLower) || 
+      supermarket.address.toLowerCase().includes(searchTermLower) ||
+      (supermarket.ward && supermarket.ward.toLowerCase().includes(searchTermLower)) ||
+      (supermarket.district && supermarket.district.toLowerCase().includes(searchTermLower)) ||
+      (supermarket.province && supermarket.province.toLowerCase().includes(searchTermLower));
     
     return matchesRegion && matchesStatus && matchesSearch;
   });
@@ -329,13 +340,23 @@ export default function SupermarketManagement() {
                 ),
               },
               {
-                header: "Địa chỉ",
+                header: "Địa chỉ chi tiết",
                 accessorKey: "address",
-                cell: ({ row }) => (
-                  <div className="text-sm text-neutral-dark">
-                    {row.getValue("address")}
-                  </div>
-                ),
+                cell: ({ row }) => {
+                  const supermarket = row.original as Supermarket;
+                  const addressParts = [];
+                  
+                  if (supermarket.address) addressParts.push(supermarket.address);
+                  if (supermarket.ward) addressParts.push(supermarket.ward);
+                  if (supermarket.district) addressParts.push(supermarket.district);
+                  if (supermarket.province) addressParts.push(supermarket.province);
+                  
+                  return (
+                    <div className="text-sm text-neutral-dark max-w-xs truncate" title={addressParts.join(", ")}>
+                      {addressParts.join(", ")}
+                    </div>
+                  );
+                },
               },
               {
                 header: "Khu vực",
@@ -459,9 +480,51 @@ export default function SupermarketManagement() {
                 name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Địa chỉ</FormLabel>
+                    <FormLabel>Địa chỉ cụ thể</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nhập địa chỉ siêu thị" {...field} />
+                      <Input placeholder="Số nhà, tên đường" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="ward"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Xã/Phường</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nhập xã/phường" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="district"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quận/Huyện</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nhập quận/huyện" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="province"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tỉnh/Thành phố</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nhập tỉnh/thành phố" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
