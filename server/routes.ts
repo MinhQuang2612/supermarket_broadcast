@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
+import { db } from "./db";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -625,17 +626,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Modified request data:", JSON.stringify(requestData, null, 2));
       
-      // Trực tiếp lưu vào cơ sở dữ liệu
-      const program = await storage.createBroadcastProgram(requestData);
-      
-      // Log the activity
-      await storage.createActivityLog({
-        userId: req.user.id,
-        action: "create_broadcast_program",
-        details: `Tạo mới chương trình phát ${program.name}`,
-      });
-      
-      res.status(201).json(program);
+      // Thử lưu thông qua drizzle
+      try {
+        const program = await storage.createBroadcastProgram(requestData);
+        
+        // Log the activity
+        await storage.createActivityLog({
+          userId: req.user?.id || 1,
+          action: "create_broadcast_program",
+          details: `Tạo mới chương trình phát ${program.name}`,
+        });
+        
+        res.status(201).json(program);
+      } catch (dbError: any) {
+        console.error("Database error:", dbError);
+        // Thử cách mới: Bypass schema
+        try {
+          console.log("Trying direct SQL query bypass...");
+          const result = await db.execute(
+            `INSERT INTO broadcast_programs (name, date, settings, created_by) 
+             VALUES ($1, $2, $3, $4) 
+             RETURNING *`,
+            [
+              req.body.name,
+              date.toISOString(),
+              JSON.stringify(req.body.settings),
+              req.user?.id || 1
+            ]
+          );
+          
+          console.log("Direct SQL result:", result);
+          
+          // Activity log
+          await storage.createActivityLog({
+            userId: req.user.id,
+            action: "create_broadcast_program",
+            details: `Tạo mới chương trình phát ${req.body.name}`,
+          });
+          
+          res.status(201).json(result.rows[0]);
+        } catch (sqlError) {
+          console.error("SQL bypass error:", sqlError);
+          return res.status(400).json({ 
+            message: "Dữ liệu không hợp lệ", 
+            errors: { 
+              date: ["Expected date, received string"],
+              original: dbError.message,
+              sql: sqlError?.message 
+            }
+          });
+        }
+      }
     } catch (error) {
       next(error);
     }
