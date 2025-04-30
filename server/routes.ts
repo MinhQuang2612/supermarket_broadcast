@@ -585,23 +585,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Original request:", JSON.stringify(req.body, null, 2));
       
-      // Thay đổi cách tiếp cận: cố gắng chuyển đổi thủ công
-      let date = null;
-      try {
-        date = req.body.date ? new Date(req.body.date) : null;
-        console.log("Converted date:", date);
-      } catch (e) {
-        console.error("Error converting date:", e);
+      // Đảm bảo trường ngày tồn tại
+      if (!req.body.date) {
+        return res.status(400).json({ 
+          message: "Dữ liệu không hợp lệ", 
+          errors: { date: ["Ngày không được để trống"] } 
+        });
       }
       
-      // Đảm bảo date không phải null
-      if (date === null) {
+      // Thử sửa lỗi định dạng ngày (mm/dd/yyyy -> yyyy-mm-dd)
+      let dateStr = req.body.date;
+      if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          // Đổi định dạng từ MM/DD/YYYY thành YYYY-MM-DD
+          dateStr = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+          console.log("Date format fixed:", dateStr);
+        }
+      }
+      
+      const date = new Date(dateStr);
+      console.log("Date conversion result:", date, date instanceof Date, !isNaN(date.getTime()));
+      
+      // Kiểm tra xem ngày có hợp lệ không
+      if (!(date instanceof Date) || isNaN(date.getTime())) {
         return res.status(400).json({ 
           message: "Dữ liệu không hợp lệ", 
           errors: { date: ["Ngày không hợp lệ"] } 
         });
       }
       
+      // Nếu mọi thứ ổn, tiếp tục với dữ liệu
       const requestData = {
         name: req.body.name,
         date: date,
@@ -633,17 +647,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Original update request:", JSON.stringify(req.body, null, 2));
       
-      // Thay đổi cách tiếp cận: cố gắng chuyển đổi thủ công
-      let date = null;
-      try {
-        date = req.body.date ? new Date(req.body.date) : null;
-        console.log("Converted date:", date);
-      } catch (e) {
-        console.error("Error converting date:", e);
+      // Đảm bảo trường ngày tồn tại
+      if (!req.body.date) {
+        return res.status(400).json({ 
+          message: "Dữ liệu không hợp lệ", 
+          errors: { date: ["Ngày không được để trống"] } 
+        });
       }
       
-      // Đảm bảo date không phải null
-      if (date === null) {
+      // Thử sửa lỗi định dạng ngày (mm/dd/yyyy -> yyyy-mm-dd)
+      let dateStr = req.body.date;
+      if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          // Đổi định dạng từ MM/DD/YYYY thành YYYY-MM-DD
+          dateStr = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+          console.log("Date format fixed:", dateStr);
+        }
+      }
+      
+      const date = new Date(dateStr);
+      console.log("Date conversion result:", date, date instanceof Date, !isNaN(date.getTime()));
+      
+      // Kiểm tra xem ngày có hợp lệ không
+      if (!(date instanceof Date) || isNaN(date.getTime())) {
         return res.status(400).json({ 
           message: "Dữ liệu không hợp lệ", 
           errors: { date: ["Ngày không hợp lệ"] } 
