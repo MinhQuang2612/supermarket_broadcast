@@ -38,7 +38,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Save, Circle, Star, BellRing, AlertTriangle } from "lucide-react";
+import { InfoIcon, Save, Circle, Star, BellRing, AlertTriangle, Music } from "lucide-react";
 import { format } from "date-fns";
 
 // Default frequency settings
@@ -56,6 +56,7 @@ const defaultProgramSettings: BroadcastProgramSettings = {
   promotions: { ...defaultFrequencySettings, enabled: true, frequencyMinutes: 30, maxPlays: 20, startTime: "10:00", endTime: "21:00" },
   tips: { ...defaultFrequencySettings },
   announcements: { ...defaultFrequencySettings },
+  music: { ...defaultFrequencySettings, frequencyMinutes: 15, maxPlays: 30, startTime: "08:00", endTime: "22:00" },
 };
 
 // Form schema
@@ -286,7 +287,7 @@ export default function BroadcastManagement() {
             </CardHeader>
             <CardContent>
               <div className="mb-6">
-                <Alert variant="info" className="bg-primary-light/10 border-l-4 border-primary text-neutral-dark rounded-md">
+                <Alert className="bg-primary-light/10 border-l-4 border-primary text-neutral-dark rounded-md">
                   <AlertDescription>
                     Thiết lập tần suất và khung giờ phát cho từng nhóm file audio. Hệ thống sẽ tự động tạo danh sách phát dựa trên thiết lập này.
                   </AlertDescription>
@@ -327,6 +328,15 @@ export default function BroadcastManagement() {
                   icon={<BellRing className="w-3 h-3 rounded-full text-neutral-dark" />}
                   settings={programSettings.announcements || defaultFrequencySettings}
                   onChange={(settings) => handleFrequencyChange("announcements", settings)}
+                  defaultExpanded={false}
+                />
+                
+                {/* Music Group */}
+                <FrequencySettings
+                  title="Nhóm Nhạc"
+                  icon={<Music className="w-3 h-3 rounded-full text-blue-500" />}
+                  settings={programSettings.music || defaultFrequencySettings}
+                  onChange={(settings) => handleFrequencyChange("music", settings)}
                   defaultExpanded={false}
                 />
               </div>
