@@ -48,17 +48,31 @@ export default function AudioPlayer({
       src: [src],
       html5: true,
       volume: volume,
+      format: ['mp3', 'wav', 'ogg'],
+      xhr: {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+        withCredentials: true,
+      },
       onload: () => {
         setDuration(soundRef.current?.duration() || 0);
         setLoading(false);
+        console.log("Audio loaded successfully:", src);
       },
       onend: () => {
         setPlaying(false);
         if (onEnded) onEnded();
       },
-      onloaderror: () => {
+      onloaderror: (id, error) => {
+        console.error("Error loading audio:", error);
         setError(true);
         setLoading(false);
+      },
+      onplayerror: (id, error) => {
+        console.error("Error playing audio:", error);
+        setError(true);
       },
     });
     
