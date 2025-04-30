@@ -110,9 +110,9 @@ export default function BroadcastCalendar({
                     className={cn(
                       "absolute bottom-1 w-1.5 h-1.5 rounded-full", 
                       hasBroadcastProgram 
-                        ? "bg-success"
+                        ? "bg-green-500"
                         : hasSchedule 
-                        ? "bg-accent"
+                        ? "bg-blue-500"
                         : ""
                     )}
                   ></span>
@@ -128,15 +128,15 @@ export default function BroadcastCalendar({
         <div className="space-y-2">
           <div className="flex items-center">
             <span className="w-3 h-3 rounded-full bg-primary mr-2"></span>
-            <span className="text-sm text-neutral-dark">Ngày được chọn</span>
+            <span className="text-sm font-medium text-primary-dark">Ngày được chọn</span>
           </div>
           <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full bg-success mr-2"></span>
-            <span className="text-sm text-neutral-dark">Có chương trình phát</span>
+            <span className="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
+            <span className="text-sm font-medium text-green-700">Có chương trình phát</span>
           </div>
           <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full bg-accent mr-2"></span>
-            <span className="text-sm text-neutral-dark">Đã lên lịch</span>
+            <span className="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
+            <span className="text-sm font-medium text-blue-700">Đã lên lịch</span>
           </div>
         </div>
       </div>
