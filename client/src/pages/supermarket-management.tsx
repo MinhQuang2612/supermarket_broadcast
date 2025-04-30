@@ -77,6 +77,9 @@ export default function SupermarketManagement() {
     defaultValues: {
       name: "",
       address: "",
+      ward: "",
+      district: "",
+      province: "",
       region: "north",
       status: "active",
     },

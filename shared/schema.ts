@@ -51,7 +51,10 @@ export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
 export const supermarkets = pgTable("supermarkets", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  address: text("address").notNull(),
+  address: text("address").notNull(), // Địa chỉ chi tiết (số nhà, tên đường)
+  ward: text("ward").notNull(), // Xã/phường
+  district: text("district").notNull(), // Quận/huyện
+  province: text("province").notNull(), // Tỉnh/thành phố
   region: text("region").notNull(), // "north", "central", "south"
   status: text("status").notNull().default("active"), // "active", "paused"
   currentProgram: text("current_program"),
