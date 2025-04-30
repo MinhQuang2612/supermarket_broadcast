@@ -97,7 +97,7 @@ export default function BroadcastManagement() {
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/broadcast-programs", {
         ...data,
-        date: new Date(data.date),
+        // Không cần chuyển đổi nữa vì schema Zod đã xử lý
         createdBy: user?.id,
       });
       return await res.json();
@@ -124,7 +124,7 @@ export default function BroadcastManagement() {
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
       const res = await apiRequest("PUT", `/api/broadcast-programs/${id}`, {
         ...data,
-        date: new Date(data.date),
+        // Không cần chuyển đổi ngày vì schema Zod đã xử lý
       });
       return await res.json();
     },
