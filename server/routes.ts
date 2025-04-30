@@ -142,6 +142,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  // Import supermarkets from CSV file
+  app.post("/api/supermarkets/import", isManagerOrAdmin, upload.single('file'), async (req, res, next) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Không tìm thấy file" });
+      }
+      
+      // Read file as string
+      const fileContent = req.file.buffer.toString('utf8');
+      const lines = fileContent.split('\n');
+      
+      // Must have a header and at least one data row
+      if (lines.length < 2) {
+        return res.status(400).json({ message: "File không có dữ liệu" });
+      }
+      
+      // Parse header
+      const header = lines[0].split(',').map(item => item.trim());
+      const requiredFields = ['name', 'address', 'ward', 'district', 'province', 'region'];
+      
+      // Check if all required fields are in the header
+      const missingFields = requiredFields.filter(field => !header.includes(field));
+      if (missingFields.length > 0) {
+        return res.status(400).json({ 
+          message: `File thiếu các trường bắt buộc: ${missingFields.join(', ')}` 
+        });
+      }
+      
+      const supermarkets = [];
+      const errors = [];
+      
+      // Process each data row
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue; // Skip empty lines
+        
+        const values = line.split(',').map(item => item.trim());
+        if (values.length !== header.length) {
+          errors.push(`Dòng ${i + 1}: Số lượng cột không khớp với header`);
+          continue;
+        }
+        
+        // Create supermarket object from row
+        const supermarketData: any = {
+          status: 'active' // Default value
+        };
+        
+        header.forEach((field, index) => {
+          supermarketData[field] = values[index];
+        });
+        
+        // Validate the data
+        const validation = insertSupermarketSchema.safeParse(supermarketData);
+        if (!validation.success) {
+          errors.push(`Dòng ${i + 1}: Dữ liệu không hợp lệ - ${validation.error.message}`);
+          continue;
+        }
+        
+        supermarkets.push(validation.data);
+      }
+      
+      // If there are errors, return them
+      if (errors.length > 0) {
+        return res.status(400).json({ 
+          message: "Có lỗi khi nhập dữ liệu từ file",
+          errors
+        });
+      }
+      
+      // Create all supermarkets
+      const createdSupermarkets = [];
+      for (const data of supermarkets) {
+        const supermarket = await storage.createSupermarket(data);
+        createdSupermarkets.push(supermarket);
+        
+        // Log the activity
+        await storage.createActivityLog({
+          userId: req.user.id,
+          action: "create_supermarket",
+          details: `Tạo mới siêu thị ${supermarket.name} (nhập từ file)`,
+        });
+      }
+      
+      res.status(201).json({ 
+        message: `Đã nhập ${createdSupermarkets.length} siêu thị từ file`,
+        supermarkets: createdSupermarkets
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
 
   app.get("/api/supermarkets/:id", isAuthenticated, async (req, res, next) => {
     try {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -47,7 +47,8 @@ import {
   Pause, 
   FileUp, 
   Plus,
-  Search
+  Search,
+  AlertCircle
 } from "lucide-react";
 
 const formSchema = insertSupermarketSchema.extend({});
@@ -65,6 +66,8 @@ export default function SupermarketManagement() {
   const [regionFilter, setRegionFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch supermarkets
   const { data: supermarkets = [], isLoading } = useQuery<Supermarket[]>({
@@ -243,6 +246,76 @@ export default function SupermarketManagement() {
       updateStatusMutation.mutate({ id: selectedSupermarket.id, status: newStatus });
     }
   };
+  
+  // Handle import file
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return;
+    }
+    
+    const file = e.target.files[0];
+    if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+      setImportError("Chỉ chấp nhận file CSV");
+      toast({
+        title: "Lỗi",
+        description: "Chỉ chấp nhận file CSV",
+        variant: "destructive",
+      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      setImportError(null);
+      const res = await fetch('/api/supermarkets/import', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setImportError(data.message);
+        toast({
+          title: "Lỗi",
+          description: data.message,
+          variant: "destructive",
+        });
+        
+        if (data.errors && data.errors.length > 0) {
+          // Log errors for debugging
+          console.error("Import errors:", data.errors);
+        }
+      } else {
+        toast({
+          title: "Thành công",
+          description: data.message,
+        });
+        
+        // Refresh the supermarkets list
+        queryClient.invalidateQueries({ queryKey: ['/api/supermarkets'] });
+      }
+    } catch (error) {
+      console.error("Import error:", error);
+      setImportError("Đã xảy ra lỗi khi nhập dữ liệu");
+      toast({
+        title: "Lỗi",
+        description: "Đã xảy ra lỗi khi nhập dữ liệu",
+        variant: "destructive",
+      });
+    } finally {
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   // Format region name
   const formatRegion = (region: string) => {
@@ -277,9 +350,16 @@ export default function SupermarketManagement() {
           <CardTitle>Quản lý siêu thị</CardTitle>
           {(user?.role === "admin" || user?.role === "manager") && (
             <div className="flex space-x-2">
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
                 <FileUp className="mr-2 h-4 w-4" />
                 Nhập từ file
+                <input
+                  type="file"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleFileImport}
+                  accept=".csv"
+                />
               </Button>
               <Button onClick={handleAddNew}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -289,6 +369,14 @@ export default function SupermarketManagement() {
           )}
         </CardHeader>
         <CardContent>
+          {/* Import Error Message */}
+          {importError && (
+            <div className="mb-4 p-3 bg-danger-light/20 text-danger border border-danger/20 rounded flex items-center">
+              <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+              <div className="text-sm">{importError}</div>
+            </div>
+          )}
+          
           {/* Filter and Search Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
             <div className="flex items-center space-x-2">
