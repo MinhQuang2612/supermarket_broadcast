@@ -83,6 +83,7 @@ export default function UserManagement() {
   const [showNewUserDialog, setShowNewUserDialog] = useState(false);
   const [showPasswordChangeDialog, setShowPasswordChangeDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPermanentDeleteDialog, setShowPermanentDeleteDialog] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -246,6 +247,12 @@ export default function UserManagement() {
     setShowDeleteDialog(true);
   };
 
+  // Open permanent delete dialog
+  const handleOpenPermanentDeleteDialog = (user: User) => {
+    setSelectedUser(user);
+    setShowPermanentDeleteDialog(true);
+  };
+
   // Handle user status change
   const handleChangeStatus = () => {
     if (selectedUser) {
@@ -254,6 +261,14 @@ export default function UserManagement() {
         userId: selectedUser.id,
         status: newStatus,
       });
+    }
+  };
+  
+  // Handle permanent user deletion
+  const handlePermanentDelete = () => {
+    if (selectedUser) {
+      deleteUserMutation.mutate(selectedUser.id);
+      setShowPermanentDeleteDialog(false);
     }
   };
 
@@ -475,11 +490,7 @@ export default function UserManagement() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => {
-                                if (window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản "${user.fullName}"? Hành động này không thể hoàn tác.`)) {
-                                  deleteUserMutation.mutate(user.id);
-                                }
-                              }}
+                              onClick={() => handleOpenPermanentDeleteDialog(user)}
                               className="h-8 w-8 text-danger hover:text-danger-dark"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -779,6 +790,23 @@ export default function UserManagement() {
         }
         onConfirm={handleChangeStatus}
         isLoading={changeStatusMutation.isPending}
+      />
+      
+      {/* Permanent Delete User Dialog */}
+      <ConfirmDialog
+        open={showPermanentDeleteDialog}
+        onOpenChange={setShowPermanentDeleteDialog}
+        title="Xóa vĩnh viễn tài khoản"
+        description={
+          <>
+            <p className="mb-2">Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản <span className="font-semibold">{selectedUser?.fullName}</span>?</p>
+            <p className="text-danger">Lưu ý: Hành động này không thể hoàn tác và tất cả dữ liệu liên quan đến tài khoản sẽ bị xóa vĩnh viễn.</p>
+          </>
+        }
+        onConfirm={handlePermanentDelete}
+        isLoading={deleteUserMutation.isPending}
+        variant="destructive"
+        confirmText="Xóa vĩnh viễn"
       />
     </DashboardLayout>
   );
