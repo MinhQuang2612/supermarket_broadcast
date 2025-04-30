@@ -453,136 +453,149 @@ export default function SupermarketManagement() {
       
       {/* Create/Edit Supermarket Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[650px]">
           <DialogHeader>
             <DialogTitle>
               {isEdit ? "Chỉnh sửa siêu thị" : "Thêm siêu thị mới"}
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tên siêu thị</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nhập tên siêu thị" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Địa chỉ cụ thể</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Số nhà, tên đường" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="ward"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Xã/Phường</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nhập xã/phường" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="district"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quận/Huyện</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nhập quận/huyện" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="province"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tỉnh/Thành phố</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nhập tỉnh/thành phố" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="region"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Khu vực</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              {/* Thông tin chính */}
+              <div className="mb-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tên siêu thị</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn khu vực" />
-                        </SelectTrigger>
+                        <Input placeholder="Nhập tên siêu thị" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="north">Miền Bắc</SelectItem>
-                        <SelectItem value="central">Miền Trung</SelectItem>
-                        <SelectItem value="south">Miền Nam</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Trạng thái</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn trạng thái" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="active">Đang hoạt động</SelectItem>
-                        <SelectItem value="paused">Tạm dừng</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Địa chỉ (bố trí thành nhiều cột) */}
+              <div className="space-y-2 mb-4">
+                <h3 className="text-sm font-medium">Thông tin địa chỉ</h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Địa chỉ cụ thể</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Số nhà, tên đường" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="ward"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Xã/Phường</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nhập xã/phường" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="district"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Quận/Huyện</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nhập quận/huyện" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="province"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Tỉnh/Thành phố</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nhập tỉnh/thành phố" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
               
-              <div className="flex justify-end space-x-2 pt-4">
+              {/* Cài đặt khác */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                <FormField
+                  control={form.control}
+                  name="region"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Khu vực</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn khu vực" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="north">Miền Bắc</SelectItem>
+                          <SelectItem value="central">Miền Trung</SelectItem>
+                          <SelectItem value="south">Miền Nam</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Trạng thái</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn trạng thái" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="active">Đang hoạt động</SelectItem>
+                          <SelectItem value="paused">Tạm dừng</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-2">
                 <Button
                   type="button"
                   variant="outline"
