@@ -234,7 +234,9 @@ export default function AudioManagement() {
 
   // Download file
   const handleDownload = (file: AudioFile) => {
-    window.open(`/api/audio-files/${file.id}/stream`, "_blank");
+    // Sử dụng URL có timestamp để tránh cache
+    const timestamp = new Date().getTime();
+    window.open(`/api/audio-files/${file.id}/stream?t=${timestamp}`, "_blank");
   };
 
   // Bulk delete selected files
@@ -634,7 +636,7 @@ export default function AudioManagement() {
           </DialogHeader>
           {selectedFile && (
             <AudioPlayer 
-              src={`/api/audio-files/${selectedFile.id}/stream`}
+              src={`/api/audio-files/${selectedFile.id}/stream?t=${new Date().getTime()}`}
               title={selectedFile.displayName}
             />
           )}
