@@ -122,10 +122,17 @@ export const insertBroadcastProgramSchema = createInsertSchema(broadcastPrograms
 // Playlists
 export const playlists = pgTable("playlists", {
   id: serial("id").primaryKey(),
-  broadcastProgramId: integer("broadcast_program_id").notNull(),
-  items: json("items").notNull(), // Array of playlist items with audio file IDs and times
+  broadcastProgramId: integer("broadcast_program_id").notNull().references(() => broadcastPrograms.id),
+  items: json("items").notNull().$type<PlaylistItem[]>(), // Array of playlist items with audio file IDs and times
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const playlistsRelations = relations(playlists, ({ one }) => ({
+  broadcastProgram: one(broadcastPrograms, {
+    fields: [playlists.broadcastProgramId],
+    references: [broadcastPrograms.id],
+  }),
+}));
 
 export const insertPlaylistSchema = createInsertSchema(playlists).omit({
   id: true,
@@ -135,11 +142,28 @@ export const insertPlaylistSchema = createInsertSchema(playlists).omit({
 // Supermarket broadcast assignments
 export const broadcastAssignments = pgTable("broadcast_assignments", {
   id: serial("id").primaryKey(),
-  supermarketId: integer("supermarket_id").notNull(),
-  broadcastProgramId: integer("broadcast_program_id").notNull(),
-  assignedBy: integer("assigned_by").notNull(),
+  supermarketId: integer("supermarket_id").notNull().references(() => supermarkets.id),
+  broadcastProgramId: integer("broadcast_program_id").notNull().references(() => broadcastPrograms.id),
+  assignedBy: integer("assigned_by").notNull().references(() => users.id),
   assignedAt: timestamp("assigned_at").defaultNow().notNull(),
 });
+
+export const broadcastAssignmentsRelations = relations(broadcastAssignments, ({ one }) => ({
+  supermarket: one(supermarkets, {
+    fields: [broadcastAssignments.supermarketId],
+    references: [supermarkets.id],
+  }),
+  broadcastProgram: one(broadcastPrograms, {
+    fields: [broadcastAssignments.broadcastProgramId],
+    references: [broadcastPrograms.id],
+    relationName: "programAssignments",
+  }),
+  assigner: one(users, {
+    fields: [broadcastAssignments.assignedBy],
+    references: [users.id],
+    relationName: "assignedBy",
+  }),
+}));
 
 export const insertBroadcastAssignmentSchema = createInsertSchema(broadcastAssignments).omit({
   id: true,
