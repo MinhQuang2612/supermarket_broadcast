@@ -458,6 +458,19 @@ export default function AudioManagement() {
                 },
               },
               {
+                header: "Sample Rate",
+                accessorKey: "sampleRate",
+                cell: ({ row }) => {
+                  const sampleRate = row.getValue("sampleRate") as number | null;
+                  
+                  return (
+                    <div className="text-sm text-neutral-dark">
+                      {sampleRate ? `${sampleRate} Hz` : "N/A"}
+                    </div>
+                  );
+                },
+              },
+              {
                 header: "Ngày tải lên",
                 accessorKey: "uploadedAt",
                 cell: ({ row }) => {
@@ -639,10 +652,25 @@ export default function AudioManagement() {
             <DialogTitle>Nghe thử file audio</DialogTitle>
           </DialogHeader>
           {selectedFile && (
-            <AudioPlayer 
-              src={`/api/audio-files/${selectedFile.id}/stream?t=${new Date().getTime()}`}
-              title={selectedFile.displayName}
-            />
+            <>
+              <AudioPlayer 
+                src={`/api/audio-files/${selectedFile.id}/stream?t=${new Date().getTime()}`}
+                title={selectedFile.displayName}
+              />
+              <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                <div className="text-neutral-medium">Thời lượng:</div>
+                <div className="font-medium">{formatTime(selectedFile.duration)}</div>
+                
+                <div className="text-neutral-medium">Kích thước:</div>
+                <div className="font-medium">{formatFileSize(selectedFile.fileSize)}</div>
+                
+                <div className="text-neutral-medium">Sample Rate:</div>
+                <div className="font-medium">{selectedFile.sampleRate ? `${selectedFile.sampleRate} Hz` : "N/A"}</div>
+                
+                <div className="text-neutral-medium">Loại file:</div>
+                <div className="font-medium">{selectedFile.fileType}</div>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
