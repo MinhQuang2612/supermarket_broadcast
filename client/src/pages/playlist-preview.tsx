@@ -70,17 +70,18 @@ export default function PlaylistPreview() {
     queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists'],
     enabled: !!selectedProgram,
     staleTime: 0,
-    refetchOnWindowFocus: true,
-    onSuccess: (data: Playlist[]) => {
-      console.log("Fetched program playlists:", data);
-      // Automatically select the first playlist if available and none is selected
-      if (data.length > 0 && !selectedPlaylistId) {
-        setSelectedPlaylistId(data[0].id);
-      } else if (data.length === 0) {
-        setSelectedPlaylistId(null);
-      }
-    }
+    refetchOnWindowFocus: true
   });
+  
+  // Automatically select the first playlist if available
+  useEffect(() => {
+    if (programPlaylists.length > 0 && !selectedPlaylistId) {
+      console.log("Auto-selecting first playlist:", programPlaylists[0]);
+      setSelectedPlaylistId(programPlaylists[0].id);
+    } else if (programPlaylists.length === 0) {
+      setSelectedPlaylistId(null);
+    }
+  }, [programPlaylists, selectedPlaylistId]);
 
   // Fetch selected playlist details
   const { 

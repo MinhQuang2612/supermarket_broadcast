@@ -55,6 +55,7 @@ export default function PlaylistCreation() {
   const [selectedProgram, setSelectedProgram] = useState<number | null>(null);
   const [existingPlaylist, setExistingPlaylist] = useState<Playlist | null>(null);
   const [playlistItems, setPlaylistItems] = useState<PlaylistItem[]>([]);
+  const [missingAudioFiles, setMissingAudioFiles] = useState<number[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
 
@@ -135,11 +136,29 @@ export default function PlaylistCreation() {
   // Load playlist items from existing playlist
   useEffect(() => {
     if (existingPlaylist) {
-      setPlaylistItems(existingPlaylist.items as PlaylistItem[]);
+      const items = existingPlaylist.items as PlaylistItem[] || [];
+      setPlaylistItems(items);
+      
+      // Kiểm tra các file âm thanh nào bị thiếu
+      const missingIds = items
+        .map(item => item.audioFileId)
+        .filter(id => !audioFiles.some(file => file.id === id));
+      
+      setMissingAudioFiles(missingIds);
+      
+      if (missingIds.length > 0) {
+        console.warn("⚠️ Phát hiện file âm thanh bị thiếu:", missingIds);
+        toast({
+          title: "Lưu ý: Có file âm thanh bị thiếu",
+          description: `Có ${missingIds.length} file âm thanh đã bị xóa khỏi hệ thống. Vui lòng kiểm tra và cập nhật lại playlist.`,
+          variant: "destructive",
+        });
+      }
     } else {
       setPlaylistItems([]);
+      setMissingAudioFiles([]);
     }
-  }, [existingPlaylist]);
+  }, [existingPlaylist, audioFiles, toast]);
 
   // Handle program selection
   const handleProgramSelect = (programId: string) => {
@@ -591,6 +610,104 @@ export default function PlaylistCreation() {
                         <p className="text-sm text-neutral-medium mt-1">
                           Thêm file từ danh sách bên phải hoặc tạo tự động
                         </p>
+                      </div>
+                    ) : missingAudioFiles.length > 0 ? (
+                      <div>
+                        <div className="p-4 mb-4 border border-yellow-200 bg-yellow-50 rounded-md">
+                          <div className="flex gap-2">
+                            <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+                            <div>
+                              <h4 className="font-medium text-yellow-800">Có file âm thanh bị thiếu</h4>
+                              <p className="text-sm text-yellow-700 mt-1">
+                                Một số file âm thanh trong danh sách phát này không còn tồn tại trong hệ thống. 
+                                Vui lòng xóa hoặc thay thế các mục bị đánh dấu màu vàng bên dưới.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="border rounded-md overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-16">STT</TableHead>
+                                <TableHead>Thời gian</TableHead>
+                                <TableHead>Tên file</TableHead>
+                                <TableHead>Nhóm</TableHead>
+                                <TableHead className="w-24">Thao tác</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {playlistItems.map((item, index) => {
+                                const audioFile = getAudioFile(item.audioFileId);
+                                const isMissing = !audioFile;
+                                
+                                return (
+                                  <TableRow key={index} className={isMissing ? "bg-yellow-50" : ""}>
+                                    <TableCell className="font-medium">{index + 1}</TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center">
+                                        <Clock className="h-4 w-4 mr-1 text-neutral-medium" />
+                                        {item.playTime}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      {isMissing ? (
+                                        <div className="flex items-center text-yellow-700">
+                                          <AlertTriangle className="h-4 w-4 mr-1" />
+                                          File đã bị xóa (ID: {item.audioFileId})
+                                        </div>
+                                      ) : (
+                                        audioFile.displayName
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      {isMissing ? (
+                                        <Badge variant="outline" className="bg-yellow-100 text-yellow-700">
+                                          Không xác định
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className={getGroupBadgeClass(audioFile.group)}>
+                                          {formatGroup(audioFile.group)}
+                                        </Badge>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex space-x-1">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-7 w-7"
+                                          onClick={() => moveItemUp(index)}
+                                          disabled={index === 0}
+                                        >
+                                          <ArrowUp className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-7 w-7"
+                                          onClick={() => moveItemDown(index)}
+                                          disabled={index === playlistItems.length - 1}
+                                        >
+                                          <ArrowDown className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-7 w-7 text-danger"
+                                          onClick={() => removeItem(index)}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
                       </div>
                     ) : (
                       <div className="border rounded-md overflow-hidden">
