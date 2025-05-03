@@ -239,7 +239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Parse header
       const header = lines[0].split(',').map(item => item.trim());
-      const requiredFields = ['name', 'address', 'region_code', 'province_name', 'commune_name'];
+      const requiredFields = ['name', 'address', 'regionId', 'provinceId', 'communeId', 'status'];
       
       // Check if all required fields are in the header
       const missingFields = requiredFields.filter(field => !header.includes(field));
@@ -274,30 +274,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rowData[field] = values[index];
         });
         
-        // Look up region by code
-        const region = regions.find(r => r.code === rowData.region_code);
+        // Validate regionId, provinceId, communeId
+        const regionId = parseInt(rowData.regionId);
+        const provinceId = parseInt(rowData.provinceId);
+        const communeId = parseInt(rowData.communeId);
+        
+        // Validate that region exists
+        const region = regions.find(r => r.id === regionId);
         if (!region) {
-          errors.push(`Dòng ${i + 1}: Không tìm thấy khu vực với mã "${rowData.region_code}"`);
+          errors.push(`Dòng ${i + 1}: Không tìm thấy khu vực với id "${regionId}"`);
           continue;
         }
         
-        // Look up province by name and region
-        const province = provinces.find(p => 
-          p.name.toLowerCase() === rowData.province_name.toLowerCase() && 
-          p.regionId === region.id
-        );
+        // Validate that province exists and belongs to the specified region
+        const province = provinces.find(p => p.id === provinceId && p.regionId === regionId);
         if (!province) {
-          errors.push(`Dòng ${i + 1}: Không tìm thấy tỉnh/thành phố "${rowData.province_name}" trong khu vực "${region.name}"`);
+          errors.push(`Dòng ${i + 1}: Không tìm thấy tỉnh/thành phố với id "${provinceId}" trong khu vực id "${regionId}"`);
           continue;
         }
         
-        // Look up commune by name and province
-        const commune = communes.find(c => 
-          c.name.toLowerCase() === rowData.commune_name.toLowerCase() && 
-          c.provinceId === province.id
-        );
+        // Validate that commune exists and belongs to the specified province
+        const commune = communes.find(c => c.id === communeId && c.provinceId === provinceId);
         if (!commune) {
-          errors.push(`Dòng ${i + 1}: Không tìm thấy quận/huyện/xã "${rowData.commune_name}" trong tỉnh/thành phố "${province.name}"`);
+          errors.push(`Dòng ${i + 1}: Không tìm thấy quận/huyện/xã với id "${communeId}" trong tỉnh/thành phố id "${provinceId}"`);
           continue;
         }
         
@@ -305,10 +304,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const supermarketData = {
           name: rowData.name,
           address: rowData.address,
-          regionId: region.id,
-          provinceId: province.id,
-          communeId: commune.id,
-          status: 'active' // Default value
+          regionId: regionId,
+          provinceId: provinceId,
+          communeId: communeId,
+          status: rowData.status || 'active' // Use provided status or default to active
         };
         
         // Validate the data
