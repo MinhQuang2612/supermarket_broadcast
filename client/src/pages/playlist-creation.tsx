@@ -166,19 +166,12 @@ export default function PlaylistCreation() {
     
     console.log("existingPlaylist:", existingPlaylist);
     
-    if (existingPlaylist && existingPlaylist.id) {
-      console.log("Updating existing playlist with ID:", existingPlaylist.id);
-      updatePlaylistMutation.mutate({
-        id: existingPlaylist.id,
-        items: playlistItems,
-      });
-    } else {
-      console.log("Creating new playlist for program:", selectedProgram);
-      createPlaylistMutation.mutate({
-        broadcastProgramId: selectedProgram,
-        items: playlistItems,
-      });
-    }
+    // Luôn tạo mới playlist thay vì cập nhật playlist cũ
+    console.log("Creating new playlist for program:", selectedProgram);
+    createPlaylistMutation.mutate({
+      broadcastProgramId: selectedProgram,
+      items: playlistItems,
+    });
   };
 
   // Move playlist item up
@@ -464,7 +457,7 @@ export default function PlaylistCreation() {
                           disabled={isLoading}
                         >
                           <Save className="h-4 w-4 mr-1" />
-                          Lưu
+                          Lưu mới
                         </Button>
                       </div>
                     </div>
@@ -650,14 +643,10 @@ export default function PlaylistCreation() {
       <ConfirmDialog
         open={showSaveDialog}
         onOpenChange={setShowSaveDialog}
-        title={existingPlaylist ? "Cập nhật danh sách phát" : "Lưu danh sách phát"}
-        description={
-          existingPlaylist
-            ? "Bạn có chắc chắn muốn cập nhật danh sách phát hiện tại không?"
-            : "Bạn có chắc chắn muốn lưu danh sách phát này không?"
-        }
+        title="Tạo danh sách phát mới"
+        description="Bạn có chắc chắn muốn tạo danh sách phát mới cho chương trình này không? Danh sách phát cũ vẫn sẽ được giữ lại."
         onConfirm={confirmSavePlaylist}
-        isLoading={createPlaylistMutation.isPending || updatePlaylistMutation.isPending}
+        isLoading={createPlaylistMutation.isPending}
       />
       
       {/* Generate Playlist Confirmation Dialog */}
