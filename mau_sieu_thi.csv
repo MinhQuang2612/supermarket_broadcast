@@ -1,3 +1,6 @@
 name,address,regionId,provinceId,communeId,status
 Siêu thị Mẫu Hà Nội,Số 123 Đường Lý Thường Kiệt,1,1,1,active
 Siêu thị Mẫu TP.HCM,Số 456 Đường Lê Lợi,3,11,13,active
+Siêu thị Mẫu Đà Nẵng,Số 789 Đường Nguyễn Văn Linh,2,6,9,active
+Siêu thị Mẫu Hải Phòng,Số 101 Đường Lạch Tray,1,2,6,active
+Siêu thị Mẫu Bình Thạnh,Số 21 Điện Biên Phủ,3,11,18,active
