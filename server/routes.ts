@@ -960,6 +960,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("PLAYLIST DEBUG - Filtered playlists for program:", JSON.stringify(filteredPlaylists.map(p => ({ id: p.id }))));
       console.log("PLAYLIST DEBUG - Raw filtered data:", JSON.stringify(filteredPlaylists));
       
+      console.log("FINAL DATA BEING SENT TO CLIENT:", JSON.stringify(filteredPlaylists.map(p => ({ id: p.id, broadcastProgramId: p.broadcastProgramId }))));
+      
       // Trả về danh sách các playlist
       res.json(filteredPlaylists);
     } catch (error) {
