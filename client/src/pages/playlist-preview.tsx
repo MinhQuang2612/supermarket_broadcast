@@ -581,9 +581,9 @@ export default function PlaylistPreview() {
                         <SelectValue placeholder="Chọn danh sách phát" />
                       </SelectTrigger>
                       <SelectContent>
-                        {programPlaylists.map((playlist) => (
+                        {programPlaylists.map((playlist, index) => (
                           <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                            Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
+                            Danh sách phát ID: {playlist.id} (#{index + 1}) - {new Date(playlist.createdAt).toLocaleString()}
                           </SelectItem>
                         ))}
                       </SelectContent>

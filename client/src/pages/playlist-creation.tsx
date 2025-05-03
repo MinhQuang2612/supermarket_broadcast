@@ -552,9 +552,9 @@ export default function PlaylistCreation() {
                             </div>
                           </SelectItem>
                           <SelectSeparator />
-                          {playlists.map((playlist) => (
+                          {playlists.map((playlist, index) => (
                             <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                              Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
+                              Danh sách phát ID: {playlist.id} (#{index + 1}) - {new Date(playlist.createdAt).toLocaleString()}
                             </SelectItem>
                           ))}
                         </SelectContent>
