@@ -248,13 +248,33 @@ export default function SupermarketManagement() {
     },
   });
 
-  // Handle form submission
+  // State for confirmation dialogs
+  const [showCreateConfirmDialog, setShowCreateConfirmDialog] = useState(false);
+  const [showEditConfirmDialog, setShowEditConfirmDialog] = useState(false);
+  const [pendingFormValues, setPendingFormValues] = useState<SupermarketFormValues | null>(null);
+
+  // Handle initial form submission - will show confirmation dialog
   const onSubmit = (values: SupermarketFormValues) => {
-    if (isEdit && selectedSupermarket) {
-      updateSupermarketMutation.mutate({ id: selectedSupermarket.id, data: values });
+    setPendingFormValues(values);
+    if (isEdit) {
+      setShowEditConfirmDialog(true);
     } else {
-      createSupermarketMutation.mutate(values);
+      setShowCreateConfirmDialog(true);
     }
+  };
+
+  // Handle confirmed form submission
+  const handleConfirmedSubmit = () => {
+    if (!pendingFormValues) return;
+    
+    if (isEdit && selectedSupermarket) {
+      updateSupermarketMutation.mutate({ id: selectedSupermarket.id, data: pendingFormValues });
+    } else {
+      createSupermarketMutation.mutate(pendingFormValues);
+    }
+    
+    setShowCreateConfirmDialog(false);
+    setShowEditConfirmDialog(false);
   };
 
   // Open dialog for creating new supermarket
@@ -390,6 +410,16 @@ export default function SupermarketManagement() {
     }
   };
 
+  // State for sorting
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
+  
+  // Handle sort change
+  const handleSortChange = (key: string, direction: 'asc' | 'desc' | null) => {
+    setSortKey(key);
+    setSortDirection(direction);
+  };
+  
   // Lọc siêu thị dựa trên bộ lọc và từ khóa tìm kiếm
   const filteredSupermarkets = supermarkets.filter(supermarket => {
     // Xử lý lọc theo khu vực với cấu trúc dữ liệu mới
@@ -415,6 +445,39 @@ export default function SupermarketManagement() {
       (region?.name && region.name.toLowerCase().includes(searchTermLower));
     
     return matchesRegion && matchesStatus && matchesSearch;
+  }).sort((a, b) => {
+    if (!sortKey || !sortDirection) return 0;
+    
+    let aValue, bValue;
+    
+    // Handle complex fields
+    if (sortKey === "regionId") {
+      const aRegion = regions.find(r => r.id === a.regionId);
+      const bRegion = regions.find(r => r.id === b.regionId);
+      aValue = aRegion?.name || "";
+      bValue = bRegion?.name || "";
+    } else if (sortKey === "provinceId") {
+      const aProvince = allProvinces.find(p => p.id === a.provinceId);
+      const bProvince = allProvinces.find(p => p.id === b.provinceId);
+      aValue = aProvince?.name || "";
+      bValue = bProvince?.name || "";
+    } else if (sortKey === "address") {
+      aValue = a.address.toLowerCase();
+      bValue = b.address.toLowerCase();
+    } else if (sortKey === "status") {
+      aValue = a.status === "active" ? "1" : "0";
+      bValue = b.status === "active" ? "1" : "0";
+    } else {
+      // Simple field
+      aValue = String(a[sortKey as keyof typeof a] || "").toLowerCase();
+      bValue = String(b[sortKey as keyof typeof b] || "").toLowerCase();
+    }
+    
+    if (sortDirection === "asc") {
+      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+    } else {
+      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+    }
   });
 
   return (
@@ -495,6 +558,7 @@ export default function SupermarketManagement() {
               {
                 header: "Tên siêu thị",
                 accessorKey: "name",
+                sortable: true,
                 cell: ({ row }) => (
                   <div className="text-sm font-medium text-neutral-darkest">
                     {row.getValue("name")}
@@ -504,6 +568,7 @@ export default function SupermarketManagement() {
               {
                 header: "Địa chỉ chi tiết",
                 accessorKey: "address",
+                sortable: true,
                 cell: ({ row }) => {
                   const supermarket = row.original as Supermarket;
                   const commune = allCommunes.find(c => c.id === supermarket.communeId);
@@ -526,6 +591,7 @@ export default function SupermarketManagement() {
               {
                 header: "Khu vực",
                 accessorKey: "regionId",
+                sortable: true,
                 cell: ({ row }) => {
                   const supermarket = row.original as Supermarket;
                   const region = regions.find(r => r.id === supermarket.regionId);
@@ -539,6 +605,7 @@ export default function SupermarketManagement() {
               {
                 header: "Trạng thái",
                 accessorKey: "status",
+                sortable: true,
                 cell: ({ row }) => {
                   const status = row.getValue("status") as string;
                   const badgeClass = status === "active"
@@ -556,6 +623,7 @@ export default function SupermarketManagement() {
               {
                 header: "Chương trình",
                 accessorKey: "currentProgram",
+                sortable: true,
                 cell: ({ row }) => {
                   const program = row.getValue("currentProgram") as string | undefined;
                   
@@ -616,6 +684,11 @@ export default function SupermarketManagement() {
             ]}
             data={filteredSupermarkets}
             isLoading={isLoading}
+            serverSideSorting={{
+              sortKey,
+              sortDirection,
+              onSortChange: handleSortChange
+            }}
           />
         </CardContent>
       </Card>
