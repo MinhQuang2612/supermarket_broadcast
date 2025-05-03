@@ -1,4 +1,3 @@
 name,address,regionId,provinceId,communeId,status
-Siêu thị Mẫu 1,Số 123 Đường Mẫu,1,1,1,active
-Siêu thị Mẫu 2,Số 456 Đường Mẫu,2,2,2,active
-Siêu thị Mẫu 3,Số 789 Đường Mẫu,3,3,3,active
+Siêu thị Mẫu Hà Nội,Số 123 Đường Lý Thường Kiệt,1,1,1,active
+Siêu thị Mẫu TP.HCM,Số 456 Đường Lê Lợi,3,3,3,active

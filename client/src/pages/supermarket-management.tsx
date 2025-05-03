@@ -384,6 +384,7 @@ export default function SupermarketManagement() {
         if (data.errors && data.errors.length > 0) {
           // Log errors for debugging
           console.error("Import errors:", data.errors);
+          setImportError(`Lỗi nhập dữ liệu: ${data.errors.join(", ")}`);
         }
       } else {
         toast({
