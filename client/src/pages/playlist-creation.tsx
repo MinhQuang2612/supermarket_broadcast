@@ -65,15 +65,19 @@ export default function PlaylistCreation() {
     queryKey: ['/api/audio-files'],
   });
 
-  // Fetch playlist for selected program
-  const { 
-    data: existingPlaylist, 
-    isLoading: isLoadingPlaylist,
-    refetch: refetchPlaylist
-  } = useQuery<Playlist>({
-    queryKey: ['/api/broadcast-programs', selectedProgram, 'playlist'],
+  // Fetch playlists for selected program
+  const {
+    data: playlists = [],
+    isLoading: isLoadingPlaylists,
+    refetch: refetchPlaylists
+  } = useQuery<Playlist[]>({
+    queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists'],
     enabled: !!selectedProgram,
   });
+  
+  // Get the latest playlist (if any)
+  const existingPlaylist = playlists && playlists.length > 0 ? playlists[0] : undefined;
+  const isLoadingPlaylist = isLoadingPlaylists;
 
   // Create playlist mutation
   const createPlaylistMutation = useMutation({
@@ -82,7 +86,9 @@ export default function PlaylistCreation() {
       return await res.json();
     },
     onSuccess: () => {
+      // Invalidate both single playlist and playlists list queries
       queryClient.invalidateQueries({ queryKey: ['/api/broadcast-programs', selectedProgram, 'playlist'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists'] });
       setShowSaveDialog(false);
       toast({
         title: "Danh sách phát đã được lưu",
@@ -106,7 +112,9 @@ export default function PlaylistCreation() {
       return await res.json();
     },
     onSuccess: () => {
+      // Invalidate both single playlist and playlists list queries
       queryClient.invalidateQueries({ queryKey: ['/api/broadcast-programs', selectedProgram, 'playlist'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists'] });
       setShowSaveDialog(false);
       toast({
         title: "Danh sách phát đã được cập nhật",
@@ -390,7 +398,7 @@ export default function PlaylistCreation() {
                 <Button 
                   variant="outline" 
                   disabled={!selectedProgram || isLoading}
-                  onClick={() => refetchPlaylist()}
+                  onClick={() => refetchPlaylists()}
                 >
                   <RefreshCcw className="h-4 w-4 mr-2" />
                   Làm mới
