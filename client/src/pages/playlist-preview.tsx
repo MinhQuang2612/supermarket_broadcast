@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { BroadcastProgram, AudioFile, PlaylistItem, Playlist } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -216,6 +216,15 @@ export default function PlaylistPreview() {
     }
     return found;
   };
+  
+  // Check if there are missing audio files in the playlist
+  const getMissingAudioFileIds = useMemo(() => {
+    if (!playlistItems || !audioFiles || audioFiles.length === 0) return [];
+    
+    return playlistItems
+      .map(item => item.audioFileId)
+      .filter(id => !audioFiles.some(file => file.id === id));
+  }, [playlistItems, audioFiles]);
 
   // Format time (seconds -> MM:SS)
   const formatTime = (seconds: number) => {
@@ -430,6 +439,27 @@ export default function PlaylistPreview() {
                 
                 {existingPlaylist ? (
                   <>
+                    {getMissingAudioFileIds.length > 0 && (
+                      <div className="p-4 mb-4 border border-yellow-200 bg-yellow-50 rounded-md">
+                        <div className="flex gap-2">
+                          <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+                          <div>
+                            <h4 className="font-medium text-yellow-800">Có file âm thanh bị thiếu</h4>
+                            <p className="text-sm text-yellow-700 mt-1">
+                              Một số file âm thanh trong danh sách phát này không còn tồn tại trong hệ thống. 
+                              Những file này sẽ bị bỏ qua khi phát.
+                            </p>
+                            <p className="text-sm text-yellow-700 mt-1">
+                              ID của các file bị thiếu: {getMissingAudioFileIds.join(', ')}
+                            </p>
+                            <p className="text-sm text-yellow-700 mt-1">
+                              ID của các file có sẵn: {audioFiles.map(file => file.id).join(', ')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  
                     {/* Audio Player */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                       <div className="lg:col-span-1">
@@ -452,16 +482,20 @@ export default function PlaylistPreview() {
                             <div className="bg-neutral-lightest rounded-lg p-6 text-center">
                               <Music className="h-12 w-12 mx-auto text-neutral-medium mb-3" />
                               <p className="text-neutral-dark mb-4">
-                                Nhấn nút phát để bắt đầu nghe thử danh sách phát
+                                {playlistItems.filter(item => getAudioFile(item.audioFileId)).length > 0 
+                                  ? "Nhấn nút phát để bắt đầu nghe thử danh sách phát"
+                                  : "Không có file âm thanh khả dụng để phát"}
                               </p>
-                              <Button 
-                                onClick={handleStartPlayback}
-                                disabled={playlistItems.length === 0 || isPlaying}
-                                className="mx-auto"
-                              >
-                                <Play className="h-4 w-4 mr-2" />
-                                Bắt đầu phát
-                              </Button>
+                              {playlistItems.filter(item => getAudioFile(item.audioFileId)).length > 0 && (
+                                <Button 
+                                  onClick={handleStartPlayback}
+                                  disabled={playlistItems.filter(item => getAudioFile(item.audioFileId)).length === 0 || isPlaying}
+                                  className="mx-auto"
+                                >
+                                  <Play className="h-4 w-4 mr-2" />
+                                  Bắt đầu phát
+                                </Button>
+                              )}
                             </div>
                           )}
                         </div>

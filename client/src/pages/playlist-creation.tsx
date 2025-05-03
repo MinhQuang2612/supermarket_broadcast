@@ -136,6 +136,9 @@ export default function PlaylistCreation() {
   // Load playlist items from existing playlist
   useEffect(() => {
     if (existingPlaylist) {
+      console.log("Loading playlist items from existing playlist:", existingPlaylist);
+      console.log("Available audio files:", audioFiles.map(f => f.id));
+      
       const items = existingPlaylist.items as PlaylistItem[] || [];
       setPlaylistItems(items);
       
@@ -148,6 +151,9 @@ export default function PlaylistCreation() {
       
       if (missingIds.length > 0) {
         console.warn("⚠️ Phát hiện file âm thanh bị thiếu:", missingIds);
+        console.warn("⚠️ AudioFileIds trong playlist:", items.map(item => item.audioFileId));
+        console.warn("⚠️ Available audio file IDs:", audioFiles.map(file => file.id));
+        
         toast({
           title: "Lưu ý: Có file âm thanh bị thiếu",
           description: `Có ${missingIds.length} file âm thanh đã bị xóa khỏi hệ thống. Vui lòng kiểm tra và cập nhật lại playlist.`,
