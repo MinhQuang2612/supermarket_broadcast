@@ -217,13 +217,24 @@ export default function PlaylistPreview() {
     return found;
   };
   
+  // State to track missing audio files
+  const [missingAudioFileIds, setMissingAudioFileIds] = useState<number[]>([]);
+  
   // Check if there are missing audio files in the playlist
-  const getMissingAudioFileIds = useMemo(() => {
-    if (!playlistItems || !audioFiles || audioFiles.length === 0) return [];
+  useEffect(() => {
+    if (!playlistItems || !audioFiles || audioFiles.length === 0) return;
     
-    return playlistItems
+    const missingIds = playlistItems
       .map(item => item.audioFileId)
       .filter(id => !audioFiles.some(file => file.id === id));
+    
+    setMissingAudioFileIds(missingIds);
+    
+    if (missingIds.length > 0) {
+      console.warn("Phát hiện audio files bị thiếu:", missingIds);
+      console.warn("Audio file IDs trong playlist:", playlistItems.map(item => item.audioFileId));
+      console.warn("Audio file IDs có sẵn:", audioFiles.map(file => file.id));
+    }
   }, [playlistItems, audioFiles]);
 
   // Format time (seconds -> MM:SS)
@@ -439,7 +450,7 @@ export default function PlaylistPreview() {
                 
                 {existingPlaylist ? (
                   <>
-                    {getMissingAudioFileIds.length > 0 && (
+                    {missingAudioFileIds.length > 0 && (
                       <div className="p-4 mb-4 border border-yellow-200 bg-yellow-50 rounded-md">
                         <div className="flex gap-2">
                           <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
@@ -450,7 +461,7 @@ export default function PlaylistPreview() {
                               Những file này sẽ bị bỏ qua khi phát.
                             </p>
                             <p className="text-sm text-yellow-700 mt-1">
-                              ID của các file bị thiếu: {getMissingAudioFileIds.join(', ')}
+                              ID của các file bị thiếu: {missingAudioFileIds.join(', ')}
                             </p>
                             <p className="text-sm text-yellow-700 mt-1">
                               ID của các file có sẵn: {audioFiles.map(file => file.id).join(', ')}
@@ -506,7 +517,7 @@ export default function PlaylistPreview() {
                           <div className="flex items-center justify-between mb-4">
                             <h3 className="font-medium">Tiến độ phát</h3>
                             <span className="text-sm text-neutral-medium">
-                              {currentAudioIndex + 1 > 0 ? currentAudioIndex + 1 : 0}/{playlistItems.length} files
+                              {currentAudioIndex + 1 > 0 ? currentAudioIndex + 1 : 0}/{playlistItems.filter(item => getAudioFile(item.audioFileId)).length} files khả dụng
                             </span>
                           </div>
                           
@@ -527,20 +538,35 @@ export default function PlaylistPreview() {
                               <TableBody>
                                 {playlistItems.map((item, index) => {
                                   const audioFile = getAudioFile(item.audioFileId);
-                                  if (!audioFile) return null;
+                                  const isMissing = !audioFile;
                                   
-                                  const isActive = index === currentAudioIndex;
-                                  
+                                  // If file is missing, show a warning row
+                                  // Otherwise, show the normal row with audio file details
                                   return (
                                     <TableRow 
                                       key={index}
-                                      className={isActive ? "bg-primary/5" : undefined}
+                                      className={
+                                        isMissing 
+                                          ? "bg-yellow-50" 
+                                          : index === currentAudioIndex 
+                                            ? "bg-primary/5" 
+                                            : undefined
+                                      }
                                     >
                                       <TableCell className="font-medium">
                                         {index + 1}
                                       </TableCell>
-                                      <TableCell className={isActive ? "font-medium" : ""}>
-                                        {audioFile.displayName}
+                                      <TableCell>
+                                        {isMissing ? (
+                                          <div className="flex items-center text-yellow-700">
+                                            <AlertTriangle className="h-4 w-4 mr-1" />
+                                            File đã bị xóa (ID: {item.audioFileId})
+                                          </div>
+                                        ) : (
+                                          <div className={index === currentAudioIndex ? "font-medium" : ""}>
+                                            {audioFile.displayName}
+                                          </div>
+                                        )}
                                       </TableCell>
                                       <TableCell>
                                         <div className="flex items-center">
@@ -549,23 +575,33 @@ export default function PlaylistPreview() {
                                         </div>
                                       </TableCell>
                                       <TableCell>
-                                        <Badge 
-                                          variant="outline" 
-                                          className={getGroupBadgeClass(audioFile.group)}
-                                        >
-                                          {formatGroup(audioFile.group)}
-                                        </Badge>
+                                        {isMissing ? (
+                                          <Badge variant="outline" className="bg-yellow-100 text-yellow-700">
+                                            Không xác định
+                                          </Badge>
+                                        ) : (
+                                          <Badge 
+                                            variant="outline" 
+                                            className={getGroupBadgeClass(audioFile.group)}
+                                          >
+                                            {formatGroup(audioFile.group)}
+                                          </Badge>
+                                        )}
                                       </TableCell>
-                                      <TableCell>{formatTime(audioFile.duration)}</TableCell>
                                       <TableCell>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          className="h-8 w-8" 
-                                          onClick={() => handlePlayTrack(index)}
-                                        >
-                                          <Play className="h-4 w-4" />
-                                        </Button>
+                                        {isMissing ? "—" : formatTime(audioFile.duration)}
+                                      </TableCell>
+                                      <TableCell>
+                                        {!isMissing && (
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-8 w-8" 
+                                            onClick={() => handlePlayTrack(index)}
+                                          >
+                                            <Play className="h-4 w-4" />
+                                          </Button>
+                                        )}
                                       </TableCell>
                                     </TableRow>
                                   );
@@ -586,7 +622,14 @@ export default function PlaylistPreview() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="p-4 bg-neutral-lightest rounded-md">
                             <h4 className="text-sm font-medium mb-2">Tổng số file audio</h4>
-                            <p className="text-2xl font-bold">{playlistItems.length}</p>
+                            <p className="text-2xl font-bold">
+                              {playlistItems.length} 
+                              {missingAudioFileIds.length > 0 && (
+                                <span className="text-sm text-yellow-700 ml-2">
+                                  ({playlistItems.filter(item => getAudioFile(item.audioFileId)).length} khả dụng)
+                                </span>
+                              )}
+                            </p>
                           </div>
                           
                           <div className="p-4 bg-neutral-lightest rounded-md">
