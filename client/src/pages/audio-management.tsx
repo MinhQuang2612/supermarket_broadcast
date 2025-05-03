@@ -174,6 +174,76 @@ export default function AudioManagement() {
     },
   });
   
+  // Change group for selected files
+  const [selectedGroup, setSelectedGroup] = useState<string>("");
+  const [showGroupChangeDialog, setShowGroupChangeDialog] = useState(false);
+  
+  const changeGroupMutation = useMutation({
+    mutationFn: async ({ ids, group }: { ids: number[], group: string }) => {
+      return Promise.all(ids.map(id => 
+        apiRequest("PATCH", `/api/audio-files/${id}/group`, { group })
+      ));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/audio-files'] });
+      setShowGroupChangeDialog(false);
+      setSelectedFiles([]);
+      toast({
+        title: "Thành công",
+        description: `Đã cập nhật nhóm cho ${selectedFiles.length} file âm thanh`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Cập nhật thất bại",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Handle changing group for multiple files
+  const handleChangeGroup = (group: string) => {
+    if (selectedFiles.length > 0) {
+      setSelectedGroup(group);
+      setShowGroupChangeDialog(true);
+    }
+  };
+  
+  // Confirm group change
+  const confirmGroupChange = () => {
+    if (selectedFiles.length > 0 && selectedGroup) {
+      changeGroupMutation.mutate({ 
+        ids: selectedFiles.map(file => file.id),
+        group: selectedGroup
+      });
+    }
+  };
+  
+  // Handle bulk download
+  const handleBulkDownload = () => {
+    if (selectedFiles.length > 0) {
+      // Create an invisible iframe for each file to trigger download
+      selectedFiles.forEach(file => {
+        const timestamp = new Date().getTime();
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = `/api/audio-files/${file.id}/stream?t=${timestamp}`;
+        document.body.appendChild(iframe);
+        
+        // Remove iframe after download starts
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      });
+      
+      toast({
+        title: "Tải xuống bắt đầu",
+        description: `Đang tải ${selectedFiles.length} file âm thanh`,
+      });
+    }
+  };
+  
   // Reset audio file status
   const resetStatusMutation = useMutation({
     mutationFn: async () => {
@@ -572,6 +642,28 @@ export default function AudioManagement() {
             data={filteredFiles}
             isLoading={isLoading}
           />
+          
+          {/* System Actions */}
+          {(user?.role === "admin" || user?.role === "manager") && (
+            <div className="mt-4 p-4 bg-muted rounded-lg border border-muted-foreground/20">
+              <h3 className="font-semibold mb-4">Quản lý hệ thống</h3>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="outline"
+                  className="bg-white"
+                  onClick={() => setShowStatusUpdateDialog(true)}
+                  disabled={isUpdatingStatus || resetStatusMutation.isPending}
+                >
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  {isUpdatingStatus ? "Đang cập nhật..." : "Cập nhật trạng thái file"}
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Cập nhật trạng thái sẽ kiểm tra tất cả file audio và đánh dấu file nào đang được sử dụng trong playlist.
+                Sử dụng tính năng này nếu bạn không thể xóa, tải xuống hoặc thay đổi nhóm của file audio.
+              </p>
+            </div>
+          )}
           
           {/* Bulk Actions */}
           {selectedFiles.length > 0 && (
