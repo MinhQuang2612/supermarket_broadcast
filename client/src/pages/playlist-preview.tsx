@@ -136,7 +136,7 @@ export default function PlaylistPreview() {
   };
   
   // Handle playlist selection
-  const handlePlaylistSelect = (playlistId: string) => {
+  const handlePlaylistSelect = async (playlistId: string) => {
     const id = parseInt(playlistId);
     console.log("Selected playlist ID:", id);
     
@@ -145,10 +145,26 @@ export default function PlaylistPreview() {
     setCurrentAudioIndex(-1);
     setIsPlaying(false);
     
-    // Invalidate the query to force a refresh
-    queryClient.invalidateQueries({
-      queryKey: ['/api/playlists', id]
-    });
+    try {
+      // Invalidate the query to force a refresh
+      await queryClient.invalidateQueries({
+        queryKey: ['/api/playlists', id]
+      });
+      
+      // Force refetch for this specific playlist
+      await queryClient.refetchQueries({
+        queryKey: ['/api/playlists', id]
+      });
+      
+      console.log("Invalidated and refetched playlist data for ID:", id);
+    } catch (error) {
+      console.error("Error refreshing playlist data:", error);
+      toast({
+        title: "Lỗi tải danh sách phát",
+        description: "Đã xảy ra lỗi khi tải danh sách phát. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Start playback
@@ -191,7 +207,13 @@ export default function PlaylistPreview() {
 
   // Get audio file by ID
   const getAudioFile = (id: number) => {
-    return audioFiles.find(file => file.id === id);
+    console.log("Looking for audio file with ID:", id);
+    const found = audioFiles.find(file => file.id === id);
+    if (!found) {
+      console.warn(`⚠️ Audio file with ID ${id} not found in audioFiles list. Available IDs:`, 
+        audioFiles.map(f => f.id));
+    }
+    return found;
   };
 
   // Format time (seconds -> MM:SS)
