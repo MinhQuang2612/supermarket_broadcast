@@ -70,7 +70,8 @@ export default function PlaylistPreview() {
     queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists'],
     enabled: !!selectedProgram,
     staleTime: 0,
-    onSuccess: (data) => {
+    refetchOnWindowFocus: true,
+    onSuccess: (data: Playlist[]) => {
       console.log("Fetched program playlists:", data);
       // Automatically select the first playlist if available and none is selected
       if (data.length > 0 && !selectedPlaylistId) {
