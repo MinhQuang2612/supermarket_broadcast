@@ -251,8 +251,8 @@ export default function DataTable({
       </div>
 
       {pagination && data.length > 0 && (
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-sm text-neutral-medium">
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-2">
+          <div className="text-sm text-neutral-medium text-center sm:text-left">
             {serverSidePagination ? (
               <>
                 Hiển thị <span className="font-medium">{Math.min(1 + (serverSidePagination.currentPage - 1) * pageSize, serverSidePagination.totalItems)}</span> đến{" "}
@@ -277,10 +277,20 @@ export default function DataTable({
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
-            {getPaginationButtons()}
+            {/* Show fewer page buttons on mobile */}
+            <div className="hidden sm:flex">
+              {getPaginationButtons()}
+            </div>
+            
+            {/* Simplified page indicator for mobile */}
+            <div className="flex sm:hidden">
+              <Button variant="outline" size="sm" className="pointer-events-none">
+                {serverSidePagination ? serverSidePagination.currentPage : currentPage} / {totalPages}
+              </Button>
+            </div>
 
             {totalPages > 5 && (
-              <>
+              <div className="hidden sm:flex">
                 {(serverSidePagination ? serverSidePagination.currentPage : currentPage) < totalPages - 3 && (
                   <Button variant="outline" size="sm" disabled className="h-8 w-8 p-0">
                     ...
@@ -294,7 +304,7 @@ export default function DataTable({
                 >
                   {totalPages}
                 </Button>
-              </>
+              </div>
             )}
 
             <Button
