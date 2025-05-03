@@ -205,31 +205,61 @@ export default function PlaylistCreation() {
         // Lấy lại danh sách playlist mới nhất sau khi invalidate
         await refetchPlaylists();
         
-        // Tìm lại với danh sách đã được refresh
-        const selectedPlaylist = playlists.find(p => p.id === id);
-        console.log("Found playlist:", selectedPlaylist);
-        
-        if (selectedPlaylist) {
-          setExistingPlaylist(selectedPlaylist);
-          // Đảm bảo items là một mảng và parse về dạng PlaylistItem
-          const items = Array.isArray(selectedPlaylist.items) 
-            ? selectedPlaylist.items as PlaylistItem[]
-            : [];
+        // Gọi API để lấy playlist trực tiếp từ server dựa vào ID thực
+        try {
+          console.log("Getting playlist directly from API with ID:", id);
+          const response = await fetch(`/api/playlists/${id}`);
           
-          // In ra ID của các audio file để debug
-          console.log("Playlist items audio IDs:", items.map(item => item.audioFileId));
-          console.log("Available audio file IDs:", audioFiles.map(file => file.id));
+          if (!response.ok) {
+            console.error(`API Request failed (${response.status}): /api/playlists/${id}`);
+            throw new Error(`Không thể lấy danh sách phát. Lỗi: ${response.status}`);
+          }
           
-          console.log("Setting playlist items:", items);
-          setPlaylistItems(items);
-        } else {
-          console.error(`⚠️ Không tìm thấy playlist với ID ${id}. Danh sách hiện có:`, 
+          const selectedPlaylist = await response.json();
+          console.log("API directly returned playlist:", selectedPlaylist);
+          
+          if (selectedPlaylist) {
+            setExistingPlaylist(selectedPlaylist);
+            // Đảm bảo items là một mảng và parse về dạng PlaylistItem
+            const items = Array.isArray(selectedPlaylist.items) 
+              ? selectedPlaylist.items as PlaylistItem[]
+              : [];
+            
+            // In ra ID của các audio file để debug
+            console.log("Playlist items audio IDs:", items.map(item => item.audioFileId));
+            console.log("Available audio file IDs:", audioFiles.map(file => file.id));
+            
+            console.log("Setting playlist items:", items);
+            setPlaylistItems(items);
+          } else {
+            throw new Error(`Không tìm thấy danh sách phát với ID ${id}`);
+          }
+        } catch (error) {
+          console.error(`⚠️ Lỗi khi tải trực tiếp từ API - ID ${id}:`, error);
+          
+          // Phương pháp thay thế: tìm từ danh sách đã cache trong client
+          console.log("Falling back to client-side cached playlists. Available playlists:", 
             playlists.map(p => ({ id: p.id, date: new Date(p.createdAt).toLocaleString() })));
-          toast({
-            title: "Lỗi tải danh sách phát",
-            description: `Không tìm thấy danh sách phát với ID ${id}. Vui lòng thử làm mới lại hoặc tạo mới.`,
-            variant: "destructive",
-          });
+          
+          const selectedPlaylist = playlists.find(p => p.id === id);
+          console.log("Found playlist from cache:", selectedPlaylist);
+          
+          if (selectedPlaylist) {
+            setExistingPlaylist(selectedPlaylist);
+            // Đảm bảo items là một mảng và parse về dạng PlaylistItem
+            const items = Array.isArray(selectedPlaylist.items) 
+              ? selectedPlaylist.items as PlaylistItem[]
+              : [];
+            
+            console.log("Setting playlist items from cache:", items);
+            setPlaylistItems(items);
+          } else {
+            toast({
+              title: "Lỗi tải danh sách phát",
+              description: `Không tìm thấy danh sách phát với ID ${id}. Vui lòng thử làm mới lại hoặc tạo mới.`,
+              variant: "destructive",
+            });
+          }
         }
       } catch (error) {
         console.error("Error loading playlist:", error);

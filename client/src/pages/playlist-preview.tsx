@@ -153,12 +153,25 @@ export default function PlaylistPreview() {
     setIsPlaying(false);
     
     try {
-      // Invalidate the query to force a refresh
+      // Truy vấn trực tiếp API để lấy playlist theo ID thực tế
+      console.log("Fetching directly from API: /api/playlists/" + id);
+      const response = await fetch(`/api/playlists/${id}`);
+      
+      if (!response.ok) {
+        console.error(`API error (${response.status}): /api/playlists/${id}`);
+        throw new Error(`Không thể lấy danh sách phát: ${response.status}`);
+      }
+      
+      // Lấy dữ liệu playlist trực tiếp từ API
+      const playlist = await response.json();
+      console.log("Received playlist directly from API:", playlist);
+      
+      // Invalidate the query to update cache
       await queryClient.invalidateQueries({
         queryKey: ['/api/playlists', id]
       });
       
-      // Force refetch for this specific playlist
+      // Force refetch to update React Query cache
       await queryClient.refetchQueries({
         queryKey: ['/api/playlists', id]
       });
