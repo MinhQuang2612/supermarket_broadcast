@@ -255,10 +255,6 @@ export default function SupermarketManagement() {
     form.reset({
       name: "",
       address: "",
-      ward: "",
-      district: "",
-      province: "",
-      region: "north",
       status: "active",
       regionId: 0,
       provinceId: 0,
@@ -279,10 +275,6 @@ export default function SupermarketManagement() {
     form.reset({
       name: supermarket.name,
       address: supermarket.address,
-      ward: supermarket.ward || "",
-      district: supermarket.district || "",
-      province: supermarket.province || "",
-      region: supermarket.region || "north",
       status: supermarket.status,
       regionId: supermarket.regionId || 0,
       provinceId: supermarket.provinceId || 0,
@@ -503,12 +495,16 @@ export default function SupermarketManagement() {
                 accessorKey: "address",
                 cell: ({ row }) => {
                   const supermarket = row.original as Supermarket;
+                  const commune = communes.find(c => c.id === supermarket.communeId);
+                  const province = provinces.find(p => p.id === supermarket.provinceId);
+                  const region = regions.find(r => r.id === supermarket.regionId);
+                  
                   const addressParts = [];
                   
                   if (supermarket.address) addressParts.push(supermarket.address);
-                  if (supermarket.ward) addressParts.push(supermarket.ward);
-                  if (supermarket.district) addressParts.push(supermarket.district);
-                  if (supermarket.province) addressParts.push(supermarket.province);
+                  if (commune?.name) addressParts.push(commune.name);
+                  if (province?.name) addressParts.push(province.name);
+                  if (region?.name) addressParts.push(region.name);
                   
                   return (
                     <div className="text-sm text-neutral-dark max-w-xs truncate" title={addressParts.join(", ")}>
@@ -745,64 +741,11 @@ export default function SupermarketManagement() {
                       </FormItem>
                     )}
                   />
-                  
-                  {/* Giữ lại các trường cũ tạm thời để khớp với schema */}
-                  <div className="hidden">
-                    <FormField
-                      control={form.control}
-                      name="ward"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="district"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="province"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
                 </div>
               </div>
               
               {/* Cài đặt khác */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                {/* Ẩn trường region cũ nhưng vẫn giữ lại để khớp schema */}
-                <div className="hidden">
-                  <FormField
-                    control={form.control}
-                    name="region"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
                 
                 <FormField
                   control={form.control}
