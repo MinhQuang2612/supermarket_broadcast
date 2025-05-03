@@ -61,8 +61,11 @@ export default function SupermarketManagement() {
   const [showDialog, setShowDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [showCreateConfirmDialog, setShowCreateConfirmDialog] = useState(false);
+  const [showEditConfirmDialog, setShowEditConfirmDialog] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [selectedSupermarket, setSelectedSupermarket] = useState<Supermarket | null>(null);
+  const [pendingFormValues, setPendingFormValues] = useState<SupermarketFormValues | null>(null);
   const [regionFilter, setRegionFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -247,11 +250,6 @@ export default function SupermarketManagement() {
       });
     },
   });
-
-  // State for confirmation dialogs
-  const [showCreateConfirmDialog, setShowCreateConfirmDialog] = useState(false);
-  const [showEditConfirmDialog, setShowEditConfirmDialog] = useState(false);
-  const [pendingFormValues, setPendingFormValues] = useState<SupermarketFormValues | null>(null);
 
   // Handle initial form submission - will show confirmation dialog
   const onSubmit = (values: SupermarketFormValues) => {
