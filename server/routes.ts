@@ -165,6 +165,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Location routes - regions, provinces, communes
+  app.get("/api/regions", isAuthenticated, async (req, res, next) => {
+    try {
+      const regions = await storage.getAllRegions();
+      res.json(regions);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/provinces", isAuthenticated, async (req, res, next) => {
+    try {
+      const { regionId } = req.query;
+      let provinces;
+      
+      if (regionId && !isNaN(Number(regionId))) {
+        provinces = await storage.getProvincesByRegion(Number(regionId));
+      } else {
+        provinces = await storage.getAllProvinces();
+      }
+      
+      res.json(provinces);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/communes", isAuthenticated, async (req, res, next) => {
+    try {
+      const { provinceId } = req.query;
+      let communes;
+      
+      if (provinceId && !isNaN(Number(provinceId))) {
+        communes = await storage.getCommunesByProvince(Number(provinceId));
+      } else {
+        communes = await storage.getAllCommunes();
+      }
+      
+      res.json(communes);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Supermarket routes
   app.get("/api/supermarkets", isAuthenticated, async (req, res, next) => {
     try {
