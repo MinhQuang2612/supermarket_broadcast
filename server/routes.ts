@@ -874,6 +874,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  app.delete("/api/playlists/:id", isManagerOrAdmin, async (req, res, next) => {
+    try {
+      const playlistId = parseInt(req.params.id);
+      
+      // Validate playlist ID
+      if (isNaN(playlistId) || playlistId <= 0) {
+        return res.status(400).json({ message: "ID danh sách phát không hợp lệ" });
+      }
+      
+      const existingPlaylist = await storage.getPlaylist(playlistId);
+      if (!existingPlaylist) {
+        return res.status(404).json({ message: "Không tìm thấy danh sách phát" });
+      }
+      
+      // Get program info for logging
+      const program = await storage.getBroadcastProgram(existingPlaylist.broadcastProgramId);
+      
+      // Get the audio file IDs to potentially update their status
+      const audioFileIds = JSON.parse(JSON.stringify(existingPlaylist.items)).map((item: any) => item.audioFileId);
+      
+      // Delete the playlist
+      await storage.deletePlaylist(playlistId);
+      
+      // Update audio files status to "unused" if they're not used elsewhere
+      for (const fileId of audioFileIds) {
+        const isUsed = await storage.isAudioFileUsed(fileId);
+        if (!isUsed) {
+          await storage.updateAudioFileStatus(fileId, "unused");
+        }
+      }
+      
+      // Log the activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "delete_playlist",
+        details: `Xóa danh sách phát cho chương trình ${program?.name || ''}`,
+      });
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting playlist:", error);
+      next(error);
+    }
+  });
 
   app.get("/api/playlists/:id", isAuthenticated, async (req, res, next) => {
     try {

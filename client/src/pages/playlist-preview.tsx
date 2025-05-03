@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { BroadcastProgram, AudioFile, PlaylistItem } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { BroadcastProgram, AudioFile, PlaylistItem, Playlist } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import ConfirmDialog from "@/components/confirm-dialog";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import AudioPlayer from "@/components/audio-player";
 import { 
@@ -35,15 +38,18 @@ import {
   AlertTriangle, 
   SkipForward, 
   Music, 
-  Clock 
+  Clock,
+  Trash2
 } from "lucide-react";
 import { format } from "date-fns";
 
 export default function PlaylistPreview() {
+  const { toast } = useToast();
   const [selectedProgram, setSelectedProgram] = useState<number | null>(null);
   const [currentAudioIndex, setCurrentAudioIndex] = useState<number>(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playlistItems, setPlaylistItems] = useState<PlaylistItem[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Fetch broadcast programs
   const { data: programs = [], isLoading: isLoadingPrograms } = useQuery<BroadcastProgram[]>({
@@ -185,6 +191,47 @@ export default function PlaylistPreview() {
   const getPlaylistProgress = () => {
     if (currentAudioIndex === -1 || playlistItems.length === 0) return 0;
     return ((currentAudioIndex + 1) / playlistItems.length) * 100;
+  };
+  
+  // Delete playlist mutation
+  const deletePlaylistMutation = useMutation({
+    mutationFn: async () => {
+      if (!existingPlaylist || !existingPlaylist.id) {
+        throw new Error("Không tìm thấy playlist để xóa");
+      }
+      const res = await apiRequest("DELETE", `/api/playlists/${existingPlaylist.id}`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Không thể xóa danh sách phát");
+      }
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-programs', selectedProgram, 'playlist'] });
+      setShowDeleteDialog(false);
+      toast({
+        title: "Đã xóa danh sách phát",
+        description: "Danh sách phát đã được xóa thành công",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Không thể xóa danh sách phát",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Handle delete playlist
+  const handleDeletePlaylist = () => {
+    if (!existingPlaylist) return;
+    setShowDeleteDialog(true);
+  };
+  
+  // Confirm delete playlist
+  const confirmDeletePlaylist = () => {
+    deletePlaylistMutation.mutate();
   };
 
   const isLoading = isLoadingPrograms || isLoadingAudio || isLoadingPlaylist;

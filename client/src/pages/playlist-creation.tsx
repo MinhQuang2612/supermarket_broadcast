@@ -198,13 +198,33 @@ export default function PlaylistCreation() {
 
   // Add audio file to playlist
   const addAudioToPlaylist = (audioFile: AudioFile) => {
+    // Kiểm tra audioFile và xác nhận rằng nó không undefined
+    if (!audioFile || !audioFile.id) {
+      console.error("Audio file is undefined or missing ID");
+      toast({
+        title: "Lỗi thêm file",
+        description: "Không thể thêm file âm thanh này vào danh sách phát",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Generate a time slot (simple implementation - would need to be more sophisticated)
     let playTime = "08:00";
-    if (playlistItems.length > 0) {
-      const lastTime = playlistItems[playlistItems.length - 1].playTime;
-      const lastTimeObj = parse(lastTime, "HH:mm", new Date());
-      const nextTimeObj = addMinutes(lastTimeObj, 15); // 15 min after previous
-      playTime = format(nextTimeObj, "HH:mm");
+    if (playlistItems && playlistItems.length > 0) {
+      try {
+        const lastItem = playlistItems[playlistItems.length - 1];
+        if (lastItem && lastItem.playTime) {
+          const lastTime = lastItem.playTime;
+          const lastTimeObj = parse(lastTime, "HH:mm", new Date());
+          const nextTimeObj = addMinutes(lastTimeObj, 15); // 15 min after previous
+          playTime = format(nextTimeObj, "HH:mm");
+        }
+      } catch (error) {
+        console.error("Error calculating next play time:", error);
+        // Fallback to default time
+        playTime = "08:00";
+      }
     }
     
     const newItem: PlaylistItem = {
@@ -212,7 +232,7 @@ export default function PlaylistCreation() {
       playTime
     };
     
-    setPlaylistItems([...playlistItems, newItem]);
+    setPlaylistItems(playlistItems ? [...playlistItems, newItem] : [newItem]);
   };
 
   // Get audio file by ID
