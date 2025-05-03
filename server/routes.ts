@@ -893,14 +893,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/broadcast-programs/:id/playlist", isAuthenticated, async (req, res, next) => {
     try {
       const programId = parseInt(req.params.id);
-      const playlist = await storage.getPlaylistByProgramId(programId);
+      console.log("Getting playlist for program ID:", programId);
       
-      if (!playlist) {
-        return res.status(404).json({ message: "Không tìm thấy danh sách phát cho chương trình này" });
+      // Validate program ID
+      if (isNaN(programId) || programId <= 0) {
+        return res.status(400).json({ message: "ID chương trình không hợp lệ" });
       }
       
-      res.json(playlist);
+      const playlist = await storage.getPlaylistByProgramId(programId);
+      
+      // Return the playlist if found, or null if not found
+      // No need to return a 404 status since "no playlist" is a valid state
+      res.json(playlist || null);
     } catch (error) {
+      console.error("Error getting playlist for program:", error);
       next(error);
     }
   });

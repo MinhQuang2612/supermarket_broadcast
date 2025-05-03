@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { BroadcastProgram, AudioFile, PlaylistItem } from "@shared/schema";
+import { BroadcastProgram, AudioFile, PlaylistItem, Playlist } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -70,7 +70,7 @@ export default function PlaylistCreation() {
     data: existingPlaylist, 
     isLoading: isLoadingPlaylist,
     refetch: refetchPlaylist
-  } = useQuery({
+  } = useQuery<Playlist>({
     queryKey: ['/api/broadcast-programs', selectedProgram, 'playlist'],
     enabled: !!selectedProgram,
   });
@@ -156,12 +156,16 @@ export default function PlaylistCreation() {
   const confirmSavePlaylist = () => {
     if (!selectedProgram) return;
     
-    if (existingPlaylist) {
+    console.log("existingPlaylist:", existingPlaylist);
+    
+    if (existingPlaylist && existingPlaylist.id) {
+      console.log("Updating existing playlist with ID:", existingPlaylist.id);
       updatePlaylistMutation.mutate({
         id: existingPlaylist.id,
         items: playlistItems,
       });
     } else {
+      console.log("Creating new playlist for program:", selectedProgram);
       createPlaylistMutation.mutate({
         broadcastProgramId: selectedProgram,
         items: playlistItems,
