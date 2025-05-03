@@ -951,6 +951,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const playlistId = parseInt(req.params.id);
       
+      // Kiểm tra xem playlistId có phải là số hợp lệ hay không
+      if (isNaN(playlistId)) {
+        return res.status(400).json({ message: "ID danh sách phát không hợp lệ" });
+      }
+      
       const validation = insertPlaylistSchema
         .omit({ broadcastProgramId: true })
         .safeParse(req.body);
