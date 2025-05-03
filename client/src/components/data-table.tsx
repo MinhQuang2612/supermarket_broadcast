@@ -173,6 +173,13 @@ export default function DataTable({
 
   return (
     <div>
+      {(sortKey && sortDirection) && (
+        <div className="text-sm mb-2 text-neutral-medium">
+          Đang sắp xếp theo: <span className="font-medium text-primary">
+            {columns.find(col => col.accessorKey === sortKey)?.header || sortKey}
+          </span> - {sortDirection === 'asc' ? 'Tăng dần' : 'Giảm dần'}
+        </div>
+      )}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -180,7 +187,7 @@ export default function DataTable({
               {columns.map((column) => (
                 <TableHead 
                   key={column.id || column.accessorKey} 
-                  className={`font-medium text-xs uppercase tracking-wider bg-neutral-50 py-3 ${column.sortable ? 'cursor-pointer group' : ''}`}
+                  className={`font-medium text-xs uppercase tracking-wider bg-neutral-50 py-3 ${column.sortable ? 'cursor-pointer group hover:bg-neutral-100' : ''}`}
                   onClick={() => column.sortable && column.accessorKey && handleSort(column.accessorKey)}
                 >
                   <div className="flex items-center">
@@ -189,12 +196,12 @@ export default function DataTable({
                       <div className="ml-2">
                         {sortKey === column.accessorKey ? (
                           sortDirection === 'asc' ? (
-                            <ChevronUp className="h-4 w-4" />
+                            <ChevronUp className="h-4 w-4 text-primary" />
                           ) : sortDirection === 'desc' ? (
-                            <ChevronDown className="h-4 w-4" />
+                            <ChevronDown className="h-4 w-4 text-primary" />
                           ) : null
                         ) : (
-                          <div className="opacity-0 group-hover:opacity-50 h-4 w-4 flex flex-col items-center">
+                          <div className="opacity-0 group-hover:opacity-70 h-4 w-4 flex flex-col items-center">
                             <ChevronUp className="h-2 w-4" />
                             <ChevronDown className="h-2 w-4" />
                           </div>
