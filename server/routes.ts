@@ -19,7 +19,7 @@ import {
 import { eq } from "drizzle-orm";
 
 // Configure multer for file uploads
-const upload = multer({
+const audioUpload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
       const uploadDir = path.join(process.cwd(), "uploads");
@@ -48,6 +48,21 @@ const upload = multer({
   },
   limits: {
     fileSize: 15 * 1024 * 1024, // 15MB max file size
+  }
+});
+
+// Configure multer for CSV uploads
+const csvUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Chỉ chấp nhận file CSV'));
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max file size
   }
 });
 
@@ -222,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Import supermarkets from CSV file
-  app.post("/api/supermarkets/import", isManagerOrAdmin, upload.single('file'), async (req, res, next) => {
+  app.post("/api/supermarkets/import", isManagerOrAdmin, csvUpload.single('file'), async (req, res, next) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "Không tìm thấy file" });
@@ -511,7 +526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audio-files", isManagerOrAdmin, upload.single("audioFile"), async (req, res, next) => {
+  app.post("/api/audio-files", isManagerOrAdmin, audioUpload.single("audioFile"), async (req, res, next) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "Không có file âm thanh được tải lên" });
