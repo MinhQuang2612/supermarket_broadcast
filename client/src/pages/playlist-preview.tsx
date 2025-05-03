@@ -245,10 +245,24 @@ export default function PlaylistPreview() {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Nghe thử chương trình</CardTitle>
-            <CardDescription>
-              Nghe thử danh sách phát trước khi phát sóng
-            </CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>Nghe thử chương trình</CardTitle>
+                <CardDescription>
+                  Nghe thử danh sách phát trước khi phát sóng
+                </CardDescription>
+              </div>
+              {existingPlaylist && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDeletePlaylist}
+                  disabled={deletePlaylistMutation.isPending}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Xóa danh sách phát
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {/* Program Selection */}
@@ -460,6 +474,19 @@ export default function PlaylistPreview() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Xóa danh sách phát"
+        description="Bạn có chắc chắn muốn xóa danh sách phát này? Hành động này không thể hoàn tác."
+        onConfirm={confirmDeletePlaylist}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        isLoading={deletePlaylistMutation.isPending}
+        variant="destructive"
+      />
     </DashboardLayout>
   );
 }
