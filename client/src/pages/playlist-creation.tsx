@@ -51,6 +51,7 @@ export default function PlaylistCreation() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [selectedProgram, setSelectedProgram] = useState<number | null>(null);
+  const [existingPlaylist, setExistingPlaylist] = useState<Playlist | null>(null);
   const [playlistItems, setPlaylistItems] = useState<PlaylistItem[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
@@ -75,8 +76,7 @@ export default function PlaylistCreation() {
     enabled: !!selectedProgram,
   });
   
-  // Get the latest playlist (if any)
-  const existingPlaylist = playlists && playlists.length > 0 ? playlists[0] : undefined;
+  // Derived state for loading
   const isLoadingPlaylist = isLoadingPlaylists;
 
   // Create playlist mutation
@@ -142,6 +142,25 @@ export default function PlaylistCreation() {
   // Handle program selection
   const handleProgramSelect = (programId: string) => {
     setSelectedProgram(parseInt(programId));
+    // Khi chọn chương trình mới, reset playlist đang chỉnh sửa
+    setExistingPlaylist(null);
+    setPlaylistItems([]);
+  };
+  
+  // Handle playlist selection
+  const handlePlaylistSelect = (playlistId: string) => {
+    if (playlistId === "new") {
+      // Chọn tạo mới
+      setExistingPlaylist(null);
+      setPlaylistItems([]);
+    } else if (playlistId && playlists) {
+      // Tìm và load playlist đã chọn
+      const selectedPlaylist = playlists.find(p => p.id === parseInt(playlistId));
+      if (selectedPlaylist) {
+        setExistingPlaylist(selectedPlaylist);
+        setPlaylistItems(selectedPlaylist.items as PlaylistItem[]);
+      }
+    }
   };
 
   // Handle save playlist
@@ -166,12 +185,21 @@ export default function PlaylistCreation() {
     
     console.log("existingPlaylist:", existingPlaylist);
     
-    // Luôn tạo mới playlist thay vì cập nhật playlist cũ
-    console.log("Creating new playlist for program:", selectedProgram);
-    createPlaylistMutation.mutate({
-      broadcastProgramId: selectedProgram,
-      items: playlistItems,
-    });
+    if (existingPlaylist) {
+      // Cập nhật playlist hiện tại
+      console.log("Updating playlist:", existingPlaylist.id);
+      updatePlaylistMutation.mutate({
+        id: existingPlaylist.id,
+        items: playlistItems,
+      });
+    } else {
+      // Tạo mới playlist
+      console.log("Creating new playlist for program:", selectedProgram);
+      createPlaylistMutation.mutate({
+        broadcastProgramId: selectedProgram,
+        items: playlistItems,
+      });
+    }
   };
 
   // Move playlist item up
@@ -415,22 +443,59 @@ export default function PlaylistCreation() {
                         <span className="font-medium">{format(new Date(selectedProgramData.date), "dd/MM/yyyy")}</span>
                       </div>
                       <div>
-                        <span className="text-neutral-medium">Trạng thái:</span>{" "}
+                        <span className="text-neutral-medium">Số playlist hiện có:</span>{" "}
                         <span className="font-medium">
-                          {existingPlaylist ? (
-                            <Badge variant="outline" className="bg-success-light/20 text-success">
-                              <CheckCircle className="h-3 w-3 mr-1" /> Đã có playlist
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="bg-neutral-medium/20 text-neutral-dark">
-                              Chưa có playlist
-                            </Badge>
-                          )}
+                          {playlists?.length || 0}
                         </span>
                       </div>
                     </div>
                   )}
                 </div>
+                
+                {/* Playlist Selection */}
+                {playlists && playlists.length > 0 && (
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium mb-2">
+                      Chọn playlist
+                    </label>
+                    <div className="flex flex-col md:flex-row md:items-center gap-3">
+                      <Select 
+                        onValueChange={handlePlaylistSelect}
+                        defaultValue="new"
+                      >
+                        <SelectTrigger className="w-full md:w-1/2">
+                          <SelectValue placeholder="Chọn playlist" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="new">
+                            <div className="flex items-center">
+                              <PlusCircle className="h-4 w-4 mr-2 text-primary" />
+                              Tạo mới playlist
+                            </div>
+                          </SelectItem>
+                          <SelectSeparator />
+                          {playlists.map((playlist) => (
+                            <SelectItem key={playlist.id} value={playlist.id.toString()}>
+                              Playlist {new Date(playlist.createdAt).toLocaleString()}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <div className="flex items-center space-x-2">
+                        {existingPlaylist ? (
+                          <Badge variant="outline" className="bg-success-light/20 text-success">
+                            <CheckCircle className="h-3 w-3 mr-1" /> Đang chỉnh sửa playlist
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-primary-light/20 text-primary">
+                            <PlusCircle className="h-3 w-3 mr-1" /> Đang tạo playlist mới
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Playlist management */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -643,10 +708,13 @@ export default function PlaylistCreation() {
       <ConfirmDialog
         open={showSaveDialog}
         onOpenChange={setShowSaveDialog}
-        title="Tạo danh sách phát mới"
-        description="Bạn có chắc chắn muốn tạo danh sách phát mới cho chương trình này không? Danh sách phát cũ vẫn sẽ được giữ lại."
+        title={existingPlaylist ? "Cập nhật danh sách phát" : "Tạo danh sách phát mới"}
+        description={existingPlaylist 
+          ? "Bạn có chắc chắn muốn cập nhật danh sách phát này không?" 
+          : "Bạn có chắc chắn muốn tạo danh sách phát mới cho chương trình này không? Danh sách phát cũ vẫn sẽ được giữ lại."
+        }
         onConfirm={confirmSavePlaylist}
-        isLoading={createPlaylistMutation.isPending}
+        isLoading={createPlaylistMutation.isPending || updatePlaylistMutation.isPending}
       />
       
       {/* Generate Playlist Confirmation Dialog */}
