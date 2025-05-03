@@ -36,7 +36,8 @@ import {
   Play, 
   Headphones, 
   AlertTriangle, 
-  SkipForward, 
+  SkipForward,
+  Filter,
   Music, 
   Clock,
   Trash2
@@ -86,7 +87,8 @@ export default function PlaylistPreview() {
   // Fetch selected playlist details
   const { 
     data: existingPlaylist, 
-    isLoading: isLoadingPlaylist 
+    isLoading: isLoadingPlaylist,
+    refetch: refetchPlaylist
   } = useQuery<Playlist>({
     queryKey: ['/api/playlists', selectedPlaylistId],
     enabled: !!selectedPlaylistId,
@@ -413,6 +415,55 @@ export default function PlaylistPreview() {
     },
   });
   
+  // Clean playlist mutation (removes references to non-existent audio files)
+  const cleanPlaylistMutation = useMutation({
+    mutationFn: async () => {
+      try {
+        console.log("Starting cleanup process for playlist ID:", selectedPlaylistId);
+        
+        if (!selectedPlaylistId) {
+          throw new Error("Không có danh sách phát nào được chọn để chuẩn hóa");
+        }
+        
+        // Thực hiện chuẩn hóa với ID được chọn
+        const res = await apiRequest("POST", `/api/playlists/${selectedPlaylistId}/clean`);
+        console.log("Clean response status:", res.status);
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ message: "Không thể đọc thông tin lỗi" }));
+          console.error("Clean error response:", errorData);
+          throw new Error(errorData.message || "Không thể chuẩn hóa danh sách phát");
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error("Error during clean operation:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      // Invalidate both the playlists list and the specific playlist
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/playlists', selectedPlaylistId] });
+      
+      // Refetch the playlist data to update the UI
+      refetchPlaylist();
+      
+      toast({
+        title: "Đã chuẩn hóa danh sách phát",
+        description: data.message || `Đã loại bỏ ${data.removedItems} file âm thanh không tồn tại`,
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Clean mutation error:", error);
+      toast({
+        title: "Không thể chuẩn hóa danh sách phát",
+        description: error.message || "Đã xảy ra lỗi khi chuẩn hóa danh sách phát",
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Handle delete playlist
   const handleDeletePlaylist = () => {
     if (!existingPlaylist) return;
@@ -443,14 +494,26 @@ export default function PlaylistPreview() {
                 </CardDescription>
               </div>
               {existingPlaylist && (
-                <Button
-                  variant="destructive"
-                  onClick={handleDeletePlaylist}
-                  disabled={deletePlaylistMutation.isPending}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Xóa danh sách phát
-                </Button>
+                <div className="flex space-x-2">
+                  {missingAudioFileIds.length > 0 && (
+                    <Button
+                      variant="outline"
+                      onClick={() => cleanPlaylistMutation.mutate()}
+                      disabled={cleanPlaylistMutation.isPending}
+                    >
+                      <Filter className="h-4 w-4 mr-2" />
+                      Chuẩn hóa danh sách phát
+                    </Button>
+                  )}
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeletePlaylist}
+                    disabled={deletePlaylistMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Xóa danh sách phát
+                  </Button>
+                </div>
               )}
             </div>
           </CardHeader>
