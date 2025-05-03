@@ -240,29 +240,15 @@ export default function PlaylistCreation() {
         } catch (error) {
           console.error(`⚠️ Lỗi khi tải trực tiếp từ API - ID ${id}:`, error);
           
-          // Phương pháp thay thế: tìm từ danh sách đã cache trong client
-          console.log("Falling back to client-side cached playlists. Available playlists:", 
-            playlists.map(p => ({ id: p.id, date: new Date(p.createdAt).toLocaleString() })));
+          // Reset và hiển thị lỗi thay vì sử dụng local cache (có thể lỗi)
+          setExistingPlaylist(null);
+          setPlaylistItems([]);
           
-          const selectedPlaylist = playlists.find(p => p.id === id);
-          console.log("Found playlist from cache:", selectedPlaylist);
-          
-          if (selectedPlaylist) {
-            setExistingPlaylist(selectedPlaylist);
-            // Đảm bảo items là một mảng và parse về dạng PlaylistItem
-            const items = Array.isArray(selectedPlaylist.items) 
-              ? selectedPlaylist.items as PlaylistItem[]
-              : [];
-            
-            console.log("Setting playlist items from cache:", items);
-            setPlaylistItems(items);
-          } else {
-            toast({
-              title: "Lỗi tải danh sách phát",
-              description: `Không tìm thấy danh sách phát với ID ${id}. Vui lòng thử làm mới lại hoặc tạo mới.`,
-              variant: "destructive",
-            });
-          }
+          toast({
+            title: "Lỗi tải danh sách phát",
+            description: `Không tìm thấy danh sách phát với ID ${id} trên server. Vui lòng thử làm mới lại hoặc tạo mới.`,
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error("Error loading playlist:", error);

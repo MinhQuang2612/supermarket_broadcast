@@ -1,0 +1,69 @@
+Rendering playlist option: ID=1, index=0
+playlist-creation.tsx:593 Rendering playlist option: ID=2, index=1
+playlist-creation.tsx:186 handlePlaylistSelect called with: 1
+playlist-creation.tsx:197 Looking for playlist with ID: 1
+playlist-creation.tsx:210 Getting playlist directly from API with ID: 1
+playlist-creation.tsx:211 
+            
+            
+           GET https://a41255ff-eb78-4c3f-b9f0-5dda69a0ec73-00-2mr3q8bc51ssl.spock.replit.dev/api/playlists/1 404 (Not Found)
+handlePlaylistSelect @ playlist-creation.tsx:211
+await in handlePlaylistSelect
+(anonymous) @ chunk-MZN3NZVD.js?v=207fadb3:32
+(anonymous) @ chunk-MZN3NZVD.js?v=207fadb3:72
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=207fadb3:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=207fadb3:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=207fadb3:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=207fadb3:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=207fadb3:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=207fadb3:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=207fadb3:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=207fadb3:19416
+commitRoot @ chunk-RPCDYKBN.js?v=207fadb3:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=207fadb3:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=207fadb3:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=207fadb3:18627Understand this error
+playlist-creation.tsx:214 API Request failed (404): /api/playlists/1
+handlePlaylistSelect @ playlist-creation.tsx:214
+await in handlePlaylistSelect
+(anonymous) @ chunk-MZN3NZVD.js?v=207fadb3:32
+(anonymous) @ chunk-MZN3NZVD.js?v=207fadb3:72
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=207fadb3:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=207fadb3:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=207fadb3:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=207fadb3:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=207fadb3:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=207fadb3:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=207fadb3:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=207fadb3:19416
+commitRoot @ chunk-RPCDYKBN.js?v=207fadb3:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=207fadb3:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=207fadb3:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=207fadb3:18627Understand this error
+playlist-creation.tsx:238 ⚠️ Lỗi khi tải trực tiếp từ API - ID 1: Error: Không thể lấy danh sách phát. Lỗi: 404
+    at Object.handlePlaylistSelect [as current] (playlist-creation.tsx:215:19)
+handlePlaylistSelect @ playlist-creation.tsx:238
+await in handlePlaylistSelect
+(anonymous) @ chunk-MZN3NZVD.js?v=207fadb3:32
+(anonymous) @ chunk-MZN3NZVD.js?v=207fadb3:72
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=207fadb3:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=207fadb3:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=207fadb3:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=207fadb3:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=207fadb3:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=207fadb3:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=207fadb3:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=207fadb3:19416
+commitRoot @ chunk-RPCDYKBN.js?v=207fadb3:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=207fadb3:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=207fadb3:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=207fadb3:18627Understand this error
+playlist-creation.tsx:241 Falling back to client-side cached playlists. Available playlists: (2) [{…}, {…}]
+playlist-creation.tsx:245 Found playlist from cache: {id: 1, name: 'Chương trình ngày 30/04/2025', date: '2025-04-30T00:00:00.000Z', settings: {…}, createdBy: 1, …}
+playlist-creation.tsx:254 Setting playlist items from cache: []
+playlist-creation.tsx:593 Rendering playlist option: ID=1, index=0
+playlist-creation.tsx:593 Rendering playlist option: ID=2, index=1
+playlist-creation.tsx:146 Loading playlist items from existing playlist: {id: 1, name: 'Chương trình ngày 30/04/2025', date: '2025-04-30T00:00:00.000Z', settings: {…}, createdBy: 1, …}
+playlist-creation.tsx:147 Available audio files: (6) [17, 18, 16, 15, 10, 19]
+playlist-creation.tsx:593 Rendering playlist option: ID=1, index=0
+playlist-creation.tsx:593 Rendering playlist option: ID=2, index=1

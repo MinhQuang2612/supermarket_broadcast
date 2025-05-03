@@ -1375,6 +1375,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  // API để xóa toàn bộ playlists và reset ID sequence
+  app.delete("/api/reset-playlists", isManagerOrAdmin, async (req, res, next) => {
+    try {
+      console.log("Received request to delete all playlists");
+      
+      // Lấy tất cả playlists
+      const allPlaylists = await storage.getAllPlaylists();
+      console.log(`Found ${allPlaylists.length} playlists to delete`);
+      
+      // Xóa từng playlist
+      for (const playlist of allPlaylists) {
+        await storage.deletePlaylist(playlist.id);
+        console.log(`Deleted playlist ID: ${playlist.id}`);
+      }
+      
+      // Reset sequence trong database bằng cách gọi trực tiếp SQL
+      try {
+        const resetSequenceResult = await db.execute(`
+          ALTER SEQUENCE "playlists_id_seq" RESTART WITH 1;
+        `);
+        console.log("Reset playlist ID sequence:", resetSequenceResult);
+      } catch (seqError) {
+        console.error("Error resetting sequence:", seqError);
+      }
+      
+      // Ghi nhật ký hoạt động
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "RESET_PLAYLISTS",
+        details: `Xóa toàn bộ ${allPlaylists.length} danh sách phát và reset ID sequence`,
+        timestamp: new Date()
+      });
+      
+      res.status(200).json({ 
+        message: `Đã xóa toàn bộ ${allPlaylists.length} danh sách phát và reset ID sequence` 
+      });
+    } catch (error) {
+      console.error("Error resetting playlists:", error);
+      next(error);
+    }
+  });
+  
+  // API để xóa toàn bộ broadcast programs và reset ID sequence
+  app.delete("/api/reset-broadcast-programs", isManagerOrAdmin, async (req, res, next) => {
+    try {
+      console.log("Received request to delete all broadcast programs");
+      
+      // Lấy tất cả broadcast programs
+      const allPrograms = await storage.getAllBroadcastPrograms();
+      console.log(`Found ${allPrograms.length} broadcast programs to delete`);
+      
+      // Lấy tất cả playlists (để kiểm tra có bất kỳ playlist nào đang sử dụng program không)
+      const allPlaylists = await storage.getAllPlaylists();
+      
+      // Xóa từng broadcast program
+      for (const program of allPrograms) {
+        // Kiểm tra xem program này có playlist nào đang sử dụng không
+        const linkedPlaylists = allPlaylists.filter(p => p.broadcastProgramId === program.id);
+        
+        if (linkedPlaylists.length > 0) {
+          // Xóa các playlist liên kết trước
+          for (const playlist of linkedPlaylists) {
+            await storage.deletePlaylist(playlist.id);
+            console.log(`Deleted linked playlist ID: ${playlist.id}`);
+          }
+        }
+        
+        // Xóa broadcast program
+        await storage.deleteBroadcastProgram(program.id);
+        console.log(`Deleted broadcast program ID: ${program.id}`);
+      }
+      
+      // Reset sequence trong database
+      try {
+        const resetSequenceResult = await db.execute(`
+          ALTER SEQUENCE "broadcast_programs_id_seq" RESTART WITH 1;
+        `);
+        console.log("Reset broadcast program ID sequence:", resetSequenceResult);
+      } catch (seqError) {
+        console.error("Error resetting sequence:", seqError);
+      }
+      
+      // Ghi nhật ký hoạt động
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "RESET_BROADCAST_PROGRAMS",
+        details: `Xóa toàn bộ ${allPrograms.length} chương trình phát sóng và reset ID sequence`,
+        timestamp: new Date()
+      });
+      
+      res.status(200).json({
+        message: `Đã xóa toàn bộ ${allPrograms.length} chương trình phát sóng và reset ID sequence`
+      });
+    } catch (error) {
+      console.error("Error resetting broadcast programs:", error);
+      next(error);
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

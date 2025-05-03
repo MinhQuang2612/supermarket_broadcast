@@ -74,7 +74,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
     },
     {
       title: "Quản lý hệ thống",
-      href: "/system",
+      href: "/system-management",
       icon: <Settings className="h-5 w-5" />,
       roles: ["admin"],
     },
