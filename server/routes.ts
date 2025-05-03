@@ -1088,6 +1088,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  // Kiểm tra và chuẩn hóa playlist (xóa tham chiếu đến audio files không tồn tại)
+  app.post("/api/playlists/:id/clean", isManagerOrAdmin, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Lấy playlist hiện tại
+      const playlist = await storage.getPlaylist(id);
+      if (!playlist) {
+        return res.status(404).json({ message: "Không tìm thấy danh sách phát" });
+      }
+      
+      // Lấy danh sách audio files có sẵn
+      const audioFiles = await storage.getAllAudioFiles();
+      const audioFileIds = audioFiles.map(file => file.id);
+      
+      // Lọc ra các items có audio file tồn tại
+      const items = (JSON.parse(JSON.stringify(playlist.items)) as any[]).filter(item => 
+        audioFileIds.includes(item.audioFileId)
+      );
+      
+      // So sánh với số lượng cũ để tính số lượng bị loại bỏ
+      const originalCount = (JSON.parse(JSON.stringify(playlist.items)) as any[]).length;
+      const removedCount = originalCount - items.length;
+      
+      if (removedCount === 0) {
+        return res.status(200).json({ 
+          message: "Danh sách phát không cần chuẩn hóa",
+          playlist,
+          removedItems: 0
+        });
+      }
+      
+      // Cập nhật playlist với items đã được lọc
+      const updatedPlaylist = await storage.updatePlaylist(id, {
+        ...playlist,
+        items: items
+      });
+      
+      // Log the activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "clean_playlist",
+        details: `Chuẩn hóa danh sách phát, loại bỏ ${removedCount} file âm thanh không tồn tại`,
+      });
+      
+      res.status(200).json({ 
+        message: `Đã chuẩn hóa danh sách phát, loại bỏ ${removedCount} file âm thanh không tồn tại`, 
+        playlist: updatedPlaylist,
+        removedItems: removedCount
+      });
+    } catch (error) {
+      console.error("Error cleaning playlist:", error);
+      next(error);
+    }
+  });
 
   app.put("/api/playlists/:id", isManagerOrAdmin, async (req, res, next) => {
     try {

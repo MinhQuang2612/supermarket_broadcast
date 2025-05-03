@@ -267,6 +267,20 @@ export default function PlaylistPreview() {
 
   // Play specific track
   const handlePlayTrack = (index: number) => {
+    // Kiểm tra xem audio file có tồn tại không
+    const item = playlistItems[index];
+    if (!item) return;
+    
+    const audioFile = getAudioFile(item.audioFileId);
+    if (!audioFile) {
+      toast({
+        title: "Không thể phát",
+        description: `File âm thanh với ID ${item.audioFileId} không tồn tại`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setCurrentAudioIndex(index);
     setIsPlaying(true);
   };
