@@ -237,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Parse header
       const header = lines[0].split(',').map(item => item.trim());
-      const requiredFields = ['name', 'address', 'ward', 'district', 'province', 'region'];
+      const requiredFields = ['name', 'address', 'region_code', 'province_name', 'commune_name'];
       
       // Check if all required fields are in the header
       const missingFields = requiredFields.filter(field => !header.includes(field));
@@ -246,6 +246,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `File thiếu các trường bắt buộc: ${missingFields.join(', ')}` 
         });
       }
+      
+      // Get all geographic data for lookups
+      const regions = await storage.getAllRegions();
+      const provinces = await storage.getAllProvinces();
+      const communes = await storage.getAllCommunes();
       
       const supermarkets = [];
       const errors = [];
@@ -261,14 +266,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
         
-        // Create supermarket object from row
-        const supermarketData: any = {
+        // Create a map of field names to values
+        const rowData: Record<string, string> = {};
+        header.forEach((field, index) => {
+          rowData[field] = values[index];
+        });
+        
+        // Look up region by code
+        const region = regions.find(r => r.code === rowData.region_code);
+        if (!region) {
+          errors.push(`Dòng ${i + 1}: Không tìm thấy khu vực với mã "${rowData.region_code}"`);
+          continue;
+        }
+        
+        // Look up province by name and region
+        const province = provinces.find(p => 
+          p.name.toLowerCase() === rowData.province_name.toLowerCase() && 
+          p.regionId === region.id
+        );
+        if (!province) {
+          errors.push(`Dòng ${i + 1}: Không tìm thấy tỉnh/thành phố "${rowData.province_name}" trong khu vực "${region.name}"`);
+          continue;
+        }
+        
+        // Look up commune by name and province
+        const commune = communes.find(c => 
+          c.name.toLowerCase() === rowData.commune_name.toLowerCase() && 
+          c.provinceId === province.id
+        );
+        if (!commune) {
+          errors.push(`Dòng ${i + 1}: Không tìm thấy quận/huyện/xã "${rowData.commune_name}" trong tỉnh/thành phố "${province.name}"`);
+          continue;
+        }
+        
+        // Create supermarket object with the new geographic structure
+        const supermarketData = {
+          name: rowData.name,
+          address: rowData.address,
+          regionId: region.id,
+          provinceId: province.id,
+          communeId: commune.id,
           status: 'active' // Default value
         };
-        
-        header.forEach((field, index) => {
-          supermarketData[field] = values[index];
-        });
         
         // Validate the data
         const validation = insertSupermarketSchema.safeParse(supermarketData);

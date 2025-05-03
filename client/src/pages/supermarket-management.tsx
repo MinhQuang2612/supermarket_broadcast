@@ -380,28 +380,29 @@ export default function SupermarketManagement() {
     }
   };
 
-  // Format region name
-  const formatRegion = (region: string) => {
-    switch (region) {
-      case "north": return "Miền Bắc";
-      case "central": return "Miền Trung";
-      case "south": return "Miền Nam";
-      default: return region;
-    }
-  };
-
-  // Filter supermarkets based on filters and search term
+  // Lọc siêu thị dựa trên bộ lọc và từ khóa tìm kiếm
   const filteredSupermarkets = supermarkets.filter(supermarket => {
-    const matchesRegion = regionFilter === "all" || supermarket.region === regionFilter;
+    // Xử lý lọc theo khu vực với cấu trúc dữ liệu mới
+    let matchesRegion = true;
+    if (regionFilter !== "all") {
+      const regionId = regions.find(r => r.code === regionFilter)?.id;
+      matchesRegion = regionId ? supermarket.regionId === regionId : false;
+    }
+    
     const matchesStatus = statusFilter === "all" || supermarket.status === statusFilter;
+    
+    // Lấy thông tin địa lý từ các bảng mới
+    const commune = communes.find(c => c.id === supermarket.communeId);
+    const province = provinces.find(p => p.id === supermarket.provinceId);
+    const region = regions.find(r => r.id === supermarket.regionId);
     
     const searchTermLower = searchTerm.toLowerCase();
     const matchesSearch = 
       supermarket.name.toLowerCase().includes(searchTermLower) || 
       supermarket.address.toLowerCase().includes(searchTermLower) ||
-      (supermarket.ward && supermarket.ward.toLowerCase().includes(searchTermLower)) ||
-      (supermarket.district && supermarket.district.toLowerCase().includes(searchTermLower)) ||
-      (supermarket.province && supermarket.province.toLowerCase().includes(searchTermLower));
+      (commune?.name && commune.name.toLowerCase().includes(searchTermLower)) ||
+      (province?.name && province.name.toLowerCase().includes(searchTermLower)) ||
+      (region?.name && region.name.toLowerCase().includes(searchTermLower));
     
     return matchesRegion && matchesStatus && matchesSearch;
   });
@@ -515,12 +516,16 @@ export default function SupermarketManagement() {
               },
               {
                 header: "Khu vực",
-                accessorKey: "region",
-                cell: ({ row }) => (
-                  <div className="text-sm text-neutral-dark">
-                    {formatRegion(row.getValue("region"))}
-                  </div>
-                ),
+                accessorKey: "regionId",
+                cell: ({ row }) => {
+                  const supermarket = row.original as Supermarket;
+                  const region = regions.find(r => r.id === supermarket.regionId);
+                  return (
+                    <div className="text-sm text-neutral-dark">
+                      {region?.name || "—"}
+                    </div>
+                  );
+                },
               },
               {
                 header: "Trạng thái",
