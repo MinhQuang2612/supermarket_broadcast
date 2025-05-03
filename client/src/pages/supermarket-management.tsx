@@ -500,11 +500,7 @@ export default function SupermarketManagement() {
                   const province = provinces.find(p => p.id === supermarket.provinceId);
                   const region = regions.find(r => r.id === supermarket.regionId);
                   
-                  // Chỉ lấy địa chỉ gốc, không kèm thông tin quận/huyện và tỉnh/thành phố
-                  // vì đã có thông tin đầy đủ trong tooltip
-                  const addressDisplay = supermarket.address;
-                  
-                  // Lưu đầy đủ thông tin vào tooltip
+                  // Hiển thị đầy đủ: địa chỉ gốc, quận/huyện và tỉnh/thành phố
                   const addressParts = [];
                   if (supermarket.address) addressParts.push(supermarket.address);
                   if (commune?.name) addressParts.push(commune.name);
@@ -512,7 +508,7 @@ export default function SupermarketManagement() {
                   
                   return (
                     <div className="text-sm text-neutral-dark max-w-xs truncate" title={addressParts.join(", ")}>
-                      {addressDisplay}
+                      {addressParts.join(", ")}
                     </div>
                   );
                 },
