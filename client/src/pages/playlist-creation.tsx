@@ -83,6 +83,9 @@ export default function PlaylistCreation() {
         broadcastProgramId: p.broadcastProgramId,
         dateCreated: new Date(p.createdAt).toLocaleString()
       })));
+      
+      // Debug playlist IDs to see if they match database
+      console.log("DEBUG: Playlist database IDs:", data?.map(p => p.id));
     }
   });
   
@@ -590,10 +593,11 @@ export default function PlaylistCreation() {
                           </SelectItem>
                           <SelectSeparator />
                           {playlists.map((playlist, index) => {
+                            // Dùng ID thực từ database, không dùng index
                             console.log(`Rendering playlist option: ID=${playlist.id}, index=${index}`);
                             return (
                               <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                                Danh sách phát ID: {playlist.id} (#{index + 1}) - {new Date(playlist.createdAt).toLocaleString()}
+                                Danh sách phát #{index + 1} - {new Date(playlist.createdAt).toLocaleString()}
                               </SelectItem>
                             );
                           })}
