@@ -83,7 +83,17 @@ export default function SupermarketManagement() {
     queryKey: ['/api/regions'],
   });
   
-  // Fetch provinces based on selected region
+  // Fetch all provinces (for display in table)
+  const { data: allProvinces = [] } = useQuery<Province[]>({
+    queryKey: ['/api/provinces'],
+  });
+  
+  // Fetch all communes (for display in table)
+  const { data: allCommunes = [] } = useQuery<Commune[]>({
+    queryKey: ['/api/communes'],
+  });
+  
+  // Fetch provinces based on selected region (for form)
   const { data: provinces = [] } = useQuery<Province[]>({
     queryKey: ['/api/provinces', selectedRegionId],
     queryFn: async ({ queryKey }) => {
@@ -96,7 +106,7 @@ export default function SupermarketManagement() {
     enabled: !!selectedRegionId,
   });
   
-  // Fetch communes based on selected province
+  // Fetch communes based on selected province (for form)
   const { data: communes = [] } = useQuery<Commune[]>({
     queryKey: ['/api/communes', selectedProvinceId],
     queryFn: async ({ queryKey }) => {
@@ -392,8 +402,8 @@ export default function SupermarketManagement() {
     const matchesStatus = statusFilter === "all" || supermarket.status === statusFilter;
     
     // Lấy thông tin địa lý từ các bảng mới
-    const commune = communes.find(c => c.id === supermarket.communeId);
-    const province = provinces.find(p => p.id === supermarket.provinceId);
+    const commune = allCommunes.find(c => c.id === supermarket.communeId);
+    const province = allProvinces.find(p => p.id === supermarket.provinceId);
     const region = regions.find(r => r.id === supermarket.regionId);
     
     const searchTermLower = searchTerm.toLowerCase();
@@ -496,8 +506,8 @@ export default function SupermarketManagement() {
                 accessorKey: "address",
                 cell: ({ row }) => {
                   const supermarket = row.original as Supermarket;
-                  const commune = communes.find(c => c.id === supermarket.communeId);
-                  const province = provinces.find(p => p.id === supermarket.provinceId);
+                  const commune = allCommunes.find(c => c.id === supermarket.communeId);
+                  const province = allProvinces.find(p => p.id === supermarket.provinceId);
                   const region = regions.find(r => r.id === supermarket.regionId);
                   
                   // Hiển thị đầy đủ: địa chỉ gốc, quận/huyện và tỉnh/thành phố
@@ -507,7 +517,7 @@ export default function SupermarketManagement() {
                   if (province?.name) addressParts.push(province.name);
                   
                   return (
-                    <div className="text-sm text-neutral-dark max-w-xs truncate" title={addressParts.join(", ")}>
+                    <div className="text-sm text-neutral-dark max-w-xs" title={addressParts.join(", ")}>
                       {addressParts.join(", ")}
                     </div>
                   );
