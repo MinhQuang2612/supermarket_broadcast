@@ -937,6 +937,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lấy tất cả playlist cho một chương trình phát
+  app.get("/api/broadcast-programs/:id/playlists", isAuthenticated, async (req, res, next) => {
+    try {
+      const programId = parseInt(req.params.id);
+      console.log("Getting all playlists for program ID:", programId);
+      
+      // Validate program ID
+      if (isNaN(programId) || programId <= 0) {
+        return res.status(400).json({ message: "ID chương trình không hợp lệ" });
+      }
+      
+      // Lấy tất cả playlist
+      const allPlaylists = await storage.getAllPlaylists();
+      
+      // Lọc playlist cho broadcast program này và sắp xếp theo ID giảm dần (mới nhất lên đầu)
+      const filteredPlaylists = allPlaylists
+        .filter(p => p.broadcastProgramId === programId)
+        .sort((a, b) => b.id - a.id);
+      
+      console.log("Filtered playlists for program:", JSON.stringify(filteredPlaylists));
+      
+      // Trả về danh sách các playlist
+      res.json(filteredPlaylists);
+    } catch (error) {
+      console.error("Error getting playlists for program:", error);
+      next(error);
+    }
+  });
+  
+  // Lấy một playlist cụ thể cho chương trình (để tương thích với code cũ)
   app.get("/api/broadcast-programs/:id/playlist", isAuthenticated, async (req, res, next) => {
     try {
       const programId = parseInt(req.params.id);
@@ -991,27 +1021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Chương trình phát không tồn tại" });
       }
       
-      // Lấy tất cả playlist để kiểm tra
-      const allPlaylists = await storage.getAllPlaylists();
-      console.log("All playlists:", JSON.stringify(allPlaylists));
-      
-      // Lọc playlist cho broadcast program này
-      const filteredPlaylists = allPlaylists
-        .filter(p => p.broadcastProgramId === validation.data.broadcastProgramId);
-      
-      console.log("Filtered playlists for program:", JSON.stringify(filteredPlaylists));
-      
-      // Xóa tất cả danh sách phát hiện có cho chương trình này (nếu có)
-      if (filteredPlaylists.length > 0) {
-        console.log("Deleting existing playlists for program", validation.data.broadcastProgramId);
-        // Xóa tất cả playlist cũ để tạo mới
-        for (const playlist of filteredPlaylists) {
-          await storage.deletePlaylist(playlist.id);
-          console.log("Deleted playlist:", playlist.id);
-        }
-      }
-      
-      // Tạo danh sách phát mới
+      // Tạo danh sách phát mới (không xóa danh sách phát cũ)
       const playlist = await storage.createPlaylist(validation.data);
       console.log("Created new playlist:", JSON.stringify(playlist));
       

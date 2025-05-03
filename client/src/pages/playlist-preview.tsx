@@ -46,6 +46,7 @@ import { format } from "date-fns";
 export default function PlaylistPreview() {
   const { toast } = useToast();
   const [selectedProgram, setSelectedProgram] = useState<number | null>(null);
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<number | null>(null);
   const [currentAudioIndex, setCurrentAudioIndex] = useState<number>(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playlistItems, setPlaylistItems] = useState<PlaylistItem[]>([]);
@@ -60,17 +61,35 @@ export default function PlaylistPreview() {
   const { data: audioFiles = [], isLoading: isLoadingAudio } = useQuery<AudioFile[]>({
     queryKey: ['/api/audio-files'],
   });
+  
+  // Fetch all playlists for selected program
+  const { 
+    data: programPlaylists = [], 
+    isLoading: isLoadingProgramPlaylists
+  } = useQuery<Playlist[]>({
+    queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists'],
+    enabled: !!selectedProgram,
+    staleTime: 0,
+    onSuccess: (data) => {
+      console.log("Fetched program playlists:", data);
+      // Automatically select the first playlist if available and none is selected
+      if (data.length > 0 && !selectedPlaylistId) {
+        setSelectedPlaylistId(data[0].id);
+      } else if (data.length === 0) {
+        setSelectedPlaylistId(null);
+      }
+    }
+  });
 
-  // Fetch playlist for selected program
+  // Fetch selected playlist details
   const { 
     data: existingPlaylist, 
     isLoading: isLoadingPlaylist 
-  } = useQuery({
-    queryKey: ['/api/broadcast-programs', selectedProgram, 'playlist'],
-    enabled: !!selectedProgram,
-    // Thêm chi tiết về cách xử lý của React Query
-    staleTime: 0, // Luôn fetch dữ liệu mới
-    refetchOnWindowFocus: true, // Tự động fetch khi focus vào cửa sổ
+  } = useQuery<Playlist>({
+    queryKey: ['/api/playlists', selectedPlaylistId],
+    enabled: !!selectedPlaylistId,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   // Load playlist items from existing playlist
@@ -110,6 +129,14 @@ export default function PlaylistPreview() {
   // Handle program selection
   const handleProgramSelect = (programId: string) => {
     setSelectedProgram(parseInt(programId));
+    setSelectedPlaylistId(null); // Reset selected playlist
+    setCurrentAudioIndex(-1);
+    setIsPlaying(false);
+  };
+  
+  // Handle playlist selection
+  const handlePlaylistSelect = (playlistId: string) => {
+    setSelectedPlaylistId(parseInt(playlistId));
     setCurrentAudioIndex(-1);
     setIsPlaying(false);
   };
@@ -208,27 +235,14 @@ export default function PlaylistPreview() {
   const deletePlaylistMutation = useMutation({
     mutationFn: async () => {
       try {
-        console.log("Starting deletion process with selectedProgram:", selectedProgram);
+        console.log("Starting deletion process for playlist ID:", selectedPlaylistId);
         
-        if (!selectedProgram) {
-          throw new Error("Không có chương trình phát nào được chọn");
-        }
-
-        // Luôn fetch playlist ID mới nhất từ server dựa trên broadcast program ID
-        const programPlaylistRes = await apiRequest("GET", `/api/broadcast-programs/${selectedProgram}/playlist`);
-        const programPlaylist = await programPlaylistRes.json();
-        
-        console.log("Latest playlist from server:", JSON.stringify(programPlaylist, null, 2));
-        
-        if (!programPlaylist || !programPlaylist.id) {
-          throw new Error("Không tìm thấy danh sách phát để xóa");
+        if (!selectedPlaylistId) {
+          throw new Error("Không có danh sách phát nào được chọn để xóa");
         }
         
-        const playlistId = programPlaylist.id;
-        console.log("Using actual playlist ID from server:", playlistId);
-        
-        // Thực hiện xóa với ID chính xác
-        const res = await apiRequest("DELETE", `/api/playlists/${playlistId}`);
+        // Thực hiện xóa với ID được chọn
+        const res = await apiRequest("DELETE", `/api/playlists/${selectedPlaylistId}`);
         console.log("Delete response status:", res.status);
         
         if (!res.ok) {
@@ -244,12 +258,18 @@ export default function PlaylistPreview() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-programs', selectedProgram, 'playlist'] });
+      // Invalidate both the playlists list and the specific playlist
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/playlists', selectedPlaylistId] });
+      
       setShowDeleteDialog(false);
       toast({
         title: "Đã xóa danh sách phát",
         description: "Danh sách phát đã được xóa thành công",
       });
+      
+      // Reset selected playlist
+      setSelectedPlaylistId(null);
     },
     onError: (error: Error) => {
       console.error("Delete mutation error:", error);
@@ -347,6 +367,33 @@ export default function PlaylistPreview() {
                     </div>
                   )}
                 </div>
+                
+                {/* Playlist selection */}
+                {programPlaylists.length > 0 && (
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium mb-2">
+                      Chọn danh sách phát
+                    </label>
+                    <Select 
+                      value={selectedPlaylistId?.toString() || ""} 
+                      onValueChange={handlePlaylistSelect}
+                    >
+                      <SelectTrigger className="w-full md:w-1/2">
+                        <SelectValue placeholder="Chọn danh sách phát" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {programPlaylists.map((playlist) => (
+                          <SelectItem key={playlist.id} value={playlist.id.toString()}>
+                            Danh sách phát {new Date(playlist.createdAt).toLocaleString()}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Chương trình này có {programPlaylists.length} danh sách phát
+                    </p>
+                  </div>
+                )}
                 
                 {existingPlaylist ? (
                   <>
