@@ -1,0 +1,63 @@
+DELETE https://a41255ff-eb78-4c3f-b9f0-5dda69a0ec73-00-2mr3q8bc51ssl.spock.replit.dev/api/playlists/1 404 (Not Found)
+apiRequest @ queryClient.ts:15
+mutationFn @ playlist-preview.tsx:275
+fn @ @tanstack_react-query.js?v=207fadb3:1189
+run @ @tanstack_react-query.js?v=207fadb3:494
+start @ @tanstack_react-query.js?v=207fadb3:536
+execute @ @tanstack_react-query.js?v=207fadb3:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=207fadb3:2630
+(anonymous) @ @tanstack_react-query.js?v=207fadb3:3295
+confirmDeletePlaylist @ playlist-preview.tsx:315
+handleConfirm @ confirm-dialog.tsx:38
+overrideProps.<computed> @ chunk-EVLBUYTV.js?v=207fadb3:115
+callCallback2 @ chunk-RPCDYKBN.js?v=207fadb3:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=207fadb3:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=207fadb3:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=207fadb3:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=207fadb3:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=207fadb3:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=207fadb3:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=207fadb3:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=207fadb3:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=207fadb3:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=207fadb3:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=207fadb3:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=207fadb3:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=207fadb3:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=207fadb3:5449Understand this error
+playlist-preview.tsx:285 Error during delete operation: Error: 404: {"message":"Không tìm thấy danh sách phát"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async Object.mutationFn (playlist-preview.tsx:275:21)
+mutationFn @ playlist-preview.tsx:285
+await in mutationFn
+fn @ @tanstack_react-query.js?v=207fadb3:1189
+run @ @tanstack_react-query.js?v=207fadb3:494
+start @ @tanstack_react-query.js?v=207fadb3:536
+execute @ @tanstack_react-query.js?v=207fadb3:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=207fadb3:2630
+(anonymous) @ @tanstack_react-query.js?v=207fadb3:3295
+confirmDeletePlaylist @ playlist-preview.tsx:315
+handleConfirm @ confirm-dialog.tsx:38
+overrideProps.<computed> @ chunk-EVLBUYTV.js?v=207fadb3:115
+callCallback2 @ chunk-RPCDYKBN.js?v=207fadb3:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=207fadb3:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=207fadb3:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=207fadb3:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=207fadb3:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=207fadb3:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=207fadb3:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=207fadb3:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=207fadb3:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=207fadb3:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=207fadb3:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=207fadb3:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=207fadb3:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=207fadb3:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=207fadb3:5449Understand this error
+playlist-preview.tsx:298 Delete mutation error: Error: 404: {"message":"Không tìm thấy danh sách phát"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async Object.mutationFn (playlist-preview.tsx:275:21)
