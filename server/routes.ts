@@ -956,7 +956,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .filter(p => p.broadcastProgramId === programId)
         .sort((a, b) => b.id - a.id);
       
-      console.log("Filtered playlists for program:", JSON.stringify(filteredPlaylists));
+      console.log("PLAYLIST DEBUG - All playlists from DB:", JSON.stringify(allPlaylists.map(p => ({ id: p.id, programId: p.broadcastProgramId }))));
+      console.log("PLAYLIST DEBUG - Filtered playlists for program:", JSON.stringify(filteredPlaylists.map(p => ({ id: p.id }))));
+      console.log("PLAYLIST DEBUG - Raw filtered data:", JSON.stringify(filteredPlaylists));
       
       // Trả về danh sách các playlist
       res.json(filteredPlaylists);

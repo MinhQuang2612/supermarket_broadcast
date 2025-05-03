@@ -77,6 +77,13 @@ export default function PlaylistCreation() {
   } = useQuery<Playlist[]>({
     queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists'],
     enabled: !!selectedProgram,
+    onSuccess: (data) => {
+      console.log("PLAYLIST CLIENT DEBUG - Received playlists from API:", data?.map(p => ({ 
+        id: p.id, 
+        broadcastProgramId: p.broadcastProgramId,
+        dateCreated: new Date(p.createdAt).toLocaleString()
+      })));
+    }
   });
   
   // Derived state for loading
