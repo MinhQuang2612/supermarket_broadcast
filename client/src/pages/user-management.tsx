@@ -292,10 +292,10 @@ export default function UserManagement() {
     <DashboardLayout>
       <div className="space-y-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
             <CardTitle>Quản lý tài khoản</CardTitle>
             {currentUser?.role === "admin" && (
-              <Button onClick={() => setShowNewUserDialog(true)}>
+              <Button onClick={() => setShowNewUserDialog(true)} className="w-full sm:w-auto">
                 <UserPlus className="mr-2 h-4 w-4" />
                 Thêm tài khoản
               </Button>
@@ -304,9 +304,9 @@ export default function UserManagement() {
           <CardContent>
             {/* Filter and Search Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
                 <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-full sm:w-40">
                     <SelectValue placeholder="Tất cả vai trò" />
                   </SelectTrigger>
                   <SelectContent>
@@ -317,7 +317,7 @@ export default function UserManagement() {
                   </SelectContent>
                 </Select>
                 <Select value={activeFilter} onValueChange={setActiveFilter}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-full sm:w-40">
                     <SelectValue placeholder="Tất cả trạng thái" />
                   </SelectTrigger>
                   <SelectContent>
@@ -328,7 +328,7 @@ export default function UserManagement() {
                 </Select>
               </div>
               
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <Input
                   type="text"
                   placeholder="Tìm kiếm tài khoản..."
