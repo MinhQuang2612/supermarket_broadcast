@@ -1405,8 +1405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createActivityLog({
         userId: req.user.id,
         action: "RESET_PLAYLISTS",
-        details: `Xóa toàn bộ ${allPlaylists.length} danh sách phát và reset ID sequence`,
-        timestamp: new Date()
+        details: `Xóa toàn bộ ${allPlaylists.length} danh sách phát và reset ID sequence`
       });
       
       res.status(200).json({ 
@@ -1462,8 +1461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createActivityLog({
         userId: req.user.id,
         action: "RESET_BROADCAST_PROGRAMS",
-        details: `Xóa toàn bộ ${allPrograms.length} chương trình phát sóng và reset ID sequence`,
-        timestamp: new Date()
+        details: `Xóa toàn bộ ${allPrograms.length} chương trình phát sóng và reset ID sequence`
       });
       
       res.status(200).json({

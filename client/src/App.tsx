@@ -28,7 +28,7 @@ function Router() {
       <ProtectedRoute path="/playlists" component={PlaylistCreation} />
       <ProtectedRoute path="/playlist-preview" component={PlaylistPreview} />
       <ProtectedRoute path="/broadcast-assignments" component={BroadcastAssignment} />
-      <ProtectedRoute path="/system" component={SystemManagement} />
+      <ProtectedRoute path="/system-management" component={SystemManagement} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
