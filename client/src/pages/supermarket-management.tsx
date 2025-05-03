@@ -68,10 +68,45 @@ export default function SupermarketManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Chosen IDs for cascading selection
+  const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
+  const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
 
   // Fetch supermarkets
   const { data: supermarkets = [], isLoading } = useQuery<Supermarket[]>({
     queryKey: ['/api/supermarkets'],
+  });
+  
+  // Fetch regions
+  const { data: regions = [] } = useQuery<Region[]>({
+    queryKey: ['/api/regions'],
+  });
+  
+  // Fetch provinces based on selected region
+  const { data: provinces = [] } = useQuery<Province[]>({
+    queryKey: ['/api/provinces', selectedRegionId],
+    queryFn: async ({ queryKey }) => {
+      const [_, regionId] = queryKey;
+      if (!regionId) return [];
+      const res = await fetch(`/api/provinces?regionId=${regionId}`);
+      if (!res.ok) throw new Error('Failed to fetch provinces');
+      return res.json();
+    },
+    enabled: !!selectedRegionId,
+  });
+  
+  // Fetch communes based on selected province
+  const { data: communes = [] } = useQuery<Commune[]>({
+    queryKey: ['/api/communes', selectedProvinceId],
+    queryFn: async ({ queryKey }) => {
+      const [_, provinceId] = queryKey;
+      if (!provinceId) return [];
+      const res = await fetch(`/api/communes?provinceId=${provinceId}`);
+      if (!res.ok) throw new Error('Failed to fetch communes');
+      return res.json();
+    },
+    enabled: !!selectedProvinceId,
   });
 
   // Form for creating/editing supermarkets
@@ -85,8 +120,31 @@ export default function SupermarketManagement() {
       province: "",
       region: "north",
       status: "active",
+      regionId: 0,
+      provinceId: 0,
+      communeId: 0,
     },
   });
+  
+  // Effect to update regionId, provinceId, communeId when selecting items
+  useEffect(() => {
+    const regionId = form.watch("regionId");
+    const provinceId = form.watch("provinceId");
+    
+    if (regionId && regionId !== selectedRegionId) {
+      setSelectedRegionId(regionId);
+      // Reset province when region changes
+      form.setValue("provinceId", 0);
+      form.setValue("communeId", 0);
+      setSelectedProvinceId(null);
+    }
+    
+    if (provinceId && provinceId !== selectedProvinceId) {
+      setSelectedProvinceId(provinceId);
+      // Reset commune when province changes
+      form.setValue("communeId", 0);
+    }
+  }, [form.watch("regionId"), form.watch("provinceId"), form]);
 
   // Create supermarket mutation
   const createSupermarketMutation = useMutation({
@@ -192,6 +250,8 @@ export default function SupermarketManagement() {
   // Open dialog for creating new supermarket
   const handleAddNew = () => {
     setIsEdit(false);
+    setSelectedRegionId(null);
+    setSelectedProvinceId(null);
     form.reset({
       name: "",
       address: "",
@@ -200,6 +260,9 @@ export default function SupermarketManagement() {
       province: "",
       region: "north",
       status: "active",
+      regionId: 0,
+      provinceId: 0,
+      communeId: 0,
     });
     setShowDialog(true);
   };
@@ -208,14 +271,22 @@ export default function SupermarketManagement() {
   const handleEdit = (supermarket: Supermarket) => {
     setIsEdit(true);
     setSelectedSupermarket(supermarket);
+    
+    // Set region and province for cascading dropdowns
+    setSelectedRegionId(supermarket.regionId);
+    setSelectedProvinceId(supermarket.provinceId);
+    
     form.reset({
       name: supermarket.name,
       address: supermarket.address,
       ward: supermarket.ward || "",
       district: supermarket.district || "",
       province: supermarket.province || "",
-      region: supermarket.region,
+      region: supermarket.region || "north",
       status: supermarket.status,
+      regionId: supermarket.regionId || 0,
+      provinceId: supermarket.provinceId || 0,
+      communeId: supermarket.communeId || 0,
     });
     setShowDialog(true);
   };
@@ -585,15 +656,31 @@ export default function SupermarketManagement() {
                     )}
                   />
                   
+                  {/* Các trường vị trí mới - Khu vực, Tỉnh/Thành phố, Quận/Huyện */}
                   <FormField
                     control={form.control}
-                    name="ward"
+                    name="regionId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Xã/Phường</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Nhập xã/phường" {...field} />
-                        </FormControl>
+                        <FormLabel className="text-xs">Khu vực</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          defaultValue={field.value?.toString() || "0"}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Chọn khu vực" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="0" disabled>Chọn khu vực</SelectItem>
+                            {regions.map((region) => (
+                              <SelectItem key={region.id} value={region.id.toString()}>
+                                {region.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -601,61 +688,121 @@ export default function SupermarketManagement() {
                   
                   <FormField
                     control={form.control}
-                    name="district"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Quận/Huyện</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Nhập quận/huyện" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="province"
+                    name="provinceId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">Tỉnh/Thành phố</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Nhập tỉnh/thành phố" {...field} />
-                        </FormControl>
+                        <Select
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          defaultValue={field.value?.toString() || "0"}
+                          disabled={!selectedRegionId || provinces.length === 0}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Chọn tỉnh/thành phố" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="0" disabled>Chọn tỉnh/thành phố</SelectItem>
+                            {provinces.map((province) => (
+                              <SelectItem key={province.id} value={province.id.toString()}>
+                                {province.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="communeId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Quận/Huyện/Xã</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          defaultValue={field.value?.toString() || "0"}
+                          disabled={!selectedProvinceId || communes.length === 0}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Chọn quận/huyện/xã" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="0" disabled>Chọn quận/huyện/xã</SelectItem>
+                            {communes.map((commune) => (
+                              <SelectItem key={commune.id} value={commune.id.toString()}>
+                                {commune.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Giữ lại các trường cũ tạm thời để khớp với schema */}
+                  <div className="hidden">
+                    <FormField
+                      control={form.control}
+                      name="ward"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="district"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="province"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               </div>
               
               {/* Cài đặt khác */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                <FormField
-                  control={form.control}
-                  name="region"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Khu vực</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                {/* Ẩn trường region cũ nhưng vẫn giữ lại để khớp schema */}
+                <div className="hidden">
+                  <FormField
+                    control={form.control}
+                    name="region"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Chọn khu vực" />
-                          </SelectTrigger>
+                          <Input {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="north">Miền Bắc</SelectItem>
-                          <SelectItem value="central">Miền Trung</SelectItem>
-                          <SelectItem value="south">Miền Nam</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 
                 <FormField
                   control={form.control}
