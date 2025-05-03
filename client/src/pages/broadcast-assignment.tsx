@@ -250,7 +250,11 @@ export default function BroadcastAssignment() {
 
   // Filter supermarkets based on search and filters
   const filteredSupermarkets = supermarkets.filter(supermarket => {
-    const matchesRegion = regionFilter === "all" || supermarket.region === regionFilter;
+    // Get region code from region ID
+    const region = regions.find(r => r.id === supermarket.regionId);
+    const regionCode = region ? region.code : '';
+    
+    const matchesRegion = regionFilter === "all" || regionCode === regionFilter;
     const matchesStatus = statusFilter === "all" || supermarket.status === statusFilter;
     const matchesSearch = 
       supermarket.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -360,13 +364,14 @@ export default function BroadcastAssignment() {
                           },
                           {
                             header: "Khu vực",
-                            accessorKey: "region",
+                            accessorKey: "regionId",
                             cell: ({ row }) => {
-                              const region = row.getValue("region") as string;
+                              const supermarket = row.original as Supermarket;
+                              const region = regions.find(r => r.id === supermarket.regionId);
                               
                               return (
                                 <div className="text-sm text-neutral-dark">
-                                  {formatRegion(region)}
+                                  {region?.name || ''}
                                 </div>
                               );
                             },
@@ -696,10 +701,10 @@ export default function BroadcastAssignment() {
                                       {supermarket.name}
                                     </TableCell>
                                     <TableCell>
-                                      {supermarket.address}
+                                      {formatFullAddress(supermarket)}
                                     </TableCell>
                                     <TableCell>
-                                      {formatRegion(supermarket.region)}
+                                      {regions.find(r => r.id === supermarket.regionId)?.name || ''}
                                     </TableCell>
                                     <TableCell>
                                       <Badge variant="outline" className={
@@ -760,7 +765,7 @@ export default function BroadcastAssignment() {
               <div className="font-medium">
                 {selectedSupermarket?.name}
                 {selectedSupermarket && <span className="text-sm font-normal text-neutral-medium ml-2">
-                  ({formatRegion(selectedSupermarket.region)})
+                  ({regions.find(r => r.id === selectedSupermarket.regionId)?.name || ''})
                 </span>}
               </div>
             </div>
