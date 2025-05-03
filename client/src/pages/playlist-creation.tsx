@@ -150,7 +150,7 @@ export default function PlaylistCreation() {
   };
   
   // Handle playlist selection
-  const handlePlaylistSelect = (playlistId: string) => {
+  const handlePlaylistSelect = async (playlistId: string) => {
     console.log("handlePlaylistSelect called with:", playlistId);
     
     if (playlistId === "new") {
@@ -159,27 +159,53 @@ export default function PlaylistCreation() {
       setExistingPlaylist(null);
       setPlaylistItems([]);
     } else if (playlistId && playlists) {
-      // Tìm và load playlist đã chọn
-      const id = parseInt(playlistId);
-      console.log("Looking for playlist with ID:", id);
-      
-      // Vì có thể mất đồng bộ giữa client và server, hãy tìm playlist từ server
-      // mỗi khi người dùng chọn ID
-      queryClient.invalidateQueries({
-        queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists']
-      });
-      
-      const selectedPlaylist = playlists.find(p => p.id === id);
-      console.log("Found playlist:", selectedPlaylist);
-      
-      if (selectedPlaylist) {
-        setExistingPlaylist(selectedPlaylist);
-        // Đảm bảo items là một mảng và parse về dạng PlaylistItem
-        const items = Array.isArray(selectedPlaylist.items) 
-          ? selectedPlaylist.items as PlaylistItem[]
-          : [];
-        console.log("Setting playlist items:", items);
-        setPlaylistItems(items);
+      try {
+        // Tìm và load playlist đã chọn
+        const id = parseInt(playlistId);
+        console.log("Looking for playlist with ID:", id);
+        
+        // Vì có thể mất đồng bộ giữa client và server, hãy tìm playlist từ server
+        // mỗi khi người dùng chọn ID
+        await queryClient.invalidateQueries({
+          queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists']
+        });
+        
+        // Lấy lại danh sách playlist mới nhất sau khi invalidate
+        await refetchPlaylists();
+        
+        // Tìm lại với danh sách đã được refresh
+        const selectedPlaylist = playlists.find(p => p.id === id);
+        console.log("Found playlist:", selectedPlaylist);
+        
+        if (selectedPlaylist) {
+          setExistingPlaylist(selectedPlaylist);
+          // Đảm bảo items là một mảng và parse về dạng PlaylistItem
+          const items = Array.isArray(selectedPlaylist.items) 
+            ? selectedPlaylist.items as PlaylistItem[]
+            : [];
+          
+          // In ra ID của các audio file để debug
+          console.log("Playlist items audio IDs:", items.map(item => item.audioFileId));
+          console.log("Available audio file IDs:", audioFiles.map(file => file.id));
+          
+          console.log("Setting playlist items:", items);
+          setPlaylistItems(items);
+        } else {
+          console.error(`⚠️ Không tìm thấy playlist với ID ${id}. Danh sách hiện có:`, 
+            playlists.map(p => ({ id: p.id, date: new Date(p.createdAt).toLocaleString() })));
+          toast({
+            title: "Lỗi tải danh sách phát",
+            description: `Không tìm thấy danh sách phát với ID ${id}. Vui lòng thử làm mới lại hoặc tạo mới.`,
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Error loading playlist:", error);
+        toast({
+          title: "Lỗi tải danh sách phát",
+          description: "Đã xảy ra lỗi khi tải danh sách phát. Vui lòng thử lại.",
+          variant: "destructive",
+        });
       }
     }
   };
@@ -287,7 +313,13 @@ export default function PlaylistCreation() {
 
   // Get audio file by ID
   const getAudioFile = (id: number) => {
-    return audioFiles.find(file => file.id === id);
+    console.log("Looking for audio file with ID:", id);
+    const found = audioFiles.find(file => file.id === id);
+    if (!found) {
+      console.warn(`⚠️ Audio file with ID ${id} not found in audioFiles list. Available IDs:`, 
+        audioFiles.map(f => f.id));
+    }
+    return found;
   };
 
   // Format group name
@@ -497,7 +529,7 @@ export default function PlaylistCreation() {
                           <SelectSeparator />
                           {playlists.map((playlist) => (
                             <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                              Playlist {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
+                              Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
                             </SelectItem>
                           ))}
                         </SelectContent>
