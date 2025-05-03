@@ -496,11 +496,11 @@ export default function SupermarketManagement() {
   return (
     <DashboardLayout>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
           <CardTitle>Quản lý siêu thị</CardTitle>
           {(user?.role === "admin" || user?.role === "manager") && (
-            <div className="flex space-x-2">
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+              <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full sm:w-auto">
                 <FileUp className="mr-2 h-4 w-4" />
                 Nhập từ file
                 <input
@@ -511,7 +511,7 @@ export default function SupermarketManagement() {
                   accept=".csv"
                 />
               </Button>
-              <Button onClick={handleAddNew}>
+              <Button onClick={handleAddNew} className="w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 Thêm siêu thị
               </Button>
@@ -529,9 +529,9 @@ export default function SupermarketManagement() {
           
           {/* Filter and Search Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
               <Select value={regionFilter} onValueChange={setRegionFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Tất cả khu vực" />
                 </SelectTrigger>
                 <SelectContent>
@@ -542,7 +542,7 @@ export default function SupermarketManagement() {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
@@ -553,7 +553,7 @@ export default function SupermarketManagement() {
               </Select>
             </div>
             
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Input
                 type="text"
                 placeholder="Tìm kiếm siêu thị..."
