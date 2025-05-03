@@ -975,8 +975,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the old audio file IDs to potentially update their status
       const oldAudioFileIds = JSON.parse(JSON.stringify(existingPlaylist.items)).map((item: any) => item.audioFileId);
       
-      // Update the playlist
-      const updatedPlaylist = await storage.updatePlaylist(playlistId, validation.data);
+      // Log the update data
+      console.log("Server updating playlist:", playlistId, validation.data);
+      
+      // Update the playlist with only the items (that's all we need to update)
+      const updatedPlaylist = await storage.updatePlaylist(playlistId, { 
+        items: validation.data.items 
+      });
       
       // Get the new audio file IDs
       const newAudioFileIds = JSON.parse(JSON.stringify(validation.data.items)).map((item: any) => item.audioFileId);

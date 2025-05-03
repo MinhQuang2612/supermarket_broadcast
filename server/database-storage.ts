@@ -545,13 +545,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updatePlaylist(id: number, playlistData: Partial<InsertPlaylist>): Promise<Playlist> {
-    const [playlist] = await db
-      .update(playlists)
-      .set(playlistData)
-      .where(eq(playlists.id, id))
-      .returning();
-    
-    return playlist;
+    try {
+      console.log("Database updatePlaylist - ID:", id);
+      console.log("Database updatePlaylist - Data:", JSON.stringify(playlistData));
+      
+      // Validate the id
+      if (isNaN(id) || id <= 0) {
+        throw new Error(`Invalid playlist ID: ${id}`);
+      }
+      
+      const [playlist] = await db
+        .update(playlists)
+        .set({
+          items: playlistData.items
+        })
+        .where(eq(playlists.id, id))
+        .returning();
+      
+      console.log("Database updatePlaylist - Result:", JSON.stringify(playlist));
+      return playlist;
+    } catch (error) {
+      console.error("Error updating playlist:", error);
+      throw error;
+    }
   }
 
   async deletePlaylist(id: number): Promise<void> {

@@ -101,6 +101,7 @@ export default function PlaylistCreation() {
   // Update playlist mutation
   const updatePlaylistMutation = useMutation({
     mutationFn: async (data: { id: number, items: PlaylistItem[] }) => {
+      console.log("Updating playlist:", data.id, data.items);
       const res = await apiRequest("PUT", `/api/playlists/${data.id}`, { items: data.items });
       return await res.json();
     },
