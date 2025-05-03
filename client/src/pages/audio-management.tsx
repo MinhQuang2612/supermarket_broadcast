@@ -39,7 +39,8 @@ import {
   Download,
   Search,
   Tag,
-  Music 
+  Music,
+  RefreshCcw
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -679,11 +680,18 @@ export default function AudioManagement() {
                   <Trash2 className="mr-2 h-4 w-4" />
                   Xóa đã chọn
                 </Button>
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={() => handleChangeGroup('greetings')} 
+                  disabled={selectedFiles.some(file => file.status === "used")}
+                >
                   <Tag className="mr-2 h-4 w-4" />
                   Thay đổi nhóm
                 </Button>
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={handleBulkDownload}
+                >
                   <Download className="mr-2 h-4 w-4" />
                   Tải xuống
                 </Button>
