@@ -508,7 +508,7 @@ export default function BroadcastAssignment() {
                             <div className="flex justify-center items-center h-20 bg-neutral-lightest rounded-md">
                               <p className="text-neutral-medium">Đang tải...</p>
                             </div>
-                          ) : supermarketAssignments.length > 0 ? (
+                          ) : supermarketAssignments.length > 0 && getAssignedProgram(selectedSupermarket.id) ? (
                             <div className="bg-success-light/10 border border-success rounded-md p-3">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center">
