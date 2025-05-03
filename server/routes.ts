@@ -948,12 +948,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Thêm log để debug
       console.log("Getting playlist for broadcast program:", programId);
       
-      const playlist = await storage.getPlaylistByProgramId(programId);
-      console.log("Found playlist:", playlist);
+      // Sử dụng hàm mới để lấy playlist mới nhất cho chương trình
+      const allPlaylists = await storage.getAllPlaylists();
+      console.log("All playlists:", allPlaylists);
+      
+      // Lọc playlist cho broadcast program này và sắp xếp theo ID giảm dần (mới nhất lên đầu)
+      const filteredPlaylists = allPlaylists
+        .filter(p => p.broadcastProgramId === programId)
+        .sort((a, b) => b.id - a.id);
+      
+      console.log("Filtered playlists for program:", filteredPlaylists);
+      
+      // Lấy playlist mới nhất (phần tử đầu tiên sau khi đã sắp xếp)
+      const latestPlaylist = filteredPlaylists.length > 0 ? filteredPlaylists[0] : null;
+      console.log("Latest playlist for program:", latestPlaylist);
       
       // Return the playlist if found, or null if not found
       // No need to return a 404 status since "no playlist" is a valid state
-      res.json(playlist || null);
+      res.json(latestPlaylist);
     } catch (error) {
       console.error("Error getting playlist for program:", error);
       next(error);
@@ -977,9 +989,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Chương trình phát không tồn tại" });
       }
       
-      // Check if a playlist already exists for this program
-      const existingPlaylist = await storage.getPlaylistByProgramId(validation.data.broadcastProgramId);
-      if (existingPlaylist) {
+      // Lấy tất cả playlist để kiểm tra
+      const allPlaylists = await storage.getAllPlaylists();
+      console.log("All playlists:", allPlaylists);
+      
+      // Lọc playlist cho broadcast program này
+      const filteredPlaylists = allPlaylists
+        .filter(p => p.broadcastProgramId === validation.data.broadcastProgramId);
+      
+      console.log("Filtered playlists for program:", filteredPlaylists);
+      
+      // Kiểm tra có playlist nào cho chương trình này chưa
+      if (filteredPlaylists.length > 0) {
         return res.status(400).json({ message: "Đã tồn tại danh sách phát cho chương trình này" });
       }
       

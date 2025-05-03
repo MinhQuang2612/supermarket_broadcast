@@ -68,6 +68,9 @@ export default function PlaylistPreview() {
   } = useQuery({
     queryKey: ['/api/broadcast-programs', selectedProgram, 'playlist'],
     enabled: !!selectedProgram,
+    // Thêm chi tiết về cách xử lý của React Query
+    staleTime: 0, // Luôn fetch dữ liệu mới
+    refetchOnWindowFocus: true, // Tự động fetch khi focus vào cửa sổ
   });
 
   // Load playlist items from existing playlist
