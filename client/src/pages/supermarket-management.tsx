@@ -128,10 +128,6 @@ export default function SupermarketManagement() {
     defaultValues: {
       name: "",
       address: "",
-      ward: "",
-      district: "",
-      province: "",
-      region: "north",
       status: "active",
       regionId: 0,
       provinceId: 0,
@@ -866,7 +862,10 @@ export default function SupermarketManagement() {
                 >
                   Hủy
                 </Button>
-                <Button type="submit" disabled={createSupermarketMutation.isPending || updateSupermarketMutation.isPending}>
+                <Button 
+                  type="submit"
+                  disabled={createSupermarketMutation.isPending || updateSupermarketMutation.isPending}
+                >
                   {isEdit ? "Cập nhật" : "Thêm mới"}
                 </Button>
               </div>
@@ -899,6 +898,26 @@ export default function SupermarketManagement() {
         }
         onConfirm={confirmStatusChange}
         isLoading={updateStatusMutation.isPending}
+      />
+      
+      {/* Create Confirmation Dialog */}
+      <ConfirmDialog
+        open={showCreateConfirmDialog}
+        onOpenChange={setShowCreateConfirmDialog}
+        title="Xác nhận thêm mới siêu thị"
+        description="Bạn có chắc chắn muốn thêm mới siêu thị này?"
+        onConfirm={handleConfirmedSubmit}
+        isLoading={createSupermarketMutation.isPending}
+      />
+      
+      {/* Edit Confirmation Dialog */}
+      <ConfirmDialog
+        open={showEditConfirmDialog}
+        onOpenChange={setShowEditConfirmDialog}
+        title="Xác nhận cập nhật siêu thị"
+        description={`Bạn có chắc chắn muốn cập nhật thông tin siêu thị "${selectedSupermarket?.name}"?`}
+        onConfirm={handleConfirmedSubmit}
+        isLoading={updateSupermarketMutation.isPending}
       />
     </DashboardLayout>
   );
