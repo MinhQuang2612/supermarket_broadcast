@@ -202,15 +202,31 @@ export default function PlaylistPreview() {
       }
       
       // Kiểm tra và log thông tin playlist để debug
-      console.log("Attempting to delete playlist:", existingPlaylist);
+      console.log("Attempting to delete playlist:", JSON.stringify(existingPlaylist, null, 2));
       
-      if (!existingPlaylist.id) {
-        console.error("Playlist doesn't have an ID property:", existingPlaylist);
+      // Đảm bảo rằng existingPlaylist có ID
+      let playlistId;
+      
+      if (typeof existingPlaylist === 'object' && existingPlaylist !== null) {
+        if ('id' in existingPlaylist && existingPlaylist.id) {
+          playlistId = existingPlaylist.id;
+        } else {
+          // Nếu không có id trực tiếp, kiểm tra xem nó có thể là response trong data
+          if ('data' in existingPlaylist && existingPlaylist.data && 'id' in existingPlaylist.data) {
+            playlistId = existingPlaylist.data.id;
+          }
+        }
+      }
+      
+      if (!playlistId) {
+        console.error("Could not find playlist ID in:", existingPlaylist);
         throw new Error("ID playlist không hợp lệ hoặc không tồn tại");
       }
       
+      console.log("Found playlist ID:", playlistId);
+      
       try {
-        const res = await apiRequest("DELETE", `/api/playlists/${existingPlaylist.id}`);
+        const res = await apiRequest("DELETE", `/api/playlists/${playlistId}`);
         console.log("Delete response status:", res.status);
         
         if (!res.ok) {
