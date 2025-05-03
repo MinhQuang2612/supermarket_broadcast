@@ -31,6 +31,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { SelectSeparator } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
@@ -43,7 +44,8 @@ import {
   Clock, 
   CheckCircle,
   Trash2,
-  RefreshCcw
+  RefreshCcw,
+  PlusCircle
 } from "lucide-react";
 import { format, parse, addMinutes } from "date-fns";
 
