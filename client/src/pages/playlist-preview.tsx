@@ -207,75 +207,27 @@ export default function PlaylistPreview() {
   // Delete playlist mutation
   const deletePlaylistMutation = useMutation({
     mutationFn: async () => {
-      if (!existingPlaylist) {
-        console.error("existingPlaylist is undefined or null:", existingPlaylist);
-        throw new Error("Không tìm thấy playlist để xóa");
-      }
-      
-      // Kiểm tra và log thông tin playlist để debug
-      console.log("existingPlaylist:", JSON.stringify(existingPlaylist, null, 2));
-      
-      // Đảm bảo rằng existingPlaylist có ID
-      let playlistId;
-      
-      // Xử lý trường hợp existingPlaylist là mảng
-      if (Array.isArray(existingPlaylist) && existingPlaylist.length > 0) {
-        const firstPlaylist = existingPlaylist[0];
-        if (firstPlaylist && typeof firstPlaylist === 'object' && 'id' in firstPlaylist) {
-          playlistId = firstPlaylist.id;
-          console.log("Found playlist ID from array:", playlistId);
-        }
-      } 
-      // Xử lý trường hợp existingPlaylist là object
-      else if (typeof existingPlaylist === 'object' && existingPlaylist !== null) {
-        if ('id' in existingPlaylist && existingPlaylist.id) {
-          playlistId = existingPlaylist.id;
-          console.log("Found playlist ID from object:", playlistId);
-        } else if ('data' in existingPlaylist && existingPlaylist.data && 'id' in existingPlaylist.data) {
-          // Trường hợp id nằm trong property data
-          playlistId = existingPlaylist.data.id;
-          console.log("Found playlist ID from data property:", playlistId);
-        }
-      }
-      
-      if (!playlistId) {
-        // Nếu không thể tìm thấy ID, thay vì lỗi, ta sẽ lấy danh sách từ server
-        console.log("Could not find playlist ID, fetching from server...");
-        try {
-          // Lấy tất cả danh sách phát
-          const allPlaylistsRes = await apiRequest("GET", "/api/playlists");
-          const allPlaylists = await allPlaylistsRes.json();
-          console.log("All playlists from server:", allPlaylists);
-          
-          // Lọc theo program ID
-          if (selectedProgram && Array.isArray(allPlaylists) && allPlaylists.length > 0) {
-            const programPlaylists = allPlaylists.filter(p => p.broadcastProgramId === selectedProgram);
-            console.log("Filtered playlists:", programPlaylists);
-            
-            if (programPlaylists.length > 0) {
-              // Sử dụng ID của playlist đầu tiên tìm thấy
-              playlistId = programPlaylists[0].id;
-              console.log("Found playlist ID from server:", playlistId);
-            }
-          }
-        } catch (fetchError) {
-          console.error("Error fetching playlists from server:", fetchError);
-        }
-      }
-      
-      // Nếu vẫn không tìm thấy ID
-      if (!playlistId) {
-        console.error("Could not find any playlist ID for deletion");
-        throw new Error("Không tìm thấy danh sách phát để xóa");
-      }
-      
-      console.log("Using playlist ID for deletion:", playlistId);
-      
       try {
-        // Sử dụng ID thực từ database (trong trường hợp này là 2)
-        playlistId = 2;
-        console.log("Using actual playlist ID from database:", playlistId);
+        console.log("Starting deletion process with selectedProgram:", selectedProgram);
         
+        if (!selectedProgram) {
+          throw new Error("Không có chương trình phát nào được chọn");
+        }
+
+        // Luôn fetch playlist ID mới nhất từ server dựa trên broadcast program ID
+        const programPlaylistRes = await apiRequest("GET", `/api/broadcast-programs/${selectedProgram}/playlist`);
+        const programPlaylist = await programPlaylistRes.json();
+        
+        console.log("Latest playlist from server:", JSON.stringify(programPlaylist, null, 2));
+        
+        if (!programPlaylist || !programPlaylist.id) {
+          throw new Error("Không tìm thấy danh sách phát để xóa");
+        }
+        
+        const playlistId = programPlaylist.id;
+        console.log("Using actual playlist ID from server:", playlistId);
+        
+        // Thực hiện xóa với ID chính xác
         const res = await apiRequest("DELETE", `/api/playlists/${playlistId}`);
         console.log("Delete response status:", res.status);
         
@@ -284,6 +236,7 @@ export default function PlaylistPreview() {
           console.error("Delete error response:", errorData);
           throw new Error(errorData.message || "Không thể xóa danh sách phát");
         }
+        
         return true;
       } catch (error) {
         console.error("Error during delete operation:", error);
