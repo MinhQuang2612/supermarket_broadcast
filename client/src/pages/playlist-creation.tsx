@@ -478,7 +478,7 @@ export default function PlaylistCreation() {
                           <SelectSeparator />
                           {playlists.map((playlist) => (
                             <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                              Playlist {new Date(playlist.createdAt).toLocaleString()}
+                              Playlist {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
                             </SelectItem>
                           ))}
                         </SelectContent>
