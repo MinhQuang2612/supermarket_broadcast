@@ -198,6 +198,34 @@ export default function BroadcastAssignment() {
       default: return region;
     }
   };
+  
+  // Fetch provinces
+  const { data: provinces = [] } = useQuery({
+    queryKey: ['/api/provinces'],
+  });
+  
+  // Fetch communes
+  const { data: communes = [] } = useQuery({
+    queryKey: ['/api/communes'],
+  });
+  
+  // Fetch regions
+  const { data: regions = [] } = useQuery({
+    queryKey: ['/api/regions'],
+  });
+  
+  // Format full address
+  const formatFullAddress = (supermarket: Supermarket) => {
+    const commune = communes.find(c => c.id === supermarket.communeId);
+    const province = provinces.find(p => p.id === supermarket.provinceId);
+    const region = regions.find(r => r.id === supermarket.regionId);
+    
+    let fullAddress = supermarket.address;
+    if (commune) fullAddress += `, ${commune.name}`;
+    if (province) fullAddress += `, ${province.name}`;
+    
+    return fullAddress;
+  };
 
   // Check if supermarket has an assignment
   const hasBroadcastAssignment = (supermarketId: number) => {
@@ -403,6 +431,19 @@ export default function BroadcastAssignment() {
                               );
                             },
                           },
+                          {
+                            header: "Địa chỉ",
+                            accessorKey: "address",
+                            cell: ({ row }) => {
+                              const supermarket = row.original as Supermarket;
+                              
+                              return (
+                                <div className="text-sm text-neutral-dark max-w-xs truncate" title={formatFullAddress(supermarket)}>
+                                  {formatFullAddress(supermarket)}
+                                </div>
+                              );
+                            },
+                          },
                         ]}
                         data={filteredSupermarkets}
                         isLoading={isLoading}
@@ -431,12 +472,12 @@ export default function BroadcastAssignment() {
                           
                           <div>
                             <label className="text-sm text-neutral-medium">Địa chỉ</label>
-                            <p>{selectedSupermarket.address}</p>
+                            <p>{formatFullAddress(selectedSupermarket)}</p>
                           </div>
                           
                           <div>
                             <label className="text-sm text-neutral-medium">Khu vực</label>
-                            <p>{formatRegion(selectedSupermarket.region)}</p>
+                            <p>{regions.find(r => r.id === selectedSupermarket.regionId)?.name || ''}</p>
                           </div>
                           
                           <div>
