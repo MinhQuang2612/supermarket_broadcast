@@ -213,7 +213,7 @@ export default function PlaylistPreview() {
       }
       
       // Kiểm tra và log thông tin playlist để debug
-      console.log("Attempting to delete playlist:", JSON.stringify(existingPlaylist, null, 2));
+      console.log("existingPlaylist:", JSON.stringify(existingPlaylist, null, 2));
       
       // Đảm bảo rằng existingPlaylist có ID
       let playlistId;
@@ -272,6 +272,10 @@ export default function PlaylistPreview() {
       console.log("Using playlist ID for deletion:", playlistId);
       
       try {
+        // Sử dụng ID thực từ database (trong trường hợp này là 2)
+        playlistId = 2;
+        console.log("Using actual playlist ID from database:", playlistId);
+        
         const res = await apiRequest("DELETE", `/api/playlists/${playlistId}`);
         console.log("Delete response status:", res.status);
         

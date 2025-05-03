@@ -952,18 +952,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Sử dụng hàm mới để lấy playlist mới nhất cho chương trình
       const allPlaylists = await storage.getAllPlaylists();
-      console.log("All playlists:", allPlaylists);
+      console.log("All playlists:", JSON.stringify(allPlaylists));
       
       // Lọc playlist cho broadcast program này và sắp xếp theo ID giảm dần (mới nhất lên đầu)
       const filteredPlaylists = allPlaylists
         .filter(p => p.broadcastProgramId === programId)
         .sort((a, b) => b.id - a.id);
       
-      console.log("Filtered playlists for program:", filteredPlaylists);
+      console.log("Filtered playlists for program:", JSON.stringify(filteredPlaylists));
       
       // Lấy playlist mới nhất (phần tử đầu tiên sau khi đã sắp xếp)
       const latestPlaylist = filteredPlaylists.length > 0 ? filteredPlaylists[0] : null;
-      console.log("Latest playlist for program:", latestPlaylist);
+      console.log("Latest playlist for program:", JSON.stringify(latestPlaylist));
       
       // Return the playlist if found, or null if not found
       // No need to return a 404 status since "no playlist" is a valid state
