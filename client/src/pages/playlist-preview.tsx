@@ -170,15 +170,47 @@ export default function PlaylistPreview() {
 
   // Start playback
   const handleStartPlayback = () => {
-    if (playlistItems.length === 0) return;
-    setCurrentAudioIndex(0);
-    setIsPlaying(true);
+    const availableItems = playlistItems.filter(item => getAudioFile(item.audioFileId));
+    if (availableItems.length === 0) return;
+    
+    // Find the index of the first available audio file in the original playlist
+    const firstAvailableIndex = playlistItems.findIndex(item => getAudioFile(item.audioFileId));
+    if (firstAvailableIndex >= 0) {
+      console.log("Starting playback with first available file at index:", firstAvailableIndex);
+      setCurrentAudioIndex(firstAvailableIndex);
+      setIsPlaying(true);
+    } else {
+      console.warn("No available audio files found despite filtering");
+      toast({
+        title: "Không thể phát",
+        description: "Không tìm thấy file âm thanh khả dụng để phát",
+        variant: "destructive",
+      });
+    }
   };
 
   // Handle audio ended
   const handleAudioEnded = () => {
     if (currentAudioIndex < playlistItems.length - 1) {
-      setCurrentAudioIndex(currentAudioIndex + 1);
+      // Find the next available audio file starting from the current index + 1
+      const nextAvailableIndex = playlistItems.findIndex(
+        (item, idx) => idx > currentAudioIndex && getAudioFile(item.audioFileId)
+      );
+      
+      if (nextAvailableIndex >= 0) {
+        console.log("Moving to next available audio at index:", nextAvailableIndex);
+        setCurrentAudioIndex(nextAvailableIndex);
+      } else {
+        // No more available audio files, playlist finished
+        console.log("No more available audio files, playlist finished");
+        setIsPlaying(false);
+        setCurrentAudioIndex(-1);
+        
+        toast({
+          title: "Đã phát xong",
+          description: "Đã phát hết các file âm thanh khả dụng trong danh sách",
+        });
+      }
     } else {
       // Playlist finished
       setIsPlaying(false);
@@ -189,14 +221,47 @@ export default function PlaylistPreview() {
   // Skip to next track
   const handleSkipNext = () => {
     if (currentAudioIndex < playlistItems.length - 1) {
-      setCurrentAudioIndex(currentAudioIndex + 1);
+      // Find the next available audio file
+      const nextAvailableIndex = playlistItems.findIndex(
+        (item, idx) => idx > currentAudioIndex && getAudioFile(item.audioFileId)
+      );
+      
+      if (nextAvailableIndex >= 0) {
+        console.log("Skipping to next available track at index:", nextAvailableIndex);
+        setCurrentAudioIndex(nextAvailableIndex);
+      } else {
+        console.log("No next available track found");
+        toast({
+          title: "Đã đến cuối",
+          description: "Không còn file âm thanh nào phía sau",
+        });
+      }
     }
   };
 
   // Skip to previous track
   const handleSkipPrevious = () => {
     if (currentAudioIndex > 0) {
-      setCurrentAudioIndex(currentAudioIndex - 1);
+      // Find the previous available audio file
+      const prevIndices = Array.from(
+        { length: currentAudioIndex }, 
+        (_, i) => currentAudioIndex - 1 - i
+      );
+      
+      const prevAvailableIndex = prevIndices.find(
+        idx => getAudioFile(playlistItems[idx].audioFileId)
+      );
+      
+      if (prevAvailableIndex !== undefined) {
+        console.log("Skipping to previous available track at index:", prevAvailableIndex);
+        setCurrentAudioIndex(prevAvailableIndex);
+      } else {
+        console.log("No previous available track found");
+        toast({
+          title: "Đã đến đầu",
+          description: "Không còn file âm thanh nào phía trước",
+        });
+      }
     }
   };
 
