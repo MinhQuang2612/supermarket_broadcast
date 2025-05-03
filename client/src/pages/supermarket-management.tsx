@@ -410,8 +410,21 @@ export default function SupermarketManagement() {
   
   // Handle sort change
   const handleSortChange = (key: string, direction: 'asc' | 'desc' | null) => {
-    setSortKey(key);
-    setSortDirection(direction);
+    // Nếu người dùng nhấp vào cùng một cột, thay đổi hướng sắp xếp hoặc loại bỏ sắp xếp
+    if (sortKey === key) {
+      if (direction === null) {
+        // Đã nhấp lần thứ 3, loại bỏ sắp xếp
+        setSortKey(null);
+        setSortDirection(null);
+      } else {
+        // Giữ nguyên cột nhưng thay đổi hướng sắp xếp
+        setSortDirection(direction);
+      }
+    } else {
+      // Nhấp vào cột mới, thiết lập sắp xếp cho cột đó
+      setSortKey(key);
+      setSortDirection(direction);
+    }
   };
   
   // Lọc siêu thị dựa trên bộ lọc và từ khóa tìm kiếm
