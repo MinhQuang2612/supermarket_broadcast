@@ -925,14 +925,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/playlists/:id", isAuthenticated, async (req, res, next) => {
     try {
       const playlistId = parseInt(req.params.id);
+      console.log("GET SPECIFIC PLAYLIST - Looking for playlist with ID:", playlistId);
+      
       const playlist = await storage.getPlaylist(playlistId);
       
       if (!playlist) {
+        console.log("GET SPECIFIC PLAYLIST - Playlist not found with ID:", playlistId);
+        // Get all playlists for debugging
+        const allPlaylists = await storage.getAllPlaylists();
+        console.log("GET SPECIFIC PLAYLIST - All available playlists:", 
+          JSON.stringify(allPlaylists.map(p => ({ id: p.id, programId: p.broadcastProgramId }))));
+          
         return res.status(404).json({ message: "Không tìm thấy danh sách phát" });
       }
       
+      console.log("GET SPECIFIC PLAYLIST - Found playlist:", JSON.stringify({
+        id: playlist.id,
+        broadcastProgramId: playlist.broadcastProgramId,
+        itemCount: Array.isArray(playlist.items) ? playlist.items.length : 'not an array'
+      }));
+      
       res.json(playlist);
     } catch (error) {
+      console.error("GET SPECIFIC PLAYLIST - Error:", error);
       next(error);
     }
   });
