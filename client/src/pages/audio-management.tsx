@@ -224,23 +224,26 @@ export default function AudioManagement() {
   // Handle bulk download
   const handleBulkDownload = () => {
     if (selectedFiles.length > 0) {
-      // Create an invisible iframe for each file to trigger download
-      selectedFiles.forEach(file => {
-        const timestamp = new Date().getTime();
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = `/api/audio-files/${file.id}/stream?t=${timestamp}`;
-        document.body.appendChild(iframe);
-        
-        // Remove iframe after download starts
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-        }, 1000);
-      });
-      
       toast({
         title: "Tải xuống bắt đầu",
         description: `Đang tải ${selectedFiles.length} file âm thanh`,
+      });
+      
+      // Download files one by one with a small delay
+      selectedFiles.forEach((file, index) => {
+        setTimeout(() => {
+          const link = document.createElement('a');
+          const timestamp = new Date().getTime();
+          link.href = `/api/audio-files/${file.id}/download?t=${timestamp}`;
+          link.download = file.displayName + '.' + (file.fileType.split('/')[1] || 'mp3');
+          document.body.appendChild(link);
+          link.click();
+          
+          // Remove the link after click
+          setTimeout(() => {
+            document.body.removeChild(link);
+          }, 100);
+        }, index * 300); // Add a small delay between downloads
       });
     }
   };
@@ -332,9 +335,17 @@ export default function AudioManagement() {
 
   // Download file
   const handleDownload = (file: AudioFile) => {
-    // Sử dụng URL có timestamp để tránh cache
+    // Tạo một thẻ a tạm thời để download file
+    const link = document.createElement('a');
     const timestamp = new Date().getTime();
-    window.open(`/api/audio-files/${file.id}/stream?t=${timestamp}`, "_blank");
+    link.href = `/api/audio-files/${file.id}/download?t=${timestamp}`;
+    link.download = file.displayName + '.' + (file.fileType.split('/')[1] || 'mp3');
+    document.body.appendChild(link);
+    link.click();
+    // Xóa thẻ a sau khi đã sử dụng
+    setTimeout(() => {
+      document.body.removeChild(link);
+    }, 100);
   };
 
   // Bulk delete selected files

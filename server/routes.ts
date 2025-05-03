@@ -662,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve audio files
+  // Serve audio files (streaming)
   app.get("/api/audio-files/:id/stream", isAuthenticated, async (req, res, next) => {
     try {
       const audioFileId = parseInt(req.params.id);
@@ -677,6 +677,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "File âm thanh không tồn tại trên server" });
       }
       
+      res.sendFile(filePath);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Download audio files
+  app.get("/api/audio-files/:id/download", isAuthenticated, async (req, res, next) => {
+    try {
+      const audioFileId = parseInt(req.params.id);
+      const audioFile = await storage.getAudioFile(audioFileId);
+      
+      if (!audioFile) {
+        return res.status(404).json({ message: "Không tìm thấy file âm thanh" });
+      }
+      
+      const filePath = path.join(process.cwd(), "uploads", audioFile.filename);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "File âm thanh không tồn tại trên server" });
+      }
+      
+      // Determine file extension from MIME type
+      const fileType = audioFile.fileType;
+      const extension = fileType.split('/')[1] || 'mp3';
+      
+      // Set the right headers for download
+      res.setHeader('Content-Disposition', `attachment; filename="${audioFile.displayName}.${extension}"`);
+      res.setHeader('Content-Type', audioFile.fileType);
+      
+      // Send the file for download
       res.sendFile(filePath);
     } catch (error) {
       next(error);
