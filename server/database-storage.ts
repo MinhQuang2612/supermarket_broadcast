@@ -1,12 +1,13 @@
 import { IStorage } from './storage';
 import { db } from './db';
 import { 
-  users, activityLogs, supermarkets, audioFiles, 
+  users, activityLogs, regions, provinces, communes, supermarkets, audioFiles, 
   broadcastPrograms, playlists, broadcastAssignments,
-  User, ActivityLog, Supermarket, AudioFile, 
+  User, ActivityLog, Region, Province, Commune, Supermarket, AudioFile, 
   BroadcastProgram, Playlist, BroadcastAssignment,
-  InsertUser, InsertActivityLog, InsertSupermarket, InsertAudioFile,
-  InsertBroadcastProgram, InsertPlaylist, InsertBroadcastAssignment
+  InsertUser, InsertActivityLog, InsertRegion, InsertProvince, InsertCommune,
+  InsertSupermarket, InsertAudioFile, InsertBroadcastProgram, 
+  InsertPlaylist, InsertBroadcastAssignment
 } from '@shared/schema';
 import { eq, and, desc, gte, sql } from 'drizzle-orm';
 import connectPg from "connect-pg-simple";
@@ -108,6 +109,146 @@ export class DatabaseStorage implements IStorage {
       .from(activityLogs)
       .orderBy(desc(activityLogs.timestamp))
       .limit(limit);
+  }
+
+  // Region operations
+  async createRegion(regionData: InsertRegion): Promise<Region> {
+    const [region] = await db
+      .insert(regions)
+      .values(regionData)
+      .returning();
+    
+    return region;
+  }
+
+  async getRegion(id: number): Promise<Region | undefined> {
+    const [region] = await db
+      .select()
+      .from(regions)
+      .where(eq(regions.id, id));
+    
+    return region;
+  }
+  
+  async getRegionByCode(code: string): Promise<Region | undefined> {
+    const [region] = await db
+      .select()
+      .from(regions)
+      .where(eq(regions.code, code));
+    
+    return region;
+  }
+
+  async getAllRegions(): Promise<Region[]> {
+    return db.select().from(regions);
+  }
+
+  async updateRegion(id: number, regionData: InsertRegion): Promise<Region> {
+    const [region] = await db
+      .update(regions)
+      .set(regionData)
+      .where(eq(regions.id, id))
+      .returning();
+    
+    return region;
+  }
+
+  async deleteRegion(id: number): Promise<void> {
+    await db
+      .delete(regions)
+      .where(eq(regions.id, id));
+  }
+  
+  // Province operations
+  async createProvince(provinceData: InsertProvince): Promise<Province> {
+    const [province] = await db
+      .insert(provinces)
+      .values(provinceData)
+      .returning();
+    
+    return province;
+  }
+
+  async getProvince(id: number): Promise<Province | undefined> {
+    const [province] = await db
+      .select()
+      .from(provinces)
+      .where(eq(provinces.id, id));
+    
+    return province;
+  }
+
+  async getAllProvinces(): Promise<Province[]> {
+    return db.select().from(provinces);
+  }
+  
+  async getProvincesByRegion(regionId: number): Promise<Province[]> {
+    return db
+      .select()
+      .from(provinces)
+      .where(eq(provinces.regionId, regionId));
+  }
+
+  async updateProvince(id: number, provinceData: InsertProvince): Promise<Province> {
+    const [province] = await db
+      .update(provinces)
+      .set(provinceData)
+      .where(eq(provinces.id, id))
+      .returning();
+    
+    return province;
+  }
+
+  async deleteProvince(id: number): Promise<void> {
+    await db
+      .delete(provinces)
+      .where(eq(provinces.id, id));
+  }
+  
+  // Commune operations
+  async createCommune(communeData: InsertCommune): Promise<Commune> {
+    const [commune] = await db
+      .insert(communes)
+      .values(communeData)
+      .returning();
+    
+    return commune;
+  }
+
+  async getCommune(id: number): Promise<Commune | undefined> {
+    const [commune] = await db
+      .select()
+      .from(communes)
+      .where(eq(communes.id, id));
+    
+    return commune;
+  }
+
+  async getAllCommunes(): Promise<Commune[]> {
+    return db.select().from(communes);
+  }
+  
+  async getCommunesByProvince(provinceId: number): Promise<Commune[]> {
+    return db
+      .select()
+      .from(communes)
+      .where(eq(communes.provinceId, provinceId));
+  }
+
+  async updateCommune(id: number, communeData: InsertCommune): Promise<Commune> {
+    const [commune] = await db
+      .update(communes)
+      .set(communeData)
+      .where(eq(communes.id, id))
+      .returning();
+    
+    return commune;
+  }
+
+  async deleteCommune(id: number): Promise<void> {
+    await db
+      .delete(communes)
+      .where(eq(communes.id, id));
   }
 
   // Supermarket operations
