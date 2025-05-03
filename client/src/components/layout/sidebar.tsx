@@ -88,12 +88,12 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
 
   return (
     <div className={cn(
-      "h-full bg-white shadow-md z-10 flex flex-col transition-all duration-300",
-      collapsed ? "w-16" : "w-64"
+      "fixed md:relative h-full bg-white shadow-md z-20 flex flex-col transition-all duration-300 transform",
+      collapsed ? "w-16 -translate-x-full md:translate-x-0" : "w-64",
     )}>
-      <div className="p-4 border-b border-neutral-light flex items-center justify-between">
+      <div className="p-3 sm:p-4 border-b border-neutral-light flex items-center justify-between">
         {!collapsed && (
-          <h1 className="text-lg font-bold text-primary truncate">Quản lý Phát Thanh</h1>
+          <h1 className="text-base sm:text-lg font-bold text-primary truncate">Quản lý Phát Thanh</h1>
         )}
         <Button 
           variant="ghost" 
@@ -107,12 +107,12 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
       
       {!collapsed && (
         <div className="p-2">
-          <div className="flex items-center space-x-3 p-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center">
+          <div className="flex items-center space-x-3 p-2 sm:p-3 mb-2 sm:mb-4">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary text-white flex items-center justify-center">
               {user?.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
             </div>
             <div>
-              <p className="font-medium text-sm">{user?.fullName || "User"}</p>
+              <p className="font-medium text-xs sm:text-sm">{user?.fullName || "User"}</p>
               <p className="text-xs text-neutral-medium">
                 {user?.role === "admin" ? "Quản trị viên" : 
                  user?.role === "manager" ? "Quản lý" : "Người dùng"}
@@ -129,19 +129,19 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
             return (
               <li key={item.href}>
                 <Link href={item.href}>
-                  <a 
+                  <div 
                     className={cn(
-                      "flex items-center py-3 px-3 text-sm rounded-md hover:bg-neutral-lightest transition-colors",
-                      isActive ? "text-primary font-medium border-l-4 border-primary pl-2" : "",
+                      "flex items-center py-2 sm:py-3 px-2 sm:px-3 text-xs sm:text-sm rounded-md hover:bg-neutral-lightest transition-colors cursor-pointer",
+                      isActive ? "text-primary font-medium border-l-4 border-primary pl-1 sm:pl-2" : "",
                       collapsed && "justify-center"
                     )}
                   >
                     <span className={cn(
-                      collapsed ? "" : "w-6",
+                      collapsed ? "" : "min-w-6",
                       isActive ? "text-primary" : "text-neutral-dark"
                     )}>{item.icon}</span>
-                    {!collapsed && <span className="ml-2">{item.title}</span>}
-                  </a>
+                    {!collapsed && <span className="ml-2 whitespace-nowrap overflow-hidden text-ellipsis">{item.title}</span>}
+                  </div>
                 </Link>
               </li>
             );
@@ -149,17 +149,17 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         </ul>
       </nav>
       
-      <div className="p-4 border-t border-neutral-light">
+      <div className="p-3 sm:p-4 border-t border-neutral-light">
         <Button 
           variant="ghost" 
           className={cn(
-            "flex items-center text-neutral-dark hover:text-danger w-full justify-start",
+            "flex items-center text-neutral-dark hover:text-danger w-full justify-start text-xs sm:text-sm",
             collapsed && "justify-center"
           )}
           onClick={handleLogout}
           disabled={logoutMutation.isPending}
         >
-          <LogOut className={cn("h-5 w-5", collapsed ? "" : "mr-2")} />
+          <LogOut className={cn("h-4 w-4 sm:h-5 sm:w-5", collapsed ? "" : "mr-2")} />
           {!collapsed && <span>Đăng xuất</span>}
         </Button>
       </div>

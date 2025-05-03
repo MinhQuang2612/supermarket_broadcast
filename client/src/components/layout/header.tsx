@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { Bell, Settings } from "lucide-react";
+import { Bell, Settings, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 
 interface HeaderProps {
   title: string;
+  onMobileMenuToggle?: () => void;
 }
 
-export default function Header({ title }: HeaderProps) {
+export default function Header({ title, onMobileMenuToggle }: HeaderProps) {
   const [hasNotifications] = useState(true);
   
   // Determine page title based on current route
@@ -30,16 +31,26 @@ export default function Header({ title }: HeaderProps) {
     pageTitle = "Nghe thử chương trình";
   } else if (location === "/broadcast-assignments") {
     pageTitle = "Phân bổ chương trình";
-  } else if (location === "/system") {
+  } else if (location === "/system-management") {
     pageTitle = "Quản lý hệ thống";
   }
 
   return (
-    <header className="bg-white shadow-sm h-16 flex items-center px-6">
-      <div className="flex-1">
-        <h2 className="text-xl font-semibold text-neutral-darkest">{pageTitle}</h2>
+    <header className="bg-white shadow-sm h-16 flex items-center px-3 sm:px-6">
+      <div className="flex items-center md:hidden mr-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onMobileMenuToggle}
+          className="text-neutral-medium hover:text-primary"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
       </div>
-      <div className="flex items-center space-x-4">
+      <div className="flex-1">
+        <h2 className="text-lg sm:text-xl font-semibold text-neutral-darkest">{pageTitle}</h2>
+      </div>
+      <div className="flex items-center space-x-2 sm:space-x-4">
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5 text-neutral-dark" />
           {hasNotifications && (

@@ -38,10 +38,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} 
       />
       
+      {/* Mobile overlay that darkens the screen when sidebar is open */}
+      {!sidebarCollapsed && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden" 
+          onClick={() => setSidebarCollapsed(true)}
+        />
+      )}
+      
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header title="Dashboard" />
+        <Header 
+          title="Dashboard" 
+          onMobileMenuToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
+        />
         
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
           {children}
         </main>
       </div>
