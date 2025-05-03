@@ -945,7 +945,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID chương trình không hợp lệ" });
       }
       
+      // Thêm log để debug
+      console.log("Getting playlist for broadcast program:", programId);
+      
       const playlist = await storage.getPlaylistByProgramId(programId);
+      console.log("Found playlist:", playlist);
       
       // Return the playlist if found, or null if not found
       // No need to return a 404 status since "no playlist" is a valid state

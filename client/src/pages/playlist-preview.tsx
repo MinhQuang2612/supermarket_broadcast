@@ -72,8 +72,13 @@ export default function PlaylistPreview() {
 
   // Load playlist items from existing playlist
   useEffect(() => {
+    // Add more detailed debugging
+    console.log("ExistingPlaylist:", JSON.stringify(existingPlaylist, null, 2));
+    
     if (existingPlaylist && existingPlaylist.items && Array.isArray(existingPlaylist.items)) {
       try {
+        console.log("Processing playlist items:", existingPlaylist.items);
+        
         const items = existingPlaylist.items as PlaylistItem[];
         // Sort by play time
         const sortedItems = [...items].sort((a, b) => {
@@ -81,6 +86,9 @@ export default function PlaylistPreview() {
           const timeB = b.playTime.split(':').map(Number);
           return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
         });
+        
+        console.log("Sorted playlist items:", sortedItems);
+        
         setPlaylistItems(sortedItems);
         setCurrentAudioIndex(-1);
         setIsPlaying(false);

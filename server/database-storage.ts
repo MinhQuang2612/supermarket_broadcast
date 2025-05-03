@@ -532,12 +532,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPlaylistByProgramId(programId: number): Promise<Playlist | undefined> {
-    const [playlist] = await db
-      .select()
-      .from(playlists)
-      .where(eq(playlists.broadcastProgramId, programId));
-    
-    return playlist;
+    try {
+      console.log("Storage: Getting playlist for program ID:", programId);
+      
+      const [playlist] = await db
+        .select()
+        .from(playlists)
+        .where(eq(playlists.broadcastProgramId, programId));
+      
+      console.log("Storage: Found playlist:", playlist);
+      
+      return playlist;
+    } catch (error) {
+      console.error("Error in getPlaylistByProgramId:", error);
+      throw error;
+    }
   }
 
   async getAllPlaylists(): Promise<Playlist[]> {
