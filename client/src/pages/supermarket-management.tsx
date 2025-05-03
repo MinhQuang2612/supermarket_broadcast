@@ -505,7 +505,6 @@ export default function SupermarketManagement() {
                   if (supermarket.address) addressParts.push(supermarket.address);
                   if (commune?.name) addressParts.push(commune.name);
                   if (province?.name) addressParts.push(province.name);
-                  if (region?.name) addressParts.push(region.name);
                   
                   return (
                     <div className="text-sm text-neutral-dark max-w-xs truncate" title={addressParts.join(", ")}>
