@@ -196,15 +196,33 @@ export default function PlaylistPreview() {
   // Delete playlist mutation
   const deletePlaylistMutation = useMutation({
     mutationFn: async () => {
-      if (!existingPlaylist || !existingPlaylist.id) {
+      if (!existingPlaylist) {
+        console.error("existingPlaylist is undefined or null:", existingPlaylist);
         throw new Error("Không tìm thấy playlist để xóa");
       }
-      const res = await apiRequest("DELETE", `/api/playlists/${existingPlaylist.id}`);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Không thể xóa danh sách phát");
+      
+      // Kiểm tra và log thông tin playlist để debug
+      console.log("Attempting to delete playlist:", existingPlaylist);
+      
+      if (!existingPlaylist.id) {
+        console.error("Playlist doesn't have an ID property:", existingPlaylist);
+        throw new Error("ID playlist không hợp lệ hoặc không tồn tại");
       }
-      return true;
+      
+      try {
+        const res = await apiRequest("DELETE", `/api/playlists/${existingPlaylist.id}`);
+        console.log("Delete response status:", res.status);
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ message: "Không thể đọc thông tin lỗi" }));
+          console.error("Delete error response:", errorData);
+          throw new Error(errorData.message || "Không thể xóa danh sách phát");
+        }
+        return true;
+      } catch (error) {
+        console.error("Error during delete operation:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/broadcast-programs', selectedProgram, 'playlist'] });
@@ -215,9 +233,10 @@ export default function PlaylistPreview() {
       });
     },
     onError: (error: Error) => {
+      console.error("Delete mutation error:", error);
       toast({
         title: "Không thể xóa danh sách phát",
-        description: error.message,
+        description: error.message || "Đã xảy ra lỗi khi xóa danh sách phát",
         variant: "destructive",
       });
     },
