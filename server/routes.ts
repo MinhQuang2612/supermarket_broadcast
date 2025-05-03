@@ -13,8 +13,10 @@ import {
   insertAudioFileSchema, 
   insertBroadcastProgramSchema,
   insertPlaylistSchema,
-  insertBroadcastAssignmentSchema
+  insertBroadcastAssignmentSchema,
+  audioFiles
 } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -614,6 +616,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Update audio file group
+  app.patch("/api/audio-files/:id/group", isManagerOrAdmin, async (req, res, next) => {
+    try {
+      const audioFileId = parseInt(req.params.id);
+      const { group } = req.body;
+      
+      if (!group) {
+        return res.status(400).json({ message: "Nhóm không được để trống" });
+      }
+      
+      const audioFile = await storage.getAudioFile(audioFileId);
+      
+      if (!audioFile) {
+        return res.status(404).json({ message: "Không tìm thấy file âm thanh" });
+      }
+      
+      // Check if file is being used in playlists
+      if (audioFile.status === "used") {
+        return res.status(400).json({ 
+          message: "Không thể thay đổi nhóm của file đang được sử dụng trong playlist" 
+        });
+      }
+      
+      // Update the file's group in database
+      await db.update(audioFiles)
+        .set({ group })
+        .where(eq(audioFiles.id, audioFileId));
+      
+      // Log the activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "update_audio_group",
+        details: `Thay đổi nhóm của file "${audioFile.displayName}" từ "${audioFile.group}" thành "${group}"`,
+      });
+      
+      res.status(200).json({ message: "Cập nhật nhóm thành công" });
     } catch (error) {
       next(error);
     }
