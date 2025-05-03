@@ -51,7 +51,13 @@ import {
   AlertCircle
 } from "lucide-react";
 
-const formSchema = insertSupermarketSchema.extend({});
+const formSchema = insertSupermarketSchema.extend({
+  name: z.string().min(1, { message: "Tên siêu thị không được để trống" }),
+  address: z.string().min(1, { message: "Địa chỉ không được để trống" }),
+  regionId: z.number().min(1, { message: "Vui lòng chọn khu vực" }),
+  provinceId: z.number().min(1, { message: "Vui lòng chọn tỉnh/thành phố" }),
+  communeId: z.number().min(1, { message: "Vui lòng chọn quận/huyện" }),
+});
 
 type SupermarketFormValues = z.infer<typeof formSchema>;
 

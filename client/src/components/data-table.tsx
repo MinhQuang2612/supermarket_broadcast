@@ -173,34 +173,6 @@ export default function DataTable({
 
   return (
     <div>
-      {(sortKey && sortDirection) && (
-        <div className="text-sm mb-2 py-2 px-4 bg-primary-light/10 rounded-md border border-primary-light/20 text-neutral-medium">
-          <span className="mr-1">Đang sắp xếp theo:</span>
-          <span className="font-medium text-primary">
-            {columns.find(col => col.accessorKey === sortKey)?.header || sortKey}
-          </span>
-          <span className="mx-1">-</span>
-          <span className="text-primary-dark font-medium">
-            {sortDirection === 'asc' ? 'Tăng dần' : 'Giảm dần'}
-          </span>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="ml-2 h-6 text-xs text-primary hover:text-primary-dark"
-            onClick={() => {
-              if (serverSideSorting) {
-                serverSideSorting.onSortChange(sortKey, null);
-              } else {
-                // Client-side sorting
-                setSortKey(null);
-                setSortDirection(null);
-              }
-            }}
-          >
-            Bỏ sắp xếp
-          </Button>
-        </div>
-      )}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -208,10 +180,7 @@ export default function DataTable({
               {columns.map((column) => (
                 <TableHead 
                   key={column.id || column.accessorKey} 
-                  className={`font-medium text-xs uppercase tracking-wider py-3 
-                    ${sortKey === column.accessorKey ? 'bg-primary-light/10 text-primary-dark' : 'bg-neutral-50'} 
-                    ${column.sortable ? 'cursor-pointer group hover:bg-neutral-100' : ''}
-                  `}
+                  className={`font-medium text-xs uppercase tracking-wider bg-neutral-50 py-3 ${column.sortable ? 'cursor-pointer group' : ''}`}
                   onClick={() => column.sortable && column.accessorKey && handleSort(column.accessorKey)}
                 >
                   <div className="flex items-center">
@@ -220,12 +189,12 @@ export default function DataTable({
                       <div className="ml-2">
                         {sortKey === column.accessorKey ? (
                           sortDirection === 'asc' ? (
-                            <ChevronUp className="h-4 w-4 text-primary" />
+                            <ChevronUp className="h-4 w-4" />
                           ) : sortDirection === 'desc' ? (
-                            <ChevronDown className="h-4 w-4 text-primary" />
+                            <ChevronDown className="h-4 w-4" />
                           ) : null
                         ) : (
-                          <div className="opacity-0 group-hover:opacity-70 h-4 w-4 flex flex-col items-center">
+                          <div className="opacity-0 group-hover:opacity-50 h-4 w-4 flex flex-col items-center">
                             <ChevronUp className="h-2 w-4" />
                             <ChevronDown className="h-2 w-4" />
                           </div>
