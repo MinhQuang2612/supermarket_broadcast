@@ -51,6 +51,7 @@ export default function AudioManagement() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [showStatusUpdateDialog, setShowStatusUpdateDialog] = useState(false);
   const [selectedFile, setSelectedFile] = useState<AudioFile | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<AudioFile[]>([]);
   const [groupFilter, setGroupFilter] = useState("all");
@@ -59,6 +60,7 @@ export default function AudioManagement() {
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadGroup, setUploadGroup] = useState("greetings");
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   
   // Fetch audio files
   const { data: audioFiles = [], isLoading } = useQuery<AudioFile[]>({
@@ -166,6 +168,31 @@ export default function AudioManagement() {
     onError: (error: Error) => {
       toast({
         title: "Xóa thất bại",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Reset audio file status
+  const resetStatusMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/reset-audio-status");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/audio-files'] });
+      setShowStatusUpdateDialog(false);
+      setIsUpdatingStatus(false);
+      toast({
+        title: "Cập nhật thành công",
+        description: data.message || "Đã cập nhật trạng thái của tất cả file âm thanh",
+      });
+    },
+    onError: (error: Error) => {
+      setIsUpdatingStatus(false);
+      toast({
+        title: "Cập nhật thất bại",
         description: error.message,
         variant: "destructive",
       });
@@ -697,6 +724,21 @@ export default function AudioManagement() {
         confirmText="Xóa"
         isLoading={bulkDeleteMutation.isPending}
         variant="destructive"
+      />
+      
+      {/* Status Update Dialog */}
+      <ConfirmDialog
+        open={showStatusUpdateDialog}
+        onOpenChange={setShowStatusUpdateDialog}
+        title="Cập nhật trạng thái file audio"
+        description={`Việc này sẽ kiểm tra tất cả file audio và cập nhật trạng thái của chúng về "đang sử dụng" hoặc "chưa sử dụng" dựa trên việc chúng có đang được sử dụng trong playlist hay không. Bạn có muốn tiếp tục?`}
+        onConfirm={() => {
+          setIsUpdatingStatus(true);
+          resetStatusMutation.mutate();
+        }}
+        confirmText="Cập nhật"
+        isLoading={isUpdatingStatus}
+        variant="default"
       />
     </DashboardLayout>
   );

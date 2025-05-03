@@ -1486,6 +1486,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API để cập nhật trạng thái file audio
+  app.post("/api/reset-audio-status", isManagerOrAdmin, async (req, res, next) => {
+    try {
+      console.log("Resetting audio file statuses");
+      
+      // Get all audio files
+      const audioFiles = await storage.getAllAudioFiles();
+      let updatedCount = 0;
+      
+      // Check each audio file
+      for (const file of audioFiles) {
+        const isUsed = await storage.isAudioFileUsed(file.id);
+        
+        // If file status doesn't match its usage, update it
+        if ((isUsed && file.status !== "used") || (!isUsed && file.status !== "unused")) {
+          const newStatus = isUsed ? "used" : "unused";
+          await storage.updateAudioFileStatus(file.id, newStatus);
+          updatedCount++;
+          console.log(`Updated audio file ID ${file.id} status to ${newStatus}`);
+        }
+      }
+      
+      // Log the activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "reset_audio_status",
+        details: `Cập nhật trạng thái của ${updatedCount} file âm thanh`,
+      });
+      
+      res.status(200).json({ 
+        message: `Đã cập nhật trạng thái của ${updatedCount} file âm thanh`, 
+        updatedCount 
+      });
+    } catch (error) {
+      console.error("Error resetting audio statuses:", error);
+      next(error);
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
