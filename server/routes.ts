@@ -1429,6 +1429,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Lấy tất cả playlists (để kiểm tra có bất kỳ playlist nào đang sử dụng program không)
       const allPlaylists = await storage.getAllPlaylists();
       
+      // Xóa tất cả broadcast assignments trước (vì có foreign key constraint)
+      const allAssignments = await storage.getAllBroadcastAssignments();
+      console.log(`Found ${allAssignments.length} broadcast assignments to delete`);
+      
+      for (const assignment of allAssignments) {
+        await storage.deleteBroadcastAssignment(assignment.id);
+        console.log(`Deleted broadcast assignment ID: ${assignment.id}`);
+        
+        // Cập nhật supermarket
+        await storage.updateSupermarketCurrentProgram(assignment.supermarketId, null);
+        console.log(`Updated supermarket ID: ${assignment.supermarketId} - current program: null`);
+      }
+      
       // Xóa từng broadcast program
       for (const program of allPrograms) {
         // Kiểm tra xem program này có playlist nào đang sử dụng không
