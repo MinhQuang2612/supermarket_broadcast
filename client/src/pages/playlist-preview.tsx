@@ -143,6 +143,10 @@ export default function PlaylistPreview() {
     const id = parseInt(playlistId);
     console.log("Selected playlist ID:", id);
     
+    // Ghi log rõ ràng hơn cho việc debug
+    console.log("Available playlists:", programPlaylists.map(p => `ID: ${p.id}, Created: ${p.createdAt}`));
+    console.log("Selecting playlist from dropdown with ID:", id);
+    
     // Set the state
     setSelectedPlaylistId(id);
     setCurrentAudioIndex(-1);
