@@ -5,6 +5,15 @@ import {
   activityLogs,
   ActivityLog,
   InsertActivityLog,
+  regions,
+  Region,
+  InsertRegion,
+  provinces,
+  Province,
+  InsertProvince,
+  communes,
+  Commune,
+  InsertCommune,
   supermarkets,
   Supermarket,
   InsertSupermarket,
@@ -41,6 +50,30 @@ export interface IStorage {
   createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
   getActivityLogs(since: Date): Promise<ActivityLog[]>;
   getRecentActivities(limit: number): Promise<ActivityLog[]>;
+  
+  // Region operations
+  createRegion(region: InsertRegion): Promise<Region>;
+  getRegion(id: number): Promise<Region | undefined>;
+  getRegionByCode(code: string): Promise<Region | undefined>;
+  getAllRegions(): Promise<Region[]>;
+  updateRegion(id: number, region: InsertRegion): Promise<Region>;
+  deleteRegion(id: number): Promise<void>;
+  
+  // Province operations
+  createProvince(province: InsertProvince): Promise<Province>;
+  getProvince(id: number): Promise<Province | undefined>;
+  getAllProvinces(): Promise<Province[]>;
+  getProvincesByRegion(regionId: number): Promise<Province[]>;
+  updateProvince(id: number, province: InsertProvince): Promise<Province>;
+  deleteProvince(id: number): Promise<void>;
+  
+  // Commune operations
+  createCommune(commune: InsertCommune): Promise<Commune>;
+  getCommune(id: number): Promise<Commune | undefined>;
+  getAllCommunes(): Promise<Commune[]>;
+  getCommunesByProvince(provinceId: number): Promise<Commune[]>;
+  updateCommune(id: number, commune: InsertCommune): Promise<Commune>;
+  deleteCommune(id: number): Promise<void>;
   
   // Supermarket operations
   createSupermarket(supermarket: InsertSupermarket): Promise<Supermarket>;
@@ -93,6 +126,9 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private usersMap: Map<number, User>;
   private activityLogsMap: Map<number, ActivityLog>;
+  private regionsMap: Map<number, Region>;
+  private provincesMap: Map<number, Province>;
+  private communesMap: Map<number, Commune>;
   private supermarketsMap: Map<number, Supermarket>;
   private audioFilesMap: Map<number, AudioFile>;
   private broadcastProgramsMap: Map<number, BroadcastProgram>;
@@ -102,6 +138,9 @@ export class MemStorage implements IStorage {
   // Current IDs
   private userIdCounter: number;
   private activityLogIdCounter: number;
+  private regionIdCounter: number;
+  private provinceIdCounter: number;
+  private communeIdCounter: number;
   private supermarketIdCounter: number;
   private audioFileIdCounter: number;
   private broadcastProgramIdCounter: number;
@@ -115,6 +154,9 @@ export class MemStorage implements IStorage {
     // Initialize maps
     this.usersMap = new Map();
     this.activityLogsMap = new Map();
+    this.regionsMap = new Map();
+    this.provincesMap = new Map();
+    this.communesMap = new Map();
     this.supermarketsMap = new Map();
     this.audioFilesMap = new Map();
     this.broadcastProgramsMap = new Map();
@@ -124,6 +166,9 @@ export class MemStorage implements IStorage {
     // Initialize ID counters
     this.userIdCounter = 1;
     this.activityLogIdCounter = 1;
+    this.regionIdCounter = 1;
+    this.provinceIdCounter = 1;
+    this.communeIdCounter = 1;
     this.supermarketIdCounter = 1;
     this.audioFileIdCounter = 1;
     this.broadcastProgramIdCounter = 1;
@@ -134,6 +179,11 @@ export class MemStorage implements IStorage {
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 24 hours
     });
+    
+    // Initialize default regions
+    this.createRegion({ name: "Miền Bắc", code: "north" });
+    this.createRegion({ name: "Miền Trung", code: "central" });
+    this.createRegion({ name: "Miền Nam", code: "south" });
   }
 
   // User operations
@@ -214,6 +264,144 @@ export class MemStorage implements IStorage {
     return Array.from(this.activityLogsMap.values())
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, limit);
+  }
+  
+  // Region operations
+  async createRegion(regionData: InsertRegion): Promise<Region> {
+    const id = this.regionIdCounter++;
+    
+    const region: Region = {
+      ...regionData,
+      id,
+    };
+    
+    this.regionsMap.set(id, region);
+    return region;
+  }
+
+  async getRegion(id: number): Promise<Region | undefined> {
+    return this.regionsMap.get(id);
+  }
+  
+  async getRegionByCode(code: string): Promise<Region | undefined> {
+    return Array.from(this.regionsMap.values()).find(
+      (region) => region.code === code
+    );
+  }
+
+  async getAllRegions(): Promise<Region[]> {
+    return Array.from(this.regionsMap.values());
+  }
+
+  async updateRegion(id: number, regionData: InsertRegion): Promise<Region> {
+    const existingRegion = this.regionsMap.get(id);
+    if (!existingRegion) {
+      throw new Error("Region not found");
+    }
+    
+    const updatedRegion: Region = {
+      ...existingRegion,
+      ...regionData,
+    };
+    
+    this.regionsMap.set(id, updatedRegion);
+    return updatedRegion;
+  }
+
+  async deleteRegion(id: number): Promise<void> {
+    this.regionsMap.delete(id);
+  }
+  
+  // Province operations
+  async createProvince(provinceData: InsertProvince): Promise<Province> {
+    const id = this.provinceIdCounter++;
+    
+    const province: Province = {
+      ...provinceData,
+      id,
+    };
+    
+    this.provincesMap.set(id, province);
+    return province;
+  }
+
+  async getProvince(id: number): Promise<Province | undefined> {
+    return this.provincesMap.get(id);
+  }
+
+  async getAllProvinces(): Promise<Province[]> {
+    return Array.from(this.provincesMap.values());
+  }
+  
+  async getProvincesByRegion(regionId: number): Promise<Province[]> {
+    return Array.from(this.provincesMap.values()).filter(
+      (province) => province.regionId === regionId
+    );
+  }
+
+  async updateProvince(id: number, provinceData: InsertProvince): Promise<Province> {
+    const existingProvince = this.provincesMap.get(id);
+    if (!existingProvince) {
+      throw new Error("Province not found");
+    }
+    
+    const updatedProvince: Province = {
+      ...existingProvince,
+      ...provinceData,
+    };
+    
+    this.provincesMap.set(id, updatedProvince);
+    return updatedProvince;
+  }
+
+  async deleteProvince(id: number): Promise<void> {
+    this.provincesMap.delete(id);
+  }
+  
+  // Commune operations
+  async createCommune(communeData: InsertCommune): Promise<Commune> {
+    const id = this.communeIdCounter++;
+    
+    const commune: Commune = {
+      ...communeData,
+      id,
+    };
+    
+    this.communesMap.set(id, commune);
+    return commune;
+  }
+
+  async getCommune(id: number): Promise<Commune | undefined> {
+    return this.communesMap.get(id);
+  }
+
+  async getAllCommunes(): Promise<Commune[]> {
+    return Array.from(this.communesMap.values());
+  }
+  
+  async getCommunesByProvince(provinceId: number): Promise<Commune[]> {
+    return Array.from(this.communesMap.values()).filter(
+      (commune) => commune.provinceId === provinceId
+    );
+  }
+
+  async updateCommune(id: number, communeData: InsertCommune): Promise<Commune> {
+    const existingCommune = this.communesMap.get(id);
+    if (!existingCommune) {
+      throw new Error("Commune not found");
+    }
+    
+    const updatedCommune: Commune = {
+      ...existingCommune,
+      ...communeData,
+    };
+    
+    this.communesMap.set(id, updatedCommune);
+    return updatedCommune;
+  }
+
+  async deleteCommune(id: number): Promise<void> {
+    this.communesMap.delete(id);
   }
 
   // Supermarket operations

@@ -47,22 +47,89 @@ export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
   timestamp: true,
 });
 
+// Regions
+export const regions = pgTable("regions", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // "Miền Bắc", "Miền Trung", "Miền Nam"
+  code: text("code").notNull().unique(), // "north", "central", "south"
+});
+
+export const regionsRelations = relations(regions, ({ many }) => ({
+  provinces: many(provinces),
+}));
+
+export const insertRegionSchema = createInsertSchema(regions).omit({
+  id: true,
+});
+
+// Provinces (Tỉnh/thành phố)
+export const provinces = pgTable("provinces", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  regionId: integer("region_id").notNull().references(() => regions.id),
+});
+
+export const provincesRelations = relations(provinces, ({ one, many }) => ({
+  region: one(regions, {
+    fields: [provinces.regionId],
+    references: [regions.id],
+  }),
+  communes: many(communes),
+  supermarkets: many(supermarkets, { relationName: "provinceSupermarkets" }),
+}));
+
+export const insertProvinceSchema = createInsertSchema(provinces).omit({
+  id: true,
+});
+
+// Communes (Xã/phường)
+export const communes = pgTable("communes", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  provinceId: integer("province_id").notNull().references(() => provinces.id),
+});
+
+export const communesRelations = relations(communes, ({ one, many }) => ({
+  province: one(provinces, {
+    fields: [communes.provinceId],
+    references: [provinces.id],
+  }),
+  supermarkets: many(supermarkets, { relationName: "communeSupermarkets" }),
+}));
+
+export const insertCommuneSchema = createInsertSchema(communes).omit({
+  id: true,
+});
+
 // Supermarket model
 export const supermarkets = pgTable("supermarkets", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   address: text("address").notNull(), // Địa chỉ chi tiết (số nhà, tên đường)
-  ward: text("ward").notNull(), // Xã/phường
-  district: text("district").notNull(), // Quận/huyện
-  province: text("province").notNull(), // Tỉnh/thành phố
-  region: text("region").notNull(), // "north", "central", "south"
+  communeId: integer("commune_id").notNull().references(() => communes.id),
+  provinceId: integer("province_id").notNull().references(() => provinces.id),
+  regionId: integer("region_id").notNull().references(() => regions.id),
   status: text("status").notNull().default("active"), // "active", "paused"
   currentProgram: text("current_program"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const supermarketsRelations = relations(supermarkets, ({ many }) => ({
+export const supermarketsRelations = relations(supermarkets, ({ many, one }) => ({
   broadcastAssignments: many(broadcastAssignments),
+  commune: one(communes, {
+    fields: [supermarkets.communeId],
+    references: [communes.id],
+    relationName: "communeSupermarkets",
+  }),
+  province: one(provinces, {
+    fields: [supermarkets.provinceId],
+    references: [provinces.id],
+    relationName: "provinceSupermarkets",
+  }),
+  region: one(regions, {
+    fields: [supermarkets.regionId],
+    references: [regions.id],
+  }),
 }));
 
 export const insertSupermarketSchema = createInsertSchema(supermarkets).omit({
@@ -187,6 +254,15 @@ export type User = typeof users.$inferSelect;
 
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 export type ActivityLog = typeof activityLogs.$inferSelect;
+
+export type InsertRegion = z.infer<typeof insertRegionSchema>;
+export type Region = typeof regions.$inferSelect;
+
+export type InsertProvince = z.infer<typeof insertProvinceSchema>;
+export type Province = typeof provinces.$inferSelect;
+
+export type InsertCommune = z.infer<typeof insertCommuneSchema>;
+export type Commune = typeof communes.$inferSelect;
 
 export type InsertSupermarket = z.infer<typeof insertSupermarketSchema>;
 export type Supermarket = typeof supermarkets.$inferSelect;
