@@ -840,6 +840,66 @@ export default function AudioManagement() {
         isLoading={isUpdatingStatus}
         variant="default"
       />
+      
+      {/* Group Change Dialog */}
+      <Dialog open={showGroupChangeDialog} onOpenChange={setShowGroupChangeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Thay đổi nhóm file audio</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Chọn nhóm mới</Label>
+              <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn nhóm" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="greetings">Lời chào</SelectItem>
+                  <SelectItem value="promotions">Khuyến mãi</SelectItem>
+                  <SelectItem value="tips">Mẹo vặt</SelectItem>
+                  <SelectItem value="announcements">Thông báo</SelectItem>
+                  <SelectItem value="music">Nhạc</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>File được chọn ({selectedFiles.length})</Label>
+              <div className="max-h-40 overflow-y-auto border rounded-md p-2 mt-1">
+                {selectedFiles.slice(0, 10).map((file, index) => (
+                  <div key={index} className="flex items-center py-1 text-sm">
+                    <Music className="h-4 w-4 mr-2 text-primary" />
+                    <span className="truncate">{file.displayName}</span>
+                  </div>
+                ))}
+                {selectedFiles.length > 10 && (
+                  <div className="text-center text-sm py-1 text-muted-foreground">
+                    ...và {selectedFiles.length - 10} file khác
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowGroupChangeDialog(false)}
+                disabled={changeGroupMutation.isPending}
+              >
+                Hủy
+              </Button>
+              <Button 
+                onClick={confirmGroupChange} 
+                disabled={!selectedGroup || changeGroupMutation.isPending}
+              >
+                {changeGroupMutation.isPending ? "Đang cập nhật..." : "Cập nhật nhóm"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
