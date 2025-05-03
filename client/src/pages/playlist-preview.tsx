@@ -137,9 +137,18 @@ export default function PlaylistPreview() {
   
   // Handle playlist selection
   const handlePlaylistSelect = (playlistId: string) => {
-    setSelectedPlaylistId(parseInt(playlistId));
+    const id = parseInt(playlistId);
+    console.log("Selected playlist ID:", id);
+    
+    // Set the state
+    setSelectedPlaylistId(id);
     setCurrentAudioIndex(-1);
     setIsPlaying(false);
+    
+    // Invalidate the query to force a refresh
+    queryClient.invalidateQueries({
+      queryKey: ['/api/playlists', id]
+    });
   };
 
   // Start playback
@@ -385,7 +394,7 @@ export default function PlaylistPreview() {
                       <SelectContent>
                         {programPlaylists.map((playlist) => (
                           <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                            Danh sách phát {new Date(playlist.createdAt).toLocaleString()}
+                            Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
                           </SelectItem>
                         ))}
                       </SelectContent>

@@ -151,16 +151,35 @@ export default function PlaylistCreation() {
   
   // Handle playlist selection
   const handlePlaylistSelect = (playlistId: string) => {
+    console.log("handlePlaylistSelect called with:", playlistId);
+    
     if (playlistId === "new") {
       // Chọn tạo mới
+      console.log("Creating new playlist...");
       setExistingPlaylist(null);
       setPlaylistItems([]);
     } else if (playlistId && playlists) {
       // Tìm và load playlist đã chọn
-      const selectedPlaylist = playlists.find(p => p.id === parseInt(playlistId));
+      const id = parseInt(playlistId);
+      console.log("Looking for playlist with ID:", id);
+      
+      // Vì có thể mất đồng bộ giữa client và server, hãy tìm playlist từ server
+      // mỗi khi người dùng chọn ID
+      queryClient.invalidateQueries({
+        queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists']
+      });
+      
+      const selectedPlaylist = playlists.find(p => p.id === id);
+      console.log("Found playlist:", selectedPlaylist);
+      
       if (selectedPlaylist) {
         setExistingPlaylist(selectedPlaylist);
-        setPlaylistItems(selectedPlaylist.items as PlaylistItem[]);
+        // Đảm bảo items là một mảng và parse về dạng PlaylistItem
+        const items = Array.isArray(selectedPlaylist.items) 
+          ? selectedPlaylist.items as PlaylistItem[]
+          : [];
+        console.log("Setting playlist items:", items);
+        setPlaylistItems(items);
       }
     }
   };
