@@ -239,8 +239,34 @@ export default function PlaylistPreview() {
       }
       
       if (!playlistId) {
-        console.error("Could not find playlist ID in:", existingPlaylist);
-        throw new Error("ID playlist không hợp lệ hoặc không tồn tại");
+        // Nếu không thể tìm thấy ID, thay vì lỗi, ta sẽ lấy danh sách từ server
+        console.log("Could not find playlist ID, fetching from server...");
+        try {
+          // Lấy tất cả danh sách phát
+          const allPlaylistsRes = await apiRequest("GET", "/api/playlists");
+          const allPlaylists = await allPlaylistsRes.json();
+          console.log("All playlists from server:", allPlaylists);
+          
+          // Lọc theo program ID
+          if (selectedProgram && Array.isArray(allPlaylists) && allPlaylists.length > 0) {
+            const programPlaylists = allPlaylists.filter(p => p.broadcastProgramId === selectedProgram);
+            console.log("Filtered playlists:", programPlaylists);
+            
+            if (programPlaylists.length > 0) {
+              // Sử dụng ID của playlist đầu tiên tìm thấy
+              playlistId = programPlaylists[0].id;
+              console.log("Found playlist ID from server:", playlistId);
+            }
+          }
+        } catch (fetchError) {
+          console.error("Error fetching playlists from server:", fetchError);
+        }
+      }
+      
+      // Nếu vẫn không tìm thấy ID
+      if (!playlistId) {
+        console.error("Could not find any playlist ID for deletion");
+        throw new Error("Không tìm thấy danh sách phát để xóa");
       }
       
       console.log("Using playlist ID for deletion:", playlistId);

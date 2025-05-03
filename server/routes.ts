@@ -869,8 +869,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/playlists", isAuthenticated, async (req, res, next) => {
     try {
       const playlists = await storage.getAllPlaylists();
+      console.log("GET all playlists:", JSON.stringify(playlists));
       res.json(playlists);
     } catch (error) {
+      console.error("Error getting all playlists:", error);
       next(error);
     }
   });
@@ -991,20 +993,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Lấy tất cả playlist để kiểm tra
       const allPlaylists = await storage.getAllPlaylists();
-      console.log("All playlists:", allPlaylists);
+      console.log("All playlists:", JSON.stringify(allPlaylists));
       
       // Lọc playlist cho broadcast program này
       const filteredPlaylists = allPlaylists
         .filter(p => p.broadcastProgramId === validation.data.broadcastProgramId);
       
-      console.log("Filtered playlists for program:", filteredPlaylists);
+      console.log("Filtered playlists for program:", JSON.stringify(filteredPlaylists));
       
-      // Kiểm tra có playlist nào cho chương trình này chưa
+      // Xóa tất cả danh sách phát hiện có cho chương trình này (nếu có)
       if (filteredPlaylists.length > 0) {
-        return res.status(400).json({ message: "Đã tồn tại danh sách phát cho chương trình này" });
+        console.log("Deleting existing playlists for program", validation.data.broadcastProgramId);
+        // Xóa tất cả playlist cũ để tạo mới
+        for (const playlist of filteredPlaylists) {
+          await storage.deletePlaylist(playlist.id);
+          console.log("Deleted playlist:", playlist.id);
+        }
       }
       
+      // Tạo danh sách phát mới
       const playlist = await storage.createPlaylist(validation.data);
+      console.log("Created new playlist:", JSON.stringify(playlist));
       
       // Update audio files status to "used"
       const audioFileIds = JSON.parse(JSON.stringify(validation.data.items)).map((item: any) => item.audioFileId);
@@ -1019,6 +1028,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(playlist);
     } catch (error) {
+      console.error("Error creating playlist:", error);
       next(error);
     }
   });
