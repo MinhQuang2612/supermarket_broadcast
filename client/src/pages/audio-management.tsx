@@ -221,6 +221,12 @@ export default function AudioManagement() {
     setShowGroupChangeConfirmDialog(true);
   };
   
+  // Handle cancel from confirmation dialog
+  const handleGroupChangeCancel = () => {
+    setShowGroupChangeConfirmDialog(false);
+    setShowGroupChangeDialog(true); // Quay lại dialog chọn nhóm thay vì thoát hẳn
+  };
+  
   // Confirm and execute group change
   const confirmGroupChange = () => {
     setShowGroupChangeConfirmDialog(false);
@@ -352,13 +358,27 @@ export default function AudioManagement() {
     }
   };
 
-  // Download file
+  // State for single file download confirmation
+  const [showSingleDownloadDialog, setShowSingleDownloadDialog] = useState(false);
+  const [fileToDownload, setFileToDownload] = useState<AudioFile | null>(null);
+  
+  // Show download confirmation for single file
   const handleDownload = (file: AudioFile) => {
+    setFileToDownload(file);
+    setShowSingleDownloadDialog(true);
+  };
+  
+  // Confirm single file download
+  const confirmSingleDownload = () => {
+    if (!fileToDownload) return;
+    
+    setShowSingleDownloadDialog(false);
+    
     // Tạo một thẻ a tạm thời để download file
     const link = document.createElement('a');
     const timestamp = new Date().getTime();
-    link.href = `/api/audio-files/${file.id}/download?t=${timestamp}`;
-    link.download = file.displayName + '.' + (file.fileType.split('/')[1] || 'mp3');
+    link.href = `/api/audio-files/${fileToDownload.id}/download?t=${timestamp}`;
+    link.download = fileToDownload.displayName + '.' + (fileToDownload.fileType.split('/')[1] || 'mp3');
     document.body.appendChild(link);
     link.click();
     // Xóa thẻ a sau khi đã sử dụng
@@ -943,12 +963,21 @@ export default function AudioManagement() {
       {/* Group Change Confirmation Dialog */}
       <ConfirmDialog
         open={showGroupChangeConfirmDialog}
-        onOpenChange={setShowGroupChangeConfirmDialog}
+        onOpenChange={handleGroupChangeCancel}
         title="Xác nhận thay đổi nhóm"
         description={`Bạn có chắc chắn muốn thay đổi nhóm của ${selectedFiles.length} file âm thanh thành "${formatGroup(selectedGroup)}"?`}
         onConfirm={confirmGroupChange}
         confirmText="Xác nhận"
         variant="default"
+      />
+      
+      {/* Single File Download Confirmation Dialog */}
+      <ConfirmDialog
+        open={showSingleDownloadDialog}
+        onOpenChange={setShowSingleDownloadDialog}
+        title="Xác nhận tải xuống"
+        description={`Bạn có chắc chắn muốn tải xuống file ${fileToDownload?.displayName || ''}?`}
+        onConfirm={confirmSingleDownload}
       />
     </DashboardLayout>
   );

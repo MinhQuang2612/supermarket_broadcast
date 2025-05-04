@@ -91,24 +91,22 @@ export default function DataTable({
   const handleSort = (key: string) => {
     if (serverSideSorting) {
       // For server-side sorting
-      let newDirection: 'asc' | 'desc' | null = 'asc';
+      let newDirection: 'asc' | 'desc' = 'asc';
       
-      if (sortKey === key) {
-        if (sortDirection === 'asc') newDirection = 'desc';
-        else newDirection = null;
+      if (sortKey === key && sortDirection === 'asc') {
+        newDirection = 'desc';
       }
       
       serverSideSorting.onSortChange(key, newDirection);
     } else {
       // For client-side sorting
-      let newDirection: 'asc' | 'desc' | null = 'asc';
+      let newDirection: 'asc' | 'desc' = 'asc';
       
-      if (sortKey === key) {
-        if (sortDirection === 'asc') newDirection = 'desc';
-        else newDirection = null;
+      if (sortKey === key && sortDirection === 'asc') {
+        newDirection = 'desc';
       }
       
-      setSortKey(newDirection === null ? null : key);
+      setSortKey(key);
       setSortDirection(newDirection);
     }
   };
