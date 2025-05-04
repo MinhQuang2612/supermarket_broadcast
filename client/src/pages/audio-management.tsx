@@ -64,10 +64,42 @@ export default function AudioManagement() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   
-  // Fetch audio files
-  const { data: audioFiles = [], isLoading } = useQuery<AudioFile[]>({
-    queryKey: ['/api/audio-files'],
+  // State for pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  
+  // Fetch audio files with pagination
+  const { data: audioFilesData, isLoading } = useQuery<{
+    audioFiles: AudioFile[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
+    queryKey: ['/api/audio-files', page, pageSize, groupFilter, statusFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('limit', pageSize.toString());
+      
+      if (groupFilter !== 'all') params.append('group', groupFilter);
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      
+      const response = await fetch(`/api/audio-files?${params.toString()}`);
+      return await response.json();
+    },
   });
+  
+  // Extract audio files array and pagination info
+  const audioFiles = audioFilesData?.audioFiles || [];
+  const totalPages = audioFilesData?.pagination?.totalPages || 1;
+  
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
 
   // Upload audio mutation
   const uploadAudioMutation = useMutation({

@@ -59,15 +59,61 @@ export default function PlaylistCreation() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
 
-  // Fetch broadcast programs
-  const { data: programs = [], isLoading: isLoadingPrograms } = useQuery<BroadcastProgram[]>({
-    queryKey: ['/api/broadcast-programs'],
+  // State for pagination
+  const [programPage, setProgramPage] = useState(1);
+  const [programPageSize, setProgramPageSize] = useState(100); // Use larger page size for programs
+  
+  const [audioPage, setAudioPage] = useState(1);
+  const [audioPageSize, setAudioPageSize] = useState(100); // Use larger page size for audio files
+  
+  // Fetch broadcast programs with pagination
+  const { data: programsData, isLoading: isLoadingPrograms } = useQuery<{
+    programs: BroadcastProgram[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
+    queryKey: ['/api/broadcast-programs', programPage, programPageSize],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', programPage.toString());
+      params.append('limit', programPageSize.toString());
+      
+      const response = await fetch(`/api/broadcast-programs?${params.toString()}`);
+      return await response.json();
+    },
   });
-
-  // Fetch audio files
-  const { data: audioFiles = [], isLoading: isLoadingAudio } = useQuery<AudioFile[]>({
-    queryKey: ['/api/audio-files'],
+  
+  // Extract programs array and pagination info
+  const programs = programsData?.programs || [];
+  
+  // Fetch audio files with pagination
+  const { data: audioFilesData, isLoading: isLoadingAudio } = useQuery<{
+    audioFiles: AudioFile[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
+    queryKey: ['/api/audio-files', audioPage, audioPageSize],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', audioPage.toString());
+      params.append('limit', audioPageSize.toString());
+      params.append('status', 'active'); // Only fetch active audio files
+      
+      const response = await fetch(`/api/audio-files?${params.toString()}`);
+      return await response.json();
+    },
   });
+  
+  // Extract audio files array and pagination info
+  const audioFiles = audioFilesData?.audioFiles || [];
 
   // Fetch playlists for selected program
   const {
