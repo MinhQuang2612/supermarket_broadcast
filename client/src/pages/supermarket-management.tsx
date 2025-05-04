@@ -417,14 +417,28 @@ export default function SupermarketManagement() {
   
   // Handle sort change
   const handleSortChange = (key: string, direction: 'asc' | 'desc' | null) => {
-    console.log('SupermarketManagement sorting:', { currentKey: sortKey, newKey: key, currentDirection: sortDirection, newDirection: direction });
+    // Xác định hướng sắp xếp mới
+    let newDirection: 'asc' | 'desc';
     
-    // Luôn đặt sortKey là key mới
+    // Kiểm tra xem có phải là cùng một cột không
+    if (sortKey === key) {
+      // Nếu là cùng một cột, đảo ngược hướng sắp xếp
+      newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      // Nếu là cột mới, mặc định sắp xếp tăng dần
+      newDirection = 'asc';
+    }
+    
+    console.log('SupermarketManagement toggling sort:', { 
+      currentKey: sortKey, 
+      newKey: key, 
+      currentDirection: sortDirection, 
+      newDirection 
+    });
+    
+    // Cập nhật state
     setSortKey(key);
-    
-    // Luôn đặt sortDirection là direction mới (không bao giờ là null)
-    // Nếu là null thì mặc định là 'asc'
-    setSortDirection(direction || 'asc');
+    setSortDirection(newDirection);
   };
   
   // Lọc siêu thị dựa trên bộ lọc và từ khóa tìm kiếm
