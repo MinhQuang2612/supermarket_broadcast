@@ -236,6 +236,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Route to download sample supermarket template
+  app.get("/api/supermarket-template", isAuthenticated, async (req, res, next) => {
+    try {
+      const filePath = path.join(process.cwd(), "mau_sieu_thi.csv");
+      res.download(filePath, "mau_sieu_thi.csv");
+    } catch (error) {
+      next(error);
+    }
+  });
+  
   // Import supermarkets from CSV file
   app.post("/api/supermarkets/import", isManagerOrAdmin, csvUpload.single('file'), async (req, res, next) => {
     try {

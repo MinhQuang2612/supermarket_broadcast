@@ -48,7 +48,8 @@ import {
   FileUp, 
   Plus,
   Search,
-  AlertCircle
+  AlertCircle,
+  Download
 } from "lucide-react";
 
 const formSchema = insertSupermarketSchema.extend({
@@ -508,17 +509,23 @@ export default function SupermarketManagement() {
           <CardTitle>Quản lý siêu thị</CardTitle>
           {(user?.role === "admin" || user?.role === "manager") && (
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full sm:w-auto">
-                <FileUp className="mr-2 h-4 w-4" />
-                Nhập từ file
-                <input
-                  type="file"
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={handleFileImport}
-                  accept=".csv"
-                />
-              </Button>
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={() => window.location.href = "/api/supermarket-template"} className="w-full sm:w-auto">
+                  <Download className="mr-2 h-4 w-4" />
+                  Tải mẫu CSV
+                </Button>
+                <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full sm:w-auto">
+                  <FileUp className="mr-2 h-4 w-4" />
+                  Nhập từ file
+                  <input
+                    type="file"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleFileImport}
+                    accept=".csv"
+                  />
+                </Button>
+              </div>
               <Button onClick={handleAddNew} className="w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 Thêm siêu thị
