@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -115,7 +115,7 @@ export default function UserManagement() {
   const activityLogs = activityLogsData?.logs || [];
   
   // Update total pages when data changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (activityLogsData?.pagination) {
       setTotalPages(activityLogsData.pagination.totalPages);
     }
@@ -618,7 +618,44 @@ export default function UserManagement() {
                 data={activityLogs}
                 isLoading={isLogsLoading}
                 pagination={true}
+                serverSidePagination={{
+                  totalItems: activityLogsData?.pagination?.total || 0,
+                  currentPage: currentPage,
+                  onPageChange: (page: number) => {
+                    setCurrentPage(page);
+                    // Invalidate query to fetch new page
+                    queryClient.invalidateQueries({ 
+                      queryKey: ['/api/activity-logs', { page }]
+                    });
+                  }
+                }}
               />
+              {/* Pagination footer */}
+              <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-neutral-medium">
+                  {activityLogsData?.pagination && (
+                    <>Hiển thị {activityLogs.length} / {activityLogsData.pagination.total} nhật ký</>
+                  )}
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage <= 1 || isLogsLoading}
+                  >
+                    Trang trước
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    disabled={currentPage >= totalPages || isLogsLoading}
+                  >
+                    Trang sau
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
