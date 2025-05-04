@@ -246,11 +246,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Supermarket routes
+  // Supermarket routes with pagination
   app.get("/api/supermarkets", isAuthenticated, async (req, res, next) => {
     try {
-      const supermarkets = await storage.getAllSupermarkets();
-      res.json(supermarkets);
+      // Get pagination parameters from query string
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = (page - 1) * limit;
+      
+      // Get all supermarkets for total count
+      const allSupermarkets = await storage.getAllSupermarkets();
+      const totalCount = allSupermarkets.length;
+      
+      // Apply pagination
+      const paginatedSupermarkets = allSupermarkets.slice(offset, offset + limit);
+      
+      // Return with pagination metadata
+      res.json({
+        supermarkets: paginatedSupermarkets,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit)
+        }
+      });
     } catch (error) {
       next(error);
     }
@@ -538,11 +558,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Audio file routes
+  // Audio file routes with pagination
   app.get("/api/audio-files", isAuthenticated, async (req, res, next) => {
     try {
-      const audioFiles = await storage.getAllAudioFiles();
-      res.json(audioFiles);
+      // Get pagination parameters from query string
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = (page - 1) * limit;
+      
+      // Get group filter if provided
+      const group = req.query.group as string;
+      
+      // Get all audio files
+      const allAudioFiles = await storage.getAllAudioFiles();
+      
+      // Apply group filter if provided
+      const filteredAudioFiles = group 
+        ? allAudioFiles.filter(file => file.group === group)
+        : allAudioFiles;
+      
+      const totalCount = filteredAudioFiles.length;
+      
+      // Apply pagination
+      const paginatedAudioFiles = filteredAudioFiles.slice(offset, offset + limit);
+      
+      // Return with pagination metadata
+      res.json({
+        audioFiles: paginatedAudioFiles,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit)
+        }
+      });
     } catch (error) {
       next(error);
     }
@@ -764,11 +813,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Broadcast program routes
+  // Broadcast program routes with pagination
   app.get("/api/broadcast-programs", isAuthenticated, async (req, res, next) => {
     try {
-      const broadcastPrograms = await storage.getAllBroadcastPrograms();
-      res.json(broadcastPrograms);
+      // Get pagination parameters from query string
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = (page - 1) * limit;
+      
+      // Get all broadcast programs
+      const allPrograms = await storage.getAllBroadcastPrograms();
+      const totalCount = allPrograms.length;
+      
+      // Apply pagination
+      const paginatedPrograms = allPrograms.slice(offset, offset + limit);
+      
+      // Return with pagination metadata
+      res.json({
+        programs: paginatedPrograms,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit)
+        }
+      });
     } catch (error) {
       next(error);
     }
