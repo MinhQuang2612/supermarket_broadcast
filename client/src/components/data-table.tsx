@@ -89,39 +89,29 @@ export default function DataTable({
 
   // Handle sorting
   const handleSort = (key: string) => {
-    console.log('Current sort state:', { sortKey, sortDirection });
+    let newDirection: 'asc' | 'desc';
+    
+    // Determine new sort direction
+    if (sortKey === key) {
+      // Toggle between asc and desc for the same column
+      newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      // Default to asc for a new column
+      newDirection = 'asc';
+    }
+    
+    console.log('DataTable sorting:', { 
+      oldKey: sortKey, 
+      newKey: key, 
+      oldDirection: sortDirection, 
+      newDirection 
+    });
     
     if (serverSideSorting) {
-      // Cho server-side sorting
-      let newDirection: 'asc' | 'desc';
-      
-      if (sortKey === key) {
-        // Nếu đang bấm vào cùng cột đã active
-        newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-        console.log('Toggling to:', newDirection);
-      } else {
-        // Nếu bấm vào cột mới
-        newDirection = 'asc';
-        console.log('New column, starting with:', newDirection);
-      }
-      
-      console.log('Calling server with:', { key, newDirection });
+      // Pass sorting to server
       serverSideSorting.onSortChange(key, newDirection);
     } else {
-      // Cho client-side sorting
-      let newDirection: 'asc' | 'desc';
-      
-      if (sortKey === key) {
-        // Nếu đang bấm vào cùng cột đã active
-        newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-        console.log('Client toggle to:', newDirection);
-      } else {
-        // Nếu bấm vào cột mới
-        newDirection = 'asc';
-        console.log('Client new column, starting with:', newDirection);
-      }
-      
-      console.log('Setting client state:', { key, newDirection });
+      // Update internal state for client-side sorting
       setSortKey(key);
       setSortDirection(newDirection);
     }
