@@ -89,15 +89,41 @@ export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  // Fetch users
-  const { data: users = [], isLoading } = useQuery<User[]>({
-    queryKey: ['/api/users'],
-  });
-
-  // State for activity logs pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  // State for user pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   
+  // Fetch users with pagination
+  const { 
+    data: usersData, 
+    isLoading 
+  } = useQuery({
+    queryKey: ['/api/users', page, pageSize, roleFilter, activeFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('limit', pageSize.toString());
+      if (roleFilter !== 'all') params.append('role', roleFilter);
+      if (activeFilter !== 'all') params.append('status', activeFilter);
+      
+      const response = await fetch(`/api/users?${params.toString()}`);
+      return await response.json();
+    },
+  });
+  
+  // Extract users array and pagination info
+  const users = usersData?.users || [];
+  const totalPages = usersData?.pagination?.totalPages || 1;
+  
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+  
+  // State for activity logs pagination
+  const [logPage, setLogPage] = useState(1);
+  const [logPageSize, setLogPageSize] = useState(10);
+
   // Fetch activity logs with pagination
   const { data: activityLogsData, isLoading: isLogsLoading } = useQuery<{
     logs: any[],
@@ -108,18 +134,25 @@ export default function UserManagement() {
       totalPages: number;
     }
   }>({
-    queryKey: ['/api/activity-logs', { page: currentPage }],
+    queryKey: ['/api/activity-logs', logPage, logPageSize],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', logPage.toString());
+      params.append('limit', logPageSize.toString());
+      
+      const response = await fetch(`/api/activity-logs?${params.toString()}`);
+      return await response.json();
+    },
   });
   
   // Extract logs and pagination info
   const activityLogs = activityLogsData?.logs || [];
+  const logTotalPages = activityLogsData?.pagination?.totalPages || 1;
   
-  // Update total pages when data changes
-  useEffect(() => {
-    if (activityLogsData?.pagination) {
-      setTotalPages(activityLogsData.pagination.totalPages);
-    }
-  }, [activityLogsData]);
+  // Handle log page change
+  const handleLogPageChange = (newPage: number) => {
+    setLogPage(newPage);
+  };
 
   // Create user mutation
   const createUserMutation = useMutation({
@@ -294,16 +327,14 @@ export default function UserManagement() {
     }
   };
 
-  // Filter users based on status, role, and search term
-  const filteredUsers = users.filter(user => {
-    const matchesStatus = activeFilter === "all" || user.status === activeFilter;
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesSearch = 
-      user.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      user.fullName.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return matchesStatus && matchesRole && matchesSearch;
-  });
+  // Apply client-side search filtering as needed
+  // (Our main filtering for role/status is done server-side)
+  const filteredUsers = searchTerm 
+    ? users.filter(user => {
+        return user.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
+               user.fullName.toLowerCase().includes(searchTerm.toLowerCase());
+      })
+    : users;
 
   // Format date
   const formatDate = (dateString: string | Date) => {
