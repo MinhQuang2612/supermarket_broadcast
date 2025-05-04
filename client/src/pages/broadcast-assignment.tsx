@@ -295,18 +295,18 @@ export default function BroadcastAssignment() {
     }
   };
   
-  // Fetch provinces
-  const { data: provinces = [] } = useQuery({
+  // Fetch provinces - these endpoints don't use pagination yet
+  const { data: provinces = [] } = useQuery<any[]>({
     queryKey: ['/api/provinces'],
   });
   
   // Fetch communes
-  const { data: communes = [] } = useQuery({
+  const { data: communes = [] } = useQuery<any[]>({
     queryKey: ['/api/communes'],
   });
   
   // Fetch regions
-  const { data: regions = [] } = useQuery({
+  const { data: regions = [] } = useQuery<any[]>({
     queryKey: ['/api/regions'],
   });
   
