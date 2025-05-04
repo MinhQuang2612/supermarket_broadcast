@@ -283,20 +283,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Supermarket routes with pagination
+  // Supermarket routes with pagination, filtering and sorting
   app.get("/api/supermarkets", isAuthenticated, async (req, res, next) => {
     try {
       // Get pagination parameters from query string
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const offset = (page - 1) * limit;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+      const sortKey = req.query.sortKey as string || null;
+      const sortDirection = req.query.sortDirection as 'asc' | 'desc' | null || null;
+      const region = req.query.region as string || null;
+      const status = req.query.status as string || null;
+      const search = req.query.search as string || null;
       
-      // Get all supermarkets for total count
+      // Get all supermarkets for filtering, sorting, and pagination
       const allSupermarkets = await storage.getAllSupermarkets();
-      const totalCount = allSupermarkets.length;
+      
+      // Apply filtering
+      let filteredSupermarkets = [...allSupermarkets];
+      
+      if (region && region !== 'all') {
+        const regions = await storage.getAllRegions();
+        const regionObj = regions.find(r => r.code === region);
+        if (regionObj) {
+          filteredSupermarkets = filteredSupermarkets.filter(s => s.regionId === regionObj.id);
+        }
+      }
+      
+      if (status && status !== 'all') {
+        filteredSupermarkets = filteredSupermarkets.filter(s => s.status === status);
+      }
+      
+      if (search) {
+        const searchLower = search.toLowerCase();
+        const regions = await storage.getAllRegions();
+        const provinces = await storage.getAllProvinces();
+        const communes = await storage.getAllCommunes();
+        
+        filteredSupermarkets = filteredSupermarkets.filter(supermarket => {
+          // Search by name or address
+          if (supermarket.name.toLowerCase().includes(searchLower) || 
+              supermarket.address.toLowerCase().includes(searchLower)) {
+            return true;
+          }
+          
+          // Search by region name
+          const region = regions.find(r => r.id === supermarket.regionId);
+          if (region && region.name.toLowerCase().includes(searchLower)) {
+            return true;
+          }
+          
+          // Search by province name
+          const province = provinces.find(p => p.id === supermarket.provinceId);
+          if (province && province.name.toLowerCase().includes(searchLower)) {
+            return true;
+          }
+          
+          // Search by commune name
+          const commune = communes.find(c => c.id === supermarket.communeId);
+          if (commune && commune.name.toLowerCase().includes(searchLower)) {
+            return true;
+          }
+          
+          return false;
+        });
+      }
+      
+      // Apply sorting
+      if (sortKey && sortDirection) {
+        // Tạo biến tham chiếu cho regions để tránh xung đột tên với biến bên ngoài
+        const regionsData = await storage.getAllRegions();
+        
+        filteredSupermarkets.sort((a, b) => {
+          let aValue, bValue;
+          
+          if (sortKey === 'regionId') {
+            const aRegion = regionsData.find(r => r.id === a.regionId);
+            const bRegion = regionsData.find(r => r.id === b.regionId);
+            aValue = aRegion?.name || '';
+            bValue = bRegion?.name || '';
+          } else if (sortKey === 'status') {
+            aValue = a.status === 'active' ? '1' : '0';
+            bValue = b.status === 'active' ? '1' : '0';
+          } else {
+            aValue = String(a[sortKey as keyof typeof a] || '').toLowerCase();
+            bValue = String(b[sortKey as keyof typeof b] || '').toLowerCase();
+          }
+          
+          if (sortDirection === 'asc') {
+            return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+          } else {
+            return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+          }
+        });
+      }
+      
+      // Get total count after filtering
+      const totalCount = filteredSupermarkets.length;
       
       // Apply pagination
-      const paginatedSupermarkets = allSupermarkets.slice(offset, offset + limit);
+      const offset = (page - 1) * pageSize;
+      const paginatedSupermarkets = filteredSupermarkets.slice(offset, offset + pageSize);
       
       // Return with pagination metadata
       res.json({
@@ -304,8 +390,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pagination: {
           total: totalCount,
           page,
-          limit,
-          totalPages: Math.ceil(totalCount / limit)
+          pageSize,
+          totalPages: Math.ceil(totalCount / pageSize)
         }
       });
     } catch (error) {

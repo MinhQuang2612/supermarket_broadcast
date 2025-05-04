@@ -95,8 +95,27 @@ export default function SupermarketManagement() {
   
   // Fetch supermarkets with pagination
   const { data, isLoading } = useQuery({
-    queryKey: ['/api/supermarkets', page, pageSize, sortKey, sortDirection],
-    placeholderData: keepPreviousData => keepPreviousData,
+    queryKey: ['/api/supermarkets', page, pageSize, sortKey, sortDirection, regionFilter, statusFilter, searchTerm],
+    queryFn: async ({ queryKey }) => {
+      const [endpoint, pageNum, pageSizeNum, sort, direction, region, status, search] = queryKey;
+      
+      // Xây dựng URL với các tham số query
+      let url = `${endpoint}?page=${pageNum}&pageSize=${pageSizeNum}`;
+      
+      // Thêm các tham số sắp xếp nếu có
+      if (sort && direction) {
+        url += `&sortKey=${sort}&sortDirection=${direction}`;
+      }
+      
+      // Thêm các bộ lọc nếu không phải "all"
+      if (region !== 'all') url += `&region=${region}`;
+      if (status !== 'all') url += `&status=${status}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to fetch supermarkets');
+      return res.json();
+    },
   });
   
   // Extract supermarkets and pagination info from response
@@ -516,65 +535,14 @@ export default function SupermarketManagement() {
     }
   };
   
-  // Lọc siêu thị dựa trên bộ lọc và từ khóa tìm kiếm
-  const filteredSupermarkets = supermarkets.filter(supermarket => {
-    // Xử lý lọc theo khu vực với cấu trúc dữ liệu mới
-    let matchesRegion = true;
-    if (regionFilter !== "all") {
-      const regionId = regions.find(r => r.code === regionFilter)?.id;
-      matchesRegion = regionId ? supermarket.regionId === regionId : false;
-    }
-    
-    const matchesStatus = statusFilter === "all" || supermarket.status === statusFilter;
-    
-    // Lấy thông tin địa lý từ các bảng mới
-    const commune = allCommunes.find(c => c.id === supermarket.communeId);
-    const province = allProvinces.find(p => p.id === supermarket.provinceId);
-    const region = regions.find(r => r.id === supermarket.regionId);
-    
-    const searchTermLower = searchTerm.toLowerCase();
-    const matchesSearch = 
-      supermarket.name.toLowerCase().includes(searchTermLower) || 
-      supermarket.address.toLowerCase().includes(searchTermLower) ||
-      (commune?.name && commune.name.toLowerCase().includes(searchTermLower)) ||
-      (province?.name && province.name.toLowerCase().includes(searchTermLower)) ||
-      (region?.name && region.name.toLowerCase().includes(searchTermLower));
-    
-    return matchesRegion && matchesStatus && matchesSearch;
-  }).sort((a, b) => {
-    if (!sortKey || !sortDirection) return 0;
-    
-    let aValue, bValue;
-    
-    // Handle complex fields
-    if (sortKey === "regionId") {
-      const aRegion = regions.find(r => r.id === a.regionId);
-      const bRegion = regions.find(r => r.id === b.regionId);
-      aValue = aRegion?.name || "";
-      bValue = bRegion?.name || "";
-    } else if (sortKey === "provinceId") {
-      const aProvince = allProvinces.find(p => p.id === a.provinceId);
-      const bProvince = allProvinces.find(p => p.id === b.provinceId);
-      aValue = aProvince?.name || "";
-      bValue = bProvince?.name || "";
-    } else if (sortKey === "address") {
-      aValue = a.address.toLowerCase();
-      bValue = b.address.toLowerCase();
-    } else if (sortKey === "status") {
-      aValue = a.status === "active" ? "1" : "0";
-      bValue = b.status === "active" ? "1" : "0";
-    } else {
-      // Simple field
-      aValue = String(a[sortKey as keyof typeof a] || "").toLowerCase();
-      bValue = String(b[sortKey as keyof typeof b] || "").toLowerCase();
-    }
-    
-    if (sortDirection === "asc") {
-      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-    } else {
-      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-    }
-  });
+  // Đã chuyển sang sử dụng phân trang trên server (không cần lọc ở client)
+  // Khi thay đổi bộ lọc, ta sẽ yêu cầu server trả về dữ liệu đã được lọc
+  
+  // Theo dõi thay đổi trong các bộ lọc và cập nhật lại dữ liệu
+  useEffect(() => {
+    // Reset về trang 1 khi thay đổi bộ lọc
+    setPage(1);
+  }, [regionFilter, statusFilter, searchTerm]);
 
   return (
     <DashboardLayout>
@@ -788,13 +756,19 @@ export default function SupermarketManagement() {
                 },
               },
             ]}
-            data={filteredSupermarkets}
+            data={supermarkets}
             isLoading={isLoading}
             serverSideSorting={{
               sortKey,
               sortDirection,
               onSortChange: handleSortChange
             }}
+            serverSidePagination={{
+              totalItems,
+              currentPage: page,
+              onPageChange: (newPage) => setPage(newPage)
+            }}
+            pageSize={pageSize}
           />
         </CardContent>
       </Card>
