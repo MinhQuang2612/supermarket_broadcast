@@ -1629,8 +1629,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/supermarkets/:id/broadcast-assignments", isAuthenticated, async (req, res, next) => {
     try {
       const supermarketId = parseInt(req.params.id);
-      const assignments = await storage.getSupermarketBroadcastAssignments(supermarketId);
-      res.json(assignments);
+      
+      // Get pagination parameters from query string
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = (page - 1) * limit;
+      
+      // Get all assignments for this supermarket
+      const allAssignments = await storage.getSupermarketBroadcastAssignments(supermarketId);
+      const totalCount = allAssignments.length;
+      
+      // Apply pagination
+      const paginatedAssignments = allAssignments.slice(offset, offset + limit);
+      
+      // Return with pagination metadata
+      res.json({
+        assignments: paginatedAssignments,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit)
+        }
+      });
     } catch (error) {
       next(error);
     }

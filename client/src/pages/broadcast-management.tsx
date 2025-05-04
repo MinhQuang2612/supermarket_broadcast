@@ -77,10 +77,33 @@ export default function BroadcastManagement() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<BroadcastProgram | null>(null);
 
-  // Fetch broadcast programs
-  const { data: broadcastPrograms = [], isLoading } = useQuery<BroadcastProgram[]>({
-    queryKey: ['/api/broadcast-programs'],
+  // State for pagination
+  const [programPage, setProgramPage] = useState(1);
+  const [programPageSize, setProgramPageSize] = useState(10);
+
+  // Fetch broadcast programs with pagination
+  const { data: programsData, isLoading } = useQuery<{
+    programs: BroadcastProgram[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
+    queryKey: ['/api/broadcast-programs', programPage, programPageSize],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', programPage.toString());
+      params.append('limit', programPageSize.toString());
+      
+      const response = await fetch(`/api/broadcast-programs?${params.toString()}`);
+      return await response.json();
+    },
   });
+  
+  // Extract programs array and pagination info
+  const broadcastPrograms = programsData?.programs || [];
 
   // Form for saving broadcast program
   const form = useForm<FormValues>({
@@ -109,6 +132,8 @@ export default function BroadcastManagement() {
         title: "Lưu thành công",
         description: "Chương trình phát đã được lưu",
       });
+      // Reset to first page after creating a new program
+      setProgramPage(1);
     },
     onError: (error: Error) => {
       toast({
@@ -157,6 +182,8 @@ export default function BroadcastManagement() {
         title: "Xóa thành công",
         description: "Chương trình phát đã được xóa",
       });
+      // Reset to first page after delete operation
+      setProgramPage(1);
     },
     onError: (error: Error) => {
       toast({

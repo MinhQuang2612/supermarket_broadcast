@@ -124,15 +124,40 @@ export default function BroadcastAssignment() {
   // Extract assignments array and pagination info
   const assignments = assignmentsData?.assignments || [];
 
-  // Fetch supermarket assignments when a supermarket is selected
+  // State for supermarket assignments pagination
+  const [supermarketAssignmentsPage, setSupermarketAssignmentsPage] = useState(1);
+  const [supermarketAssignmentsPageSize, setSupermarketAssignmentsPageSize] = useState(10);
+  
+  // Fetch supermarket assignments when a supermarket is selected, with pagination
   const { 
-    data: supermarketAssignments = [], 
+    data: supermarketAssignmentsData, 
     isLoading: isLoadingSupermarketAssignments,
     refetch: refetchSupermarketAssignments
-  } = useQuery<Assignment[]>({
-    queryKey: ['/api/supermarkets', selectedSupermarket?.id, 'broadcast-assignments'],
+  } = useQuery<{
+    assignments: Assignment[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
+    queryKey: ['/api/supermarkets', selectedSupermarket?.id, 'broadcast-assignments', supermarketAssignmentsPage, supermarketAssignmentsPageSize],
+    queryFn: async () => {
+      if (!selectedSupermarket) return { assignments: [], pagination: { total: 0, page: 1, limit: 10, totalPages: 0 }};
+      
+      const params = new URLSearchParams();
+      params.append('page', supermarketAssignmentsPage.toString());
+      params.append('limit', supermarketAssignmentsPageSize.toString());
+      
+      const response = await fetch(`/api/supermarkets/${selectedSupermarket.id}/broadcast-assignments?${params.toString()}`);
+      return await response.json();
+    },
     enabled: !!selectedSupermarket,
   });
+  
+  // Extract assignments array and pagination info
+  const supermarketAssignments = supermarketAssignmentsData?.assignments || [];
 
   // Create assignment mutation
   const createAssignmentMutation = useMutation({
@@ -142,7 +167,9 @@ export default function BroadcastAssignment() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/broadcast-assignments'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/supermarkets', selectedSupermarket?.id, 'broadcast-assignments'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/supermarkets', selectedSupermarket?.id, 'broadcast-assignments']
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/supermarkets'] });
       setShowAssignDialog(false);
       toast({
@@ -166,7 +193,9 @@ export default function BroadcastAssignment() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/broadcast-assignments'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/supermarkets', selectedSupermarket?.id, 'broadcast-assignments'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/supermarkets', selectedSupermarket?.id, 'broadcast-assignments']
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/supermarkets'] });
       setShowUnassignDialog(false);
       toast({
