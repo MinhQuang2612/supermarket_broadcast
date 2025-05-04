@@ -651,13 +651,9 @@ export default function UserManagement() {
                 pagination={true}
                 serverSidePagination={{
                   totalItems: activityLogsData?.pagination?.total || 0,
-                  currentPage: currentPage,
+                  currentPage: logPage,
                   onPageChange: (page: number) => {
-                    setCurrentPage(page);
-                    // Invalidate query to fetch new page
-                    queryClient.invalidateQueries({ 
-                      queryKey: ['/api/activity-logs', { page }]
-                    });
+                    setLogPage(page);
                   }
                 }}
               />
@@ -672,16 +668,16 @@ export default function UserManagement() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage <= 1 || isLogsLoading}
+                    onClick={() => setLogPage(Math.max(1, logPage - 1))}
+                    disabled={logPage <= 1 || isLogsLoading}
                   >
                     Trang trước
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(p => p + 1)}
-                    disabled={currentPage >= totalPages || isLogsLoading}
+                    onClick={() => setLogPage(logPage + 1)}
+                    disabled={logPage >= logTotalPages || isLogsLoading}
                   >
                     Trang sau
                   </Button>
