@@ -89,23 +89,19 @@ export default function DataTable({
 
   // Handle sorting
   const handleSort = (key: string) => {
+    // Khởi tạo hướng sắp xếp mới là 'asc'
+    let newDirection: 'asc' | 'desc' = 'asc';
+    
+    // Khi bấm vào cùng một cột, chuyển đổi giữa 'asc' và 'desc'
+    if (sortKey === key) {
+      newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    }
+    
     if (serverSideSorting) {
-      // For server-side sorting
-      let newDirection: 'asc' | 'desc' = 'asc';
-      
-      if (sortKey === key && sortDirection === 'asc') {
-        newDirection = 'desc';
-      }
-      
+      // Cho server-side sorting
       serverSideSorting.onSortChange(key, newDirection);
     } else {
-      // For client-side sorting
-      let newDirection: 'asc' | 'desc' = 'asc';
-      
-      if (sortKey === key && sortDirection === 'asc') {
-        newDirection = 'desc';
-      }
-      
+      // Cho client-side sorting
       setSortKey(key);
       setSortDirection(newDirection);
     }
