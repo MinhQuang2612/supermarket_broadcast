@@ -204,6 +204,9 @@ export default function AudioManagement() {
     }
   });
   
+  // State for group change confirmation
+  const [showGroupChangeConfirmDialog, setShowGroupChangeConfirmDialog] = useState(false);
+  
   // Handle changing group for multiple files
   const handleChangeGroup = (group: string) => {
     if (selectedFiles.length > 0) {
@@ -212,8 +215,16 @@ export default function AudioManagement() {
     }
   };
   
-  // Confirm group change
+  // Show confirmation before group change
+  const handleGroupChangeConfirm = () => {
+    setShowGroupChangeDialog(false);
+    setShowGroupChangeConfirmDialog(true);
+  };
+  
+  // Confirm and execute group change
   const confirmGroupChange = () => {
+    setShowGroupChangeConfirmDialog(false);
+    
     if (selectedFiles.length > 0 && selectedGroup) {
       changeGroupMutation.mutate({ 
         ids: selectedFiles.map(file => file.id),
@@ -910,7 +921,7 @@ export default function AudioManagement() {
                 Hủy
               </Button>
               <Button 
-                onClick={confirmGroupChange} 
+                onClick={handleGroupChangeConfirm} 
                 disabled={!selectedGroup || changeGroupMutation.isPending}
               >
                 {changeGroupMutation.isPending ? "Đang cập nhật..." : "Cập nhật nhóm"}
@@ -927,6 +938,17 @@ export default function AudioManagement() {
         title="Xác nhận tải xuống"
         description={`Bạn có chắc chắn muốn tải xuống ${selectedFiles.length} file âm thanh đã chọn?`}
         onConfirm={confirmBulkDownload}
+      />
+      
+      {/* Group Change Confirmation Dialog */}
+      <ConfirmDialog
+        open={showGroupChangeConfirmDialog}
+        onOpenChange={setShowGroupChangeConfirmDialog}
+        title="Xác nhận thay đổi nhóm"
+        description={`Bạn có chắc chắn muốn thay đổi nhóm của ${selectedFiles.length} file âm thanh thành "${formatGroup(selectedGroup)}"?`}
+        onConfirm={confirmGroupChange}
+        confirmText="Xác nhận"
+        variant="default"
       />
     </DashboardLayout>
   );
