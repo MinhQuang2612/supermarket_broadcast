@@ -83,6 +83,10 @@ export default function SupermarketManagement() {
   const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
 
+  // State for sorting
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
+
   // Pagination state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -92,7 +96,7 @@ export default function SupermarketManagement() {
   // Fetch supermarkets with pagination
   const { data, isLoading } = useQuery({
     queryKey: ['/api/supermarkets', page, pageSize, sortKey, sortDirection],
-    keepPreviousData: true,
+    placeholderData: keepPreviousData => keepPreviousData,
   });
   
   // Extract supermarkets and pagination info from response
@@ -430,9 +434,7 @@ export default function SupermarketManagement() {
     }
   };
 
-  // State for sorting
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
+  // Handle sort change
   
   // Handle sort change
   const handleSortChange = (key: string, direction: 'asc' | 'desc' | null) => {
