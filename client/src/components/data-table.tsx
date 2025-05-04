@@ -95,7 +95,7 @@ export default function DataTable({
       
       if (sortKey === key) {
         if (sortDirection === 'asc') newDirection = 'desc';
-        else if (sortDirection === 'desc') newDirection = null;
+        else newDirection = null;
       }
       
       serverSideSorting.onSortChange(key, newDirection);
@@ -105,7 +105,7 @@ export default function DataTable({
       
       if (sortKey === key) {
         if (sortDirection === 'asc') newDirection = 'desc';
-        else if (sortDirection === 'desc') newDirection = null;
+        else newDirection = null;
       }
       
       setSortKey(newDirection === null ? null : key);

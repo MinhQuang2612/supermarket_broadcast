@@ -53,6 +53,7 @@ export default function AudioManagement() {
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [showStatusUpdateDialog, setShowStatusUpdateDialog] = useState(false);
+  const [showDownloadDialog, setShowDownloadDialog] = useState(false);
   const [selectedFile, setSelectedFile] = useState<AudioFile | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<AudioFile[]>([]);
   const [groupFilter, setGroupFilter] = useState("all");
@@ -224,28 +225,35 @@ export default function AudioManagement() {
   // Handle bulk download
   const handleBulkDownload = () => {
     if (selectedFiles.length > 0) {
-      toast({
-        title: "Tải xuống bắt đầu",
-        description: `Đang tải ${selectedFiles.length} file âm thanh`,
-      });
-      
-      // Download files one by one with a small delay
-      selectedFiles.forEach((file, index) => {
-        setTimeout(() => {
-          const link = document.createElement('a');
-          const timestamp = new Date().getTime();
-          link.href = `/api/audio-files/${file.id}/download?t=${timestamp}`;
-          link.download = file.displayName + '.' + (file.fileType.split('/')[1] || 'mp3');
-          document.body.appendChild(link);
-          link.click();
-          
-          // Remove the link after click
-          setTimeout(() => {
-            document.body.removeChild(link);
-          }, 100);
-        }, index * 300); // Add a small delay between downloads
-      });
+      setShowDownloadDialog(true);
     }
+  };
+  
+  // Confirm bulk download
+  const confirmBulkDownload = () => {
+    setShowDownloadDialog(false);
+    
+    toast({
+      title: "Tải xuống bắt đầu",
+      description: `Đang tải ${selectedFiles.length} file âm thanh`,
+    });
+    
+    // Download files one by one with a small delay
+    selectedFiles.forEach((file, index) => {
+      setTimeout(() => {
+        const link = document.createElement('a');
+        const timestamp = new Date().getTime();
+        link.href = `/api/audio-files/${file.id}/download?t=${timestamp}`;
+        link.download = file.displayName + '.' + (file.fileType.split('/')[1] || 'mp3');
+        document.body.appendChild(link);
+        link.click();
+        
+        // Remove the link after click
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
+      }, index * 300); // Add a small delay between downloads
+    });
   };
   
   // Reset audio file status
@@ -911,6 +919,15 @@ export default function AudioManagement() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* Download Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDownloadDialog}
+        onOpenChange={setShowDownloadDialog}
+        title="Xác nhận tải xuống"
+        description={`Bạn có chắc chắn muốn tải xuống ${selectedFiles.length} file âm thanh đã chọn?`}
+        onConfirm={confirmBulkDownload}
+      />
     </DashboardLayout>
   );
 }
