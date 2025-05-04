@@ -90,6 +90,8 @@ export default function PlaylistCreation() {
   // Extract programs array and pagination info
   const programs = programsData?.programs || [];
   
+  console.log("Fetched programs:", programs); // Debug log
+  
   // Fetch audio files with pagination
   const { data: audioFilesData, isLoading: isLoadingAudio } = useQuery<{
     audioFiles: AudioFile[],
@@ -115,25 +117,47 @@ export default function PlaylistCreation() {
   // Extract audio files array and pagination info
   const audioFiles = audioFilesData?.audioFiles || [];
 
-  // Fetch playlists for selected program
+  // State for playlist pagination
+  const [playlistPage, setPlaylistPage] = useState(1);
+  const [playlistPageSize, setPlaylistPageSize] = useState(100); // Use larger page size for playlists
+
+  // Fetch playlists for selected program with pagination
   const {
-    data: playlists = [],
+    data: playlistsData,
     isLoading: isLoadingPlaylists,
     refetch: refetchPlaylists
-  } = useQuery<Playlist[]>({
-    queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists'],
+  } = useQuery<{
+    playlists: Playlist[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
+    queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists', playlistPage, playlistPageSize],
     enabled: !!selectedProgram,
-    onSuccess: (data) => {
-      console.log("PLAYLIST CLIENT DEBUG - Received playlists from API:", data?.map(p => ({ 
-        id: p.id, 
-        broadcastProgramId: p.broadcastProgramId,
-        dateCreated: new Date(p.createdAt).toLocaleString()
-      })));
+    queryFn: async () => {
+      if (!selectedProgram) {
+        return { playlists: [], pagination: { total: 0, page: 1, limit: playlistPageSize, totalPages: 0 } };
+      }
       
-      // Debug playlist IDs to see if they match database
-      console.log("DEBUG: Playlist database IDs:", data?.map(p => p.id));
+      const params = new URLSearchParams();
+      params.append('page', playlistPage.toString());
+      params.append('limit', playlistPageSize.toString());
+      
+      const response = await fetch(`/api/broadcast-programs/${selectedProgram}/playlists?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch playlists: ${response.status}`);
+      }
+      return await response.json();
     }
   });
+  
+  // Extract playlists array and pagination info
+  const playlists = playlistsData?.playlists || [];
+  
+  console.log("Fetched playlists:", playlists); // Debug log
   
   // Derived state for loading
   const isLoadingPlaylist = isLoadingPlaylists;
@@ -411,6 +435,10 @@ export default function PlaylistCreation() {
   // Get audio file by ID
   const getAudioFile = (id: number) => {
     console.log("Looking for audio file with ID:", id);
+    if (!audioFiles || !Array.isArray(audioFiles)) {
+      console.warn(`⚠️ audioFiles is not an array:`, audioFiles);
+      return null;
+    }
     const found = audioFiles.find(file => file.id === id);
     if (!found) {
       console.warn(`⚠️ Audio file with ID ${id} not found in audioFiles list. Available IDs:`, 
@@ -439,6 +467,11 @@ export default function PlaylistCreation() {
   // Confirm generate playlist
   const confirmGeneratePlaylist = () => {
     if (!selectedProgram) return;
+    
+    if (!programs || !Array.isArray(programs)) {
+      console.warn("programs is not an array:", programs);
+      return;
+    }
     
     const program = programs.find(p => p.id === selectedProgram);
     if (!program) return;
@@ -531,7 +564,11 @@ export default function PlaylistCreation() {
   };
 
   const isLoading = isLoadingPrograms || isLoadingAudio || isLoadingPlaylist;
-  const selectedProgramData = programs.find(p => p.id === selectedProgram);
+  
+  // Safely get selected program data with type checking
+  const selectedProgramData = programs && Array.isArray(programs) 
+    ? programs.find(p => p.id === selectedProgram)
+    : null;
 
   return (
     <DashboardLayout>
