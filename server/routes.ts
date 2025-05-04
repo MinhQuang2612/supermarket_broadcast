@@ -240,8 +240,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/supermarket-template", isAuthenticated, async (req, res, next) => {
     try {
       const filePath = path.join(process.cwd(), "mau_sieu_thi.csv");
-      res.download(filePath, "mau_sieu_thi.csv");
+      
+      // Set appropriate headers
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="mau_sieu_thi.csv"');
+      
+      // Send the file content
+      fs.createReadStream(filePath).pipe(res);
     } catch (error) {
+      console.error("Error downloading template:", error);
       next(error);
     }
   });

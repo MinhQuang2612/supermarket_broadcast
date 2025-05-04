@@ -446,23 +446,54 @@ export default function SupermarketManagement() {
   const [showDownloadConfirmDialog, setShowDownloadConfirmDialog] = useState(false);
   
   // Hàm xác nhận tải mẫu
-  const confirmDownloadTemplate = () => {
-    // Tạo một thẻ a và mô phỏng sự kiện click
-    const link = document.createElement('a');
-    link.href = '/api/supermarket-template';
-    link.download = 'mau_sieu_thi.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Đóng dialog
-    setShowDownloadConfirmDialog(false);
-    
-    // Hiển thị thông báo thành công
-    toast({
-      title: "Thành công",
-      description: "Đã tải xuống mẫu siêu thị",
-    });
+  const confirmDownloadTemplate = async () => {
+    try {
+      // Sử dụng fetch API để tải xuống file
+      const response = await fetch('/api/supermarket-template', {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/csv',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Không thể tải xuống mẫu');
+      }
+      
+      // Lấy blob từ response
+      const blob = await response.blob();
+      
+      // Tạo URL object từ blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Tạo một thẻ a và mô phỏng sự kiện click
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'mau_sieu_thi.csv';
+      document.body.appendChild(link);
+      link.click();
+      
+      // Dọn dẹp
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+      
+      // Đóng dialog
+      setShowDownloadConfirmDialog(false);
+      
+      // Hiển thị thông báo thành công
+      toast({
+        title: "Thành công",
+        description: "Đã tải xuống mẫu siêu thị",
+      });
+    } catch (error) {
+      console.error('Lỗi khi tải mẫu:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải xuống mẫu siêu thị",
+        variant: "destructive",
+      });
+      setShowDownloadConfirmDialog(false);
+    }
   };
   
   // Lọc siêu thị dựa trên bộ lọc và từ khóa tìm kiếm
