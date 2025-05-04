@@ -1315,6 +1315,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID chương trình không hợp lệ" });
       }
       
+      // Get pagination parameters from query string
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = (page - 1) * limit;
+      
       // Lấy tất cả playlist
       const allPlaylists = await storage.getAllPlaylists();
       
@@ -1323,14 +1328,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .filter(p => p.broadcastProgramId === programId)
         .sort((a, b) => b.id - a.id);
       
-      console.log("PLAYLIST DEBUG - All playlists from DB:", JSON.stringify(allPlaylists.map(p => ({ id: p.id, programId: p.broadcastProgramId }))));
-      console.log("PLAYLIST DEBUG - Filtered playlists for program:", JSON.stringify(filteredPlaylists.map(p => ({ id: p.id }))));
-      console.log("PLAYLIST DEBUG - Raw filtered data:", JSON.stringify(filteredPlaylists));
+      const totalCount = filteredPlaylists.length;
       
-      console.log("FINAL DATA BEING SENT TO CLIENT:", JSON.stringify(filteredPlaylists.map(p => ({ id: p.id, broadcastProgramId: p.broadcastProgramId }))));
+      // Apply pagination
+      const paginatedPlaylists = filteredPlaylists.slice(offset, offset + limit);
       
-      // Trả về danh sách các playlist
-      res.json(filteredPlaylists);
+      console.log("PLAYLIST DEBUG - Filtered playlists for program:", JSON.stringify(paginatedPlaylists.map(p => ({ id: p.id }))));
+      console.log("PLAYLIST DEBUG - Pagination info:", { total: totalCount, page, limit, totalPages: Math.ceil(totalCount / limit) });
+      
+      // Trả về danh sách các playlist với thông tin phân trang
+      res.json({
+        playlists: paginatedPlaylists,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit)
+        }
+      });
     } catch (error) {
       console.error("Error getting playlists for program:", error);
       next(error);
@@ -1584,8 +1599,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Broadcast assignment routes
   app.get("/api/broadcast-assignments", isAuthenticated, async (req, res, next) => {
     try {
-      const assignments = await storage.getAllBroadcastAssignments();
-      res.json(assignments);
+      // Get pagination parameters from query string
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = (page - 1) * limit;
+      
+      // Get all broadcast assignments
+      const allAssignments = await storage.getAllBroadcastAssignments();
+      const totalCount = allAssignments.length;
+      
+      // Apply pagination
+      const paginatedAssignments = allAssignments.slice(offset, offset + limit);
+      
+      // Return with pagination metadata
+      res.json({
+        assignments: paginatedAssignments,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit)
+        }
+      });
     } catch (error) {
       next(error);
     }
