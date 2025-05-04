@@ -69,15 +69,60 @@ export default function BroadcastAssignment() {
     queryKey: ['/api/supermarkets'],
   });
 
-  // Fetch broadcast programs
-  const { data: programs = [], isLoading: isLoadingPrograms } = useQuery<BroadcastProgram[]>({
-    queryKey: ['/api/broadcast-programs'],
+  // State for pagination
+  const [programPage, setProgramPage] = useState(1);
+  const [programPageSize, setProgramPageSize] = useState(10);
+  
+  const [assignmentsPage, setAssignmentsPage] = useState(1);
+  const [assignmentsPageSize, setAssignmentsPageSize] = useState(10);
+  
+  // Fetch broadcast programs with pagination
+  const { data: programsData, isLoading: isLoadingPrograms } = useQuery<{
+    programs: BroadcastProgram[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
+    queryKey: ['/api/broadcast-programs', programPage, programPageSize],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', programPage.toString());
+      params.append('limit', programPageSize.toString());
+      
+      const response = await fetch(`/api/broadcast-programs?${params.toString()}`);
+      return await response.json();
+    },
   });
-
-  // Fetch broadcast assignments
-  const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery<Assignment[]>({
-    queryKey: ['/api/broadcast-assignments'],
+  
+  // Extract programs array and pagination info
+  const programs = programsData?.programs || [];
+  
+  // Fetch broadcast assignments with pagination
+  const { data: assignmentsData, isLoading: isLoadingAssignments } = useQuery<{
+    assignments: Assignment[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
+    queryKey: ['/api/broadcast-assignments', assignmentsPage, assignmentsPageSize],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', assignmentsPage.toString());
+      params.append('limit', assignmentsPageSize.toString());
+      
+      const response = await fetch(`/api/broadcast-assignments?${params.toString()}`);
+      return await response.json();
+    },
   });
+  
+  // Extract assignments array and pagination info
+  const assignments = assignmentsData?.assignments || [];
 
   // Fetch supermarket assignments when a supermarket is selected
   const { 
