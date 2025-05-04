@@ -83,10 +83,28 @@ export default function SupermarketManagement() {
   const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
 
-  // Fetch supermarkets
-  const { data: supermarkets = [], isLoading } = useQuery<Supermarket[]>({
-    queryKey: ['/api/supermarkets'],
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  
+  // Fetch supermarkets with pagination
+  const { data, isLoading } = useQuery({
+    queryKey: ['/api/supermarkets', page, pageSize, sortKey, sortDirection],
+    keepPreviousData: true,
   });
+  
+  // Extract supermarkets and pagination info from response
+  const supermarkets = data?.supermarkets || [];
+  
+  // Update pagination state whenever data changes
+  useEffect(() => {
+    if (data?.pagination) {
+      setTotalItems(data.pagination.total);
+      setTotalPages(data.pagination.totalPages);
+    }
+  }, [data]);
   
   // Fetch regions
   const { data: regions = [] } = useQuery<Region[]>({

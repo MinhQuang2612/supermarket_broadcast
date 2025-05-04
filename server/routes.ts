@@ -94,18 +94,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   setupAuth(app);
 
-  // User management routes
+  // User management routes with pagination
   app.get("/api/users", isManagerOrAdmin, async (req, res, next) => {
     try {
-      const users = await storage.getAllUsers();
-      res.json(users.map(user => ({
+      // Get pagination parameters from query string
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = (page - 1) * limit;
+      
+      // Get role and status filters if provided
+      const roleFilter = req.query.role as string;
+      const statusFilter = req.query.status as string;
+      
+      // Get all users first
+      const allUsers = await storage.getAllUsers();
+      
+      // Apply filters if provided
+      let filteredUsers = allUsers;
+      if (roleFilter && roleFilter !== 'all') {
+        filteredUsers = filteredUsers.filter(user => user.role === roleFilter);
+      }
+      if (statusFilter && statusFilter !== 'all') {
+        filteredUsers = filteredUsers.filter(user => user.status === statusFilter);
+      }
+      
+      const totalCount = filteredUsers.length;
+      
+      // Apply pagination
+      const paginatedUsers = filteredUsers.slice(offset, offset + limit);
+      
+      // Map users to return only the necessary fields
+      const mappedUsers = paginatedUsers.map(user => ({
         id: user.id,
         username: user.username,
         fullName: user.fullName,
         role: user.role,
         status: user.status,
         createdAt: user.createdAt
-      })));
+      }));
+      
+      // Return with pagination metadata
+      res.json({
+        users: mappedUsers,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit)
+        }
+      });
     } catch (error) {
       next(error);
     }
@@ -1058,14 +1095,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Playlist routes
+  // Playlist routes with pagination
   app.get("/api/playlists", isAuthenticated, async (req, res, next) => {
     try {
-      const playlists = await storage.getAllPlaylists();
-      console.log("GET all playlists:", JSON.stringify(playlists));
-      res.json(playlists);
+      // Get pagination parameters from query string
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = (page - 1) * limit;
+      
+      // Get program ID filter if provided
+      const programId = req.query.programId ? parseInt(req.query.programId as string) : null;
+      
+      // Get all playlists
+      const allPlaylists = await storage.getAllPlaylists();
+      
+      // Apply program ID filter if provided
+      const filteredPlaylists = programId 
+        ? allPlaylists.filter(playlist => playlist.broadcastProgramId === programId)
+        : allPlaylists;
+      
+      const totalCount = filteredPlaylists.length;
+      
+      // Apply pagination
+      const paginatedPlaylists = filteredPlaylists.slice(offset, offset + limit);
+      
+      console.log("GET playlists with pagination:", JSON.stringify({
+        total: totalCount,
+        page,
+        limit,
+        filtered: filteredPlaylists.length,
+        returned: paginatedPlaylists.length
+      }));
+      
+      // Return with pagination metadata
+      res.json({
+        playlists: paginatedPlaylists,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit)
+        }
+      });
     } catch (error) {
-      console.error("Error getting all playlists:", error);
+      console.error("Error getting playlists with pagination:", error);
       next(error);
     }
   });
