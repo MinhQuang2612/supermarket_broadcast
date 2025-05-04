@@ -64,10 +64,32 @@ export default function BroadcastAssignment() {
   const [regionFilter, setRegionFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Fetch supermarkets
-  const { data: supermarkets = [], isLoading: isLoadingSupermarkets } = useQuery<Supermarket[]>({
-    queryKey: ['/api/supermarkets'],
+  // Fetch supermarkets with pagination
+  const [supermarketsPage, setSupermarketsPage] = useState(1);
+  const [supermarketsPageSize, setSupermarketsPageSize] = useState(10);
+  
+  const { data: supermarketsData, isLoading: isLoadingSupermarkets } = useQuery<{
+    supermarkets: Supermarket[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
+    queryKey: ['/api/supermarkets', supermarketsPage, supermarketsPageSize],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', supermarketsPage.toString());
+      params.append('limit', supermarketsPageSize.toString());
+      
+      const response = await fetch(`/api/supermarkets?${params.toString()}`);
+      return await response.json();
+    },
   });
+  
+  // Extract supermarkets array from paginated response
+  const supermarkets = supermarketsData?.supermarkets || [];
 
   // State for pagination
   const [programPage, setProgramPage] = useState(1);

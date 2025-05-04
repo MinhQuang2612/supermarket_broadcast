@@ -53,15 +53,37 @@ export default function PlaylistPreview() {
   const [playlistItems, setPlaylistItems] = useState<PlaylistItem[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  // Fetch broadcast programs
-  const { data: programs = [], isLoading: isLoadingPrograms } = useQuery<BroadcastProgram[]>({
+  // Fetch broadcast programs with pagination
+  const { data: programsData, isLoading: isLoadingPrograms } = useQuery<{
+    programs: BroadcastProgram[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
     queryKey: ['/api/broadcast-programs'],
   });
+  
+  // Extract programs array from paginated response
+  const programs = programsData?.programs || [];
 
-  // Fetch audio files
-  const { data: audioFiles = [], isLoading: isLoadingAudio } = useQuery<AudioFile[]>({
+  // Fetch audio files with pagination
+  const { data: audioFilesData, isLoading: isLoadingAudio } = useQuery<{
+    audioFiles: AudioFile[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
     queryKey: ['/api/audio-files'],
   });
+  
+  // Extract audio files array from paginated response
+  const audioFiles = audioFilesData?.audioFiles || [];
   
   // Fetch all playlists for selected program
   const { 
