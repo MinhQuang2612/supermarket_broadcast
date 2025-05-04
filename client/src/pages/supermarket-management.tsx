@@ -442,6 +442,29 @@ export default function SupermarketManagement() {
     setSortDirection(newDirection);
   };
   
+  // State và hàm xử lý cho dialog tải mẫu
+  const [showDownloadConfirmDialog, setShowDownloadConfirmDialog] = useState(false);
+  
+  // Hàm xác nhận tải mẫu
+  const confirmDownloadTemplate = () => {
+    // Tạo một thẻ a và mô phỏng sự kiện click
+    const link = document.createElement('a');
+    link.href = '/api/supermarket-template';
+    link.download = 'mau_sieu_thi.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Đóng dialog
+    setShowDownloadConfirmDialog(false);
+    
+    // Hiển thị thông báo thành công
+    toast({
+      title: "Thành công",
+      description: "Đã tải xuống mẫu siêu thị",
+    });
+  };
+  
   // Lọc siêu thị dựa trên bộ lọc và từ khóa tìm kiếm
   const filteredSupermarkets = supermarkets.filter(supermarket => {
     // Xử lý lọc theo khu vực với cấu trúc dữ liệu mới
@@ -510,7 +533,11 @@ export default function SupermarketManagement() {
           {(user?.role === "admin" || user?.role === "manager") && (
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
               <div className="flex space-x-2">
-                <Button variant="outline" onClick={() => window.location.href = "/api/supermarket-template"} className="w-full sm:w-auto">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowDownloadConfirmDialog(true)} 
+                  className="w-full sm:w-auto"
+                >
                   <Download className="mr-2 h-4 w-4" />
                   Tải mẫu CSV
                 </Button>
@@ -952,6 +979,16 @@ export default function SupermarketManagement() {
         description={`Bạn có chắc chắn muốn cập nhật thông tin siêu thị "${selectedSupermarket?.name}"?`}
         onConfirm={handleConfirmedSubmit}
         isLoading={updateSupermarketMutation.isPending}
+      />
+      
+      {/* Download Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDownloadConfirmDialog}
+        onOpenChange={setShowDownloadConfirmDialog}
+        title="Tải mẫu siêu thị"
+        description="Bạn có chắc chắn muốn tải xuống file mẫu siêu thị CSV?"
+        onConfirm={confirmDownloadTemplate}
+        confirmText="Tải xuống"
       />
     </DashboardLayout>
   );
