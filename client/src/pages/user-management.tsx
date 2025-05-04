@@ -94,10 +94,32 @@ export default function UserManagement() {
     queryKey: ['/api/users'],
   });
 
-  // Fetch activity logs
-  const { data: activityLogs = [], isLoading: isLogsLoading } = useQuery<any[]>({
-    queryKey: ['/api/activity-logs'],
+  // State for activity logs pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  
+  // Fetch activity logs with pagination
+  const { data: activityLogsData, isLoading: isLogsLoading } = useQuery<{
+    logs: any[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
+    queryKey: ['/api/activity-logs', { page: currentPage }],
   });
+  
+  // Extract logs and pagination info
+  const activityLogs = activityLogsData?.logs || [];
+  
+  // Update total pages when data changes
+  React.useEffect(() => {
+    if (activityLogsData?.pagination) {
+      setTotalPages(activityLogsData.pagination.totalPages);
+    }
+  }, [activityLogsData]);
 
   // Create user mutation
   const createUserMutation = useMutation({

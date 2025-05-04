@@ -168,15 +168,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Activity logs
+  // Activity logs - with server-side pagination
   app.get("/api/activity-logs", isAdmin, async (req, res, next) => {
     try {
-      // Get the last 10 days of logs
-      const tenDaysAgo = new Date();
-      tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+      // Get pagination parameters from query string
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 30;
+      const offset = (page - 1) * limit;
       
-      const logs = await storage.getActivityLogs(tenDaysAgo);
-      res.json(logs);
+      // Get the last 30 days of logs
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      // Get total count of logs
+      const allLogs = await storage.getActivityLogs(thirtyDaysAgo);
+      const totalCount = allLogs.length;
+      
+      // Create paginated results
+      const paginatedLogs = allLogs.slice(offset, offset + limit);
+      
+      // Return with pagination metadata
+      res.json({
+        logs: paginatedLogs,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit)
+        }
+      });
     } catch (error) {
       next(error);
     }
