@@ -96,6 +96,8 @@ export default function BroadcastAssignment() {
   const [assignmentToUpdate, setAssignmentToUpdate] = useState<number | null>(null);
   // Biến state riêng cho chức năng cập nhật playlist
   const [playlistForUpdate, setPlaylistForUpdate] = useState<Playlist | null>(null);
+  // Biến để debug
+  const [lastSelectedPlaylistId, setLastSelectedPlaylistId] = useState<number | null>(null);
   
   // Pagination state for supermarkets
   const [supermarketPage, setSupermarketPage] = useState(1);
@@ -307,8 +309,16 @@ export default function BroadcastAssignment() {
   // Update assignment playlist mutation
   const updateAssignmentPlaylistMutation = useMutation({
     mutationFn: async (data: { assignmentId: number; playlistId: number }) => {
+      console.log(`Đang gửi yêu cầu cập nhật: Assignment ID=${data.assignmentId}, Playlist ID=${data.playlistId}`);
+      // Sử dụng lastSelectedPlaylistId nếu playlistId không hợp lệ
+      const effectivePlaylistId = data.playlistId || lastSelectedPlaylistId;
+      
+      if (!effectivePlaylistId) {
+        throw new Error("Không tìm thấy ID playlist để cập nhật");
+      }
+      
       const response = await apiRequest('PATCH', `/api/broadcast-assignments/${data.assignmentId}`, {
-        playlistId: data.playlistId
+        playlistId: effectivePlaylistId
       });
       return response.json();
     },
@@ -603,9 +613,11 @@ export default function BroadcastAssignment() {
                                                                 name="playlistSelection"
                                                                 value={playlist.id}
                                                                 className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                                                                checked={playlistForUpdate?.id === playlist.id}
                                                                 onChange={() => {
                                                                   console.log("Đã chọn playlist ID:", playlist.id);
                                                                   setPlaylistForUpdate(playlist);
+                                                                  setLastSelectedPlaylistId(playlist.id);
                                                                   
                                                                   // Hiển thị thông báo để xác nhận việc chọn
                                                                   toast({
@@ -926,9 +938,11 @@ export default function BroadcastAssignment() {
                                                                 name="playlistSelectionByProgram"
                                                                 value={playlist.id}
                                                                 className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                                                                checked={playlistForUpdate?.id === playlist.id}
                                                                 onChange={() => {
                                                                   console.log("[By Program] Đã chọn playlist ID:", playlist.id);
                                                                   setPlaylistForUpdate(playlist);
+                                                                  setLastSelectedPlaylistId(playlist.id);
                                                                   
                                                                   // Hiển thị thông báo để xác nhận việc chọn
                                                                   toast({
