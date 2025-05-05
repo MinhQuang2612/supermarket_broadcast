@@ -3,7 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   BroadcastProgram, 
   Supermarket, 
-  BroadcastAssignment as Assignment 
+  BroadcastAssignment as Assignment,
+  Playlist
 } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";

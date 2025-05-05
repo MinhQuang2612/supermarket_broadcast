@@ -222,6 +222,7 @@ export const broadcastAssignments = pgTable("broadcast_assignments", {
   id: serial("id").primaryKey(),
   supermarketId: integer("supermarket_id").notNull().references(() => supermarkets.id),
   broadcastProgramId: integer("broadcast_program_id").notNull().references(() => broadcastPrograms.id),
+  playlistId: integer("playlist_id").references(() => playlists.id), // Playlist cụ thể được gán cho siêu thị này (có thể null)
   assignedBy: integer("assigned_by").notNull().references(() => users.id),
   assignedAt: timestamp("assigned_at").defaultNow().notNull(),
 });
@@ -235,6 +236,10 @@ export const broadcastAssignmentsRelations = relations(broadcastAssignments, ({ 
     fields: [broadcastAssignments.broadcastProgramId],
     references: [broadcastPrograms.id],
     relationName: "programAssignments",
+  }),
+  playlist: one(playlists, {
+    fields: [broadcastAssignments.playlistId],
+    references: [playlists.id],
   }),
   assigner: one(users, {
     fields: [broadcastAssignments.assignedBy],
