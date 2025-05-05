@@ -53,7 +53,8 @@ import {
   AlertTriangle, 
   Search,
   Unlink,
-  Loader2
+  Loader2,
+  Pencil
 } from "lucide-react";
 import { format } from "date-fns";
 // Define pagination metadata interface
@@ -507,16 +508,53 @@ export default function BroadcastAssignment() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setAssignmentToDelete(assignment);
-                                    setShowConfirmDeleteDialog(true);
-                                  }}
-                                >
-                                  <Unlink className="h-4 w-4 text-red-500" />
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Cập nhật danh sách phát"
+                                    onClick={() => {
+                                      // Lấy chương trình hiện tại
+                                      const program = programs.find(p => p.id === assignment.broadcastProgramId);
+                                      if (program) {
+                                        setSelectedProgram(program);
+                                        // Lấy danh sách playlist của chương trình này
+                                        fetch(`/api/broadcast-programs/${program.id}/playlists`)
+                                          .then(res => res.json())
+                                          .then(data => {
+                                            // Chọn playlist đầu tiên (nếu có)
+                                            if (data.playlists && data.playlists.length > 0) {
+                                              setSelectedPlaylist(data.playlists[0]);
+                                              toast({
+                                                title: "Cập nhật playlist",
+                                                description: "Chọn playlist mới để cập nhật cho gán này",
+                                              });
+                                              setShowAssignDialog(true);
+                                            } else {
+                                              toast({
+                                                title: "Không có playlist",
+                                                description: "Chương trình này chưa có playlist nào. Vui lòng tạo playlist trước.",
+                                                variant: "destructive"
+                                              });
+                                            }
+                                          });
+                                      }
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4 text-blue-500" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Hủy gán chương trình"
+                                    onClick={() => {
+                                      setAssignmentToDelete(assignment);
+                                      setShowConfirmDeleteDialog(true);
+                                    }}
+                                  >
+                                    <Unlink className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -716,16 +754,50 @@ export default function BroadcastAssignment() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setAssignmentToDelete(assignment);
-                                    setShowConfirmDeleteDialog(true);
-                                  }}
-                                >
-                                  <Unlink className="h-4 w-4 text-red-500" />
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Cập nhật danh sách phát"
+                                    onClick={() => {
+                                      if (selectedProgram) {
+                                        // Lấy danh sách playlist của chương trình này
+                                        fetch(`/api/broadcast-programs/${selectedProgram.id}/playlists`)
+                                          .then(res => res.json())
+                                          .then(data => {
+                                            // Chọn playlist đầu tiên (nếu có)
+                                            if (data.playlists && data.playlists.length > 0) {
+                                              setSelectedPlaylist(data.playlists[0]);
+                                              toast({
+                                                title: "Cập nhật playlist",
+                                                description: "Chọn playlist mới để cập nhật cho gán này",
+                                              });
+                                              setShowAssignDialog(true);
+                                            } else {
+                                              toast({
+                                                title: "Không có playlist",
+                                                description: "Chương trình này chưa có playlist nào. Vui lòng tạo playlist trước.",
+                                                variant: "destructive"
+                                              });
+                                            }
+                                          });
+                                      }
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4 text-blue-500" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Hủy gán chương trình"
+                                    onClick={() => {
+                                      setAssignmentToDelete(assignment);
+                                      setShowConfirmDeleteDialog(true);
+                                    }}
+                                  >
+                                    <Unlink className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
