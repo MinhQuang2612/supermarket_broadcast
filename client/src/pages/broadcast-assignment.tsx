@@ -262,6 +262,12 @@ export default function BroadcastAssignment() {
     }
   };
   
+  // Handle program assign button click
+  const handleProgramAssignClick = () => {
+    // First show the supermarket selection dialog
+    setShowSelectSupermarketDialog(true);
+  };
+  
   // Load playlists for a program
   const loadProgramPlaylists = async (programId: number) => {
     try {
