@@ -107,6 +107,7 @@ export default function BroadcastAssignment() {
   const [showConfirmDeleteDialog, setShowConfirmDeleteDialog] = useState(false);
   const [showSelectSupermarketDialog, setShowSelectSupermarketDialog] = useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = useState<EnrichedAssignment | null>(null);
+  const [assignmentToUpdate, setAssignmentToUpdate] = useState<number | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState<{
     title: string;
     description: React.ReactNode;
