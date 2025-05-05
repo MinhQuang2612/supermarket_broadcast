@@ -34,9 +34,33 @@ export function registerBroadcastAssignmentRoutes(app: Express) {
       // Apply pagination
       const paginatedAssignments = allAssignments.slice(offset, offset + limit);
       
+      // Enrich assignments with additional data
+      const enrichedAssignments = await Promise.all(
+        paginatedAssignments.map(async (assignment) => {
+          const program = await storage.getBroadcastProgram(assignment.broadcastProgramId);
+          const supermarket = await storage.getSupermarket(assignment.supermarketId);
+          const playlist = assignment.playlistId ? await storage.getPlaylist(assignment.playlistId) : null;
+          
+          // Get commune and province names for the supermarket
+          const commune = supermarket?.communeId ? await storage.getCommune(supermarket.communeId) : null;
+          const province = supermarket?.provinceId ? await storage.getProvince(supermarket.provinceId) : null;
+          
+          return {
+            ...assignment,
+            programName: program?.name,
+            programDate: program?.date,
+            supermarketName: supermarket?.name,
+            supermarketAddress: supermarket ? (supermarket.address || '') : '',
+            communeName: commune?.name || '',
+            provinceName: province?.name || '',
+            playlistItemCount: playlist?.items ? Array.isArray(playlist.items) ? playlist.items.length : 0 : 0
+          };
+        })
+      );
+      
       // Return with pagination metadata
       res.json({
-        assignments: paginatedAssignments,
+        assignments: enrichedAssignments,
         pagination: {
           total: totalCount,
           page,
@@ -212,19 +236,18 @@ export function registerBroadcastAssignmentRoutes(app: Express) {
         // No error if no default playlist, allow assignment without playlist
       }
       
-      // Check if assignment already exists for this supermarket
-      const existingAssignment = await storage.getSupermarketBroadcastAssignments(validation.data.supermarketId);
-      if (existingAssignment.length > 0) {
-        // Update the existing assignment instead
+      // Check if assignment already exists for this combination of supermarket and program
+      const existingAssignment = await storage.getBroadcastProgramAssignments(validation.data.broadcastProgramId);
+      const sameAssignment = existingAssignment.find(
+        assignment => assignment.supermarketId === validation.data.supermarketId &&
+                      assignment.broadcastProgramId === validation.data.broadcastProgramId
+      );
+      
+      if (sameAssignment) {
+        // Update only if the same program is being reassigned to the same supermarket
         const assignment = await storage.updateBroadcastAssignment(
-          existingAssignment[0].id, 
+          sameAssignment.id, 
           validation.data
-        );
-        
-        // Update the supermarket's current program
-        await storage.updateSupermarketCurrentProgram(
-          validation.data.supermarketId,
-          program.name
         );
         
         // Log the activity
@@ -277,11 +300,31 @@ export function registerBroadcastAssignmentRoutes(app: Express) {
       // Delete the assignment
       await storage.deleteBroadcastAssignment(assignmentId);
       
-      // Clear the supermarket's current program
-      await storage.updateSupermarketCurrentProgram(
-        existingAssignment.supermarketId,
-        null
-      );
+      // Check if there are other assignments for this supermarket before clearing the current program
+      const remainingAssignments = await storage.getSupermarketBroadcastAssignments(existingAssignment.supermarketId);
+      
+      if (remainingAssignments.length <= 1) {
+        // This was the only assignment, so clear the supermarket's current program
+        await storage.updateSupermarketCurrentProgram(
+          existingAssignment.supermarketId,
+          null
+        );
+      } else {
+        // There are other assignments, so update with the name of the most recent program
+        const mostRecentAssignment = remainingAssignments
+          .filter(a => a.id !== assignmentId) // Exclude the one being deleted
+          .sort((a, b) => b.assignedAt.getTime() - a.assignedAt.getTime())[0];
+        
+        if (mostRecentAssignment) {
+          const programName = (await storage.getBroadcastProgram(mostRecentAssignment.broadcastProgramId))?.name;
+          if (programName) {
+            await storage.updateSupermarketCurrentProgram(
+              existingAssignment.supermarketId,
+              programName
+            );
+          }
+        }
+      }
       
       // Log the activity
       await storage.createActivityLog({

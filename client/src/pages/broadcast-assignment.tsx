@@ -10,6 +10,7 @@ import {
   Commune
 } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { formatFullAddress, formatDate } from "@/lib/format-utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/dashboard-layout";
