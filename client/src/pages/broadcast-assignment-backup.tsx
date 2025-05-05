@@ -617,7 +617,7 @@ export default function BroadcastAssignment() {
                                                 ),
                                                 confirmText: "Cập nhật",
                                                 onConfirm: () => {
-                                                  if (selectedPlaylist && assignmentToUpdate !== null) {
+                                                  if (selectedPlaylist) {
                                                     updateAssignmentPlaylistMutation.mutate({
                                                       assignmentId: assignmentToUpdate,
                                                       playlistId: selectedPlaylist.id
@@ -904,7 +904,7 @@ export default function BroadcastAssignment() {
                                                 ),
                                                 confirmText: "Cập nhật",
                                                 onConfirm: () => {
-                                                  if (selectedPlaylist && assignmentToUpdate !== null) {
+                                                  if (selectedPlaylist) {
                                                     updateAssignmentPlaylistMutation.mutate({
                                                       assignmentId: assignmentToUpdate,
                                                       playlistId: selectedPlaylist.id
