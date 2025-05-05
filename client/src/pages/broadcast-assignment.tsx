@@ -394,6 +394,11 @@ export default function BroadcastAssignment() {
     
     return programs.find(p => p.id === assignment.broadcastProgramId);
   };
+  
+  // Get assignment for supermarket
+  const getAssignment = (supermarketId: number) => {
+    return assignments.find(a => a.supermarketId === supermarketId) || null;
+  };
 
   // Get supermarkets assigned to program
   const getSupermarketsForProgram = (programId: number) => {
@@ -555,14 +560,30 @@ export default function BroadcastAssignment() {
                               const supermarket = row.original as Supermarket;
                               const hasAssignment = hasBroadcastAssignment(supermarket.id);
                               const assignedProgram = getAssignedProgram(supermarket.id);
+                              const assignment = getAssignment(supermarket.id);
                               
                               return (
-                                <div className="flex items-center">
+                                <div className="flex flex-col">
                                   {hasAssignment && assignedProgram ? (
-                                    <Badge variant="outline" className="bg-success-light/20 text-success flex items-center">
-                                      <Check className="h-3 w-3 mr-1" /> 
-                                      {assignedProgram.name}
-                                    </Badge>
+                                    <>
+                                      <Badge variant="outline" className="bg-success-light/20 text-success flex items-center mb-1">
+                                        <Check className="h-3 w-3 mr-1" /> 
+                                        {assignedProgram.name}
+                                      </Badge>
+                                      
+                                      {/* Hiển thị thông tin playlist nếu có */}
+                                      {assignment?.playlistId ? (
+                                        <div className="text-xs text-neutral-dark flex items-center">
+                                          <ListChecks className="h-3 w-3 mr-1" />
+                                          Playlist ID: {assignment.playlistId}
+                                        </div>
+                                      ) : (
+                                        <div className="text-xs text-yellow-600 flex items-center">
+                                          <AlertTriangle className="h-3 w-3 mr-1" />
+                                          Chưa chọn playlist
+                                        </div>
+                                      )}
+                                    </>
                                   ) : (
                                     <Badge variant="outline" className="bg-neutral-medium/20 text-neutral-dark flex items-center">
                                       <X className="h-3 w-3 mr-1" /> 
@@ -665,7 +686,7 @@ export default function BroadcastAssignment() {
                             </div>
                           ) : supermarketAssignments.length > 0 && getAssignedProgram(selectedSupermarket.id) ? (
                             <div className="bg-success-light/10 border border-success rounded-md p-3">
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center">
                                   <Radio className="h-4 w-4 mr-2 text-success" />
                                   <div>
@@ -688,6 +709,26 @@ export default function BroadcastAssignment() {
                                   Hủy gán
                                 </Button>
                               </div>
+                              
+                              {/* Thông tin playlist được gán */}
+                              {getAssignment(selectedSupermarket.id)?.playlistId ? (
+                                <div className="pt-2 border-t mt-2">
+                                  <p className="text-sm font-medium flex items-center mb-1">
+                                    <ListChecks className="h-4 w-4 mr-1" />
+                                    Thông tin playlist
+                                  </p>
+                                  <p className="text-xs bg-neutral-lightest p-2 rounded">
+                                    ID playlist: {getAssignment(selectedSupermarket.id)?.playlistId}
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="pt-2 border-t mt-2">
+                                  <p className="text-sm text-yellow-600 flex items-center">
+                                    <AlertTriangle className="h-4 w-4 mr-1" />
+                                    Chưa có playlist được gán cho siêu thị này
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="bg-neutral-lightest rounded-md p-3">
@@ -847,6 +888,7 @@ export default function BroadcastAssignment() {
                                   <TableHead>Địa chỉ</TableHead>
                                   <TableHead>Khu vực</TableHead>
                                   <TableHead>Trạng thái</TableHead>
+                                  <TableHead>Playlist</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -869,6 +911,19 @@ export default function BroadcastAssignment() {
                                       }>
                                         {supermarket.status === "active" ? "Đang hoạt động" : "Tạm dừng"}
                                       </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      {getAssignment(supermarket.id)?.playlistId ? (
+                                        <div className="text-xs flex items-center">
+                                          <ListChecks className="h-3 w-3 mr-1" />
+                                          ID: {getAssignment(supermarket.id)?.playlistId}
+                                        </div>
+                                      ) : (
+                                        <div className="text-xs text-yellow-600 flex items-center">
+                                          <AlertTriangle className="h-3 w-3 mr-1" />
+                                          Chưa chọn
+                                        </div>
+                                      )}
                                     </TableCell>
                                   </TableRow>
                                 ))}
