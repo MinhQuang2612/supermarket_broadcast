@@ -300,9 +300,11 @@ export default function BroadcastAssignment() {
         description: "Danh sách phát đã được cập nhật thành công.",
       });
       setShowAssignDialog(false);
+      setShowConfirmDialog(null);
       setSelectedSupermarket(null);
       setSelectedProgram(null);
       setSelectedPlaylist(null);
+      setAssignmentToUpdate(null);
       queryClient.invalidateQueries({ queryKey: ['/api/broadcast-assignments/by-supermarket'] });
       queryClient.invalidateQueries({ queryKey: ['/api/broadcast-assignments/by-program'] });
     },
@@ -312,6 +314,8 @@ export default function BroadcastAssignment() {
         description: error.message,
         variant: "destructive",
       });
+      setShowConfirmDialog(null);
+      setAssignmentToUpdate(null);
     }
   });
   
@@ -595,7 +599,7 @@ export default function BroadcastAssignment() {
                                                         Chọn danh sách phát:
                                                       </label>
                                                       <Select 
-                                                        value={currentPlaylist?.id?.toString() || data.playlists[0].id.toString()}
+                                                        value={selectedPlaylist?.id?.toString() || currentPlaylist?.id?.toString() || data.playlists[0].id.toString()}
                                                         onValueChange={(value) => {
                                                           const playlist = data.playlists.find(p => p.id.toString() === value);
                                                           setSelectedPlaylist(playlist || null);
@@ -882,7 +886,7 @@ export default function BroadcastAssignment() {
                                                         Chọn danh sách phát:
                                                       </label>
                                                       <Select 
-                                                        value={currentPlaylist?.id?.toString() || data.playlists[0].id.toString()}
+                                                        value={selectedPlaylist?.id?.toString() || currentPlaylist?.id?.toString() || data.playlists[0].id.toString()}
                                                         onValueChange={(value) => {
                                                           const playlist = data.playlists.find(p => p.id.toString() === value);
                                                           setSelectedPlaylist(playlist || null);
