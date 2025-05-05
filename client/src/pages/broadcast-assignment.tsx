@@ -63,6 +63,7 @@ export default function BroadcastAssignment() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showUnassignDialog, setShowUnassignDialog] = useState(false);
+  const [showSelectSupermarketDialog, setShowSelectSupermarketDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [regionFilter, setRegionFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -304,8 +305,9 @@ export default function BroadcastAssignment() {
       if (!playlists.length) {
         loadProgramPlaylists(selectedProgram.id);
       }
-      setSelectedSupermarket(supermarkets[0]);
-      setShowAssignDialog(true);
+      
+      // Mở dropdown chọn siêu thị thay vì tự chọn siêu thị đầu tiên
+      setShowSelectSupermarketDialog(true);
     }
   };
 
@@ -1063,6 +1065,60 @@ export default function BroadcastAssignment() {
         onConfirm={confirmUnassignment}
         isLoading={deleteAssignmentMutation.isPending}
         variant="destructive"
+      />
+      
+      {/* Select Supermarket Dialog */}
+      <ConfirmDialog
+        open={showSelectSupermarketDialog}
+        onOpenChange={setShowSelectSupermarketDialog}
+        title="Chọn siêu thị để gán"
+        description={
+          <>
+            <p className="mb-4">
+              Bạn muốn gán chương trình <strong>{selectedProgram?.name}</strong> cho siêu thị nào?
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">
+                Chọn siêu thị:
+              </label>
+              <Select 
+                onValueChange={(value) => {
+                  const supermarket = supermarkets.find(s => s.id.toString() === value);
+                  if (supermarket) {
+                    setSelectedSupermarket(supermarket);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn siêu thị" />
+                </SelectTrigger>
+                <SelectContent>
+                  {supermarkets.map((supermarket) => (
+                    <SelectItem key={supermarket.id} value={supermarket.id.toString()}>
+                      {supermarket.name} ({regions.find(r => r.id === supermarket.regionId)?.name})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-neutral-medium mt-1">
+                Chọn siêu thị mà bạn muốn áp dụng chương trình phát sóng
+              </p>
+            </div>
+          </>
+        }
+        confirmText="Tiếp tục"
+        onConfirm={() => {
+          if (selectedSupermarket) {
+            setShowSelectSupermarketDialog(false);
+            setShowAssignDialog(true);
+          } else {
+            toast({
+              title: "Vui lòng chọn siêu thị",
+              description: "Bạn cần chọn một siêu thị để tiếp tục",
+              variant: "destructive"
+            });
+          }
+        }}
       />
     </DashboardLayout>
   );

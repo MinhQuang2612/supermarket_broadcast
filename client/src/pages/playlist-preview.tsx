@@ -87,14 +87,37 @@ export default function PlaylistPreview() {
   
   // Fetch all playlists for selected program
   const { 
-    data: programPlaylists = [], 
+    data: programPlaylistsData, 
     isLoading: isLoadingProgramPlaylists
-  } = useQuery<Playlist[]>({
-    queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists'],
+  } = useQuery<{
+    playlists: Playlist[],
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }>({
+    queryKey: ['/api/broadcast-programs', selectedProgram?.id, 'playlists'],
+    queryFn: async () => {
+      if (!selectedProgram) {
+        return { playlists: [], pagination: { total: 0, page: 1, limit: 10, totalPages: 0 } };
+      }
+      
+      const response = await fetch(`/api/broadcast-programs/${selectedProgram.id}/playlists`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch playlists');
+      }
+      
+      return await response.json();
+    },
     enabled: !!selectedProgram,
     staleTime: 0,
     refetchOnWindowFocus: true
   });
+  
+  // Extract playlists array from paginated response
+  const programPlaylists = programPlaylistsData?.playlists || [];
   
   // Automatically select the first playlist if available
   useEffect(() => {
