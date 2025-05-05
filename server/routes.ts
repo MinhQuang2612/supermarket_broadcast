@@ -1,13 +1,15 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
-import { storage } from "./storage";
+import { storage } from "./database-storage";
 import { db } from "./db";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { z } from "zod";
 import * as mm from "music-metadata";
+// Import the broadcast assignment routes
+import { registerBroadcastAssignmentRoutes } from "./routes-broadcast-assignments";
 import { 
   insertSupermarketSchema, 
   insertAudioFileSchema, 
@@ -93,6 +95,9 @@ function isManagerOrAdmin(req: any, res: any, next: any) {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   setupAuth(app);
+  
+  // Register broadcast assignment routes
+  registerBroadcastAssignmentRoutes(app);
 
   // User management routes with pagination
   app.get("/api/users", isManagerOrAdmin, async (req, res, next) => {
@@ -1596,35 +1601,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Broadcast assignment routes
-  app.get("/api/broadcast-assignments", isAuthenticated, async (req, res, next) => {
-    try {
-      // Get pagination parameters from query string
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const offset = (page - 1) * limit;
-      
-      // Get all broadcast assignments
-      const allAssignments = await storage.getAllBroadcastAssignments();
-      const totalCount = allAssignments.length;
-      
-      // Apply pagination
-      const paginatedAssignments = allAssignments.slice(offset, offset + limit);
-      
-      // Return with pagination metadata
-      res.json({
-        assignments: paginatedAssignments,
-        pagination: {
-          total: totalCount,
-          page,
-          limit,
-          totalPages: Math.ceil(totalCount / limit)
-        }
-      });
-    } catch (error) {
-      next(error);
-    }
-  });
+  // The broadcast assignment routes have been moved to routes-broadcast-assignments.ts
+  // This duplicate route is kept for backward compatibility but will be removed in future updates
 
   app.get("/api/supermarkets/:id/broadcast-assignments", isAuthenticated, async (req, res, next) => {
     try {

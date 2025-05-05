@@ -638,3 +638,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(broadcastAssignments.id, id));
   }
 }
+
+// Export a singleton instance of the database storage
+export const storage = new DatabaseStorage();
