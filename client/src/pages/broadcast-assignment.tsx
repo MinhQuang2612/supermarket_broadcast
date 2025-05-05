@@ -1238,6 +1238,20 @@ export default function BroadcastAssignment() {
           setShowSelectSupermarketDialog(false);
         }}
       />
+      
+      {/* Playlist Update Confirmation Dialog */}
+      {showConfirmDialog && (
+        <ConfirmDialog
+          open={!!showConfirmDialog}
+          onOpenChange={(open) => {
+            if (!open) setShowConfirmDialog(null);
+          }}
+          title={showConfirmDialog.title}
+          description={showConfirmDialog.description}
+          confirmText={showConfirmDialog.confirmText}
+          onConfirm={showConfirmDialog.onConfirm}
+        />
+      )}
     </DashboardLayout>
   );
 }
