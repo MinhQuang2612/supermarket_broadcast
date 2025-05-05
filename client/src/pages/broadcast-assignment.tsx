@@ -2,13 +2,26 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   BroadcastProgram, 
-  Supermarket, 
+  Supermarket as SupermarketBase, 
   BroadcastAssignment as Assignment,
   Playlist,
   Region,
   Province,
   Commune
 } from "@shared/schema";
+
+// Mở rộng kiểu dữ liệu Supermarket để có thêm programCount
+interface Supermarket extends SupermarketBase {
+  programCount?: number;
+}
+
+// Mở rộng kiểu dữ liệu Assignment để có thêm các trường bổ sung
+interface EnrichedAssignment extends Assignment {
+  programName?: string;
+  programDate?: Date;
+  supermarketName?: string;
+  supermarketAddress?: string;
+}
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatFullAddress, formatDate } from "@/lib/format-utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -93,7 +106,7 @@ export default function BroadcastAssignment() {
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showConfirmDeleteDialog, setShowConfirmDeleteDialog] = useState(false);
   const [showSelectSupermarketDialog, setShowSelectSupermarketDialog] = useState(false);
-  const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<EnrichedAssignment | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState<{
     title: string;
     description: React.ReactNode;
@@ -165,7 +178,7 @@ export default function BroadcastAssignment() {
     data: assignmentData,
     isLoading: loadingAssignments,
     refetch: refetchAssignments,
-  } = useQuery<{ assignments: Assignment[], pagination: PaginationMetadata }>({
+  } = useQuery<{ assignments: EnrichedAssignment[], pagination: PaginationMetadata }>({
     queryKey: [
       '/api/broadcast-assignments/by-supermarket', 
       selectedSupermarket?.id, 
@@ -193,7 +206,7 @@ export default function BroadcastAssignment() {
     data: programAssignmentsData,
     isLoading: loadingProgramAssignments,
     refetch: refetchProgramAssignments,
-  } = useQuery<{ assignments: Assignment[], pagination: PaginationMetadata }>({
+  } = useQuery<{ assignments: EnrichedAssignment[], pagination: PaginationMetadata }>({
     queryKey: [
       '/api/broadcast-assignments/by-program', 
       selectedProgram?.id,
