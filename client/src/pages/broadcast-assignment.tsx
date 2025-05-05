@@ -306,20 +306,10 @@ export default function BroadcastAssignment() {
     }
   });
   
-  // Update assignment playlist mutation
+  // Update assignment playlist mutation (đã sửa - đơn giản hóa)
   const updateAssignmentPlaylistMutation = useMutation({
-    mutationFn: async (data: { assignmentId: number; playlistId: number | null | undefined }) => {
+    mutationFn: async (data: { assignmentId: number; playlistId: number }) => {
       console.log(`Đang gửi yêu cầu cập nhật: Assignment ID=${data.assignmentId}, Playlist ID=${data.playlistId}`);
-      
-      // Backup nếu không có playlistId
-      if (data.playlistId === null || data.playlistId === undefined) {
-        if (lastSelectedPlaylistId) {
-          data.playlistId = lastSelectedPlaylistId;
-          console.log(`Sử dụng lastSelectedPlaylistId: ${lastSelectedPlaylistId}`);
-        } else {
-          throw new Error("Không tìm thấy ID playlist để cập nhật");
-        }
-      }
       
       const response = await apiRequest('PATCH', `/api/broadcast-assignments/${data.assignmentId}`, {
         playlistId: data.playlistId
@@ -601,62 +591,77 @@ export default function BroadcastAssignment() {
                                                 // Lưu danh sách playlist để sử dụng sau
                                                 const availablePlaylists = data.playlists;
                                                 
-                                                // Tạo các radio buttons thay vì dropdown
+                                                // Tạo một ID tạm thời cho playlist được chọn
+                                                let tempSelectedPlaylistId = null;
+                                                
+                                                // Tạo hàm xử lý riêng cho việc chọn playlist
+                                                const handlePlaylistSelect = (playlist: any) => {
+                                                  console.log("[By Supermarket] Đã chọn playlist ID:", playlist.id);
+                                                  tempSelectedPlaylistId = playlist.id;
+                                                  setPlaylistForUpdate(playlist);
+                                                  setLastSelectedPlaylistId(playlist.id);
+                                                  
+                                                  // Hiển thị thông báo để xác nhận việc chọn
+                                                  toast({
+                                                    title: "Đã chọn playlist",
+                                                    description: `Playlist ID: ${playlist.id} đã được chọn.`,
+                                                  });
+                                                };
+                                                
+                                                // Tạo hàm xử lý riêng cho việc xác nhận cập nhật
+                                                const handleConfirmUpdate = () => {
+                                                  // Kiểm tra nếu đã có playlist được chọn hoặc đã lưu tạm
+                                                  const selectedId = playlistForUpdate?.id || tempSelectedPlaylistId || lastSelectedPlaylistId;
+                                                  
+                                                  if (!selectedId) {
+                                                    toast({
+                                                      title: "Hãy chọn danh sách phát",
+                                                      description: "Vui lòng chọn một danh sách phát trước khi cập nhật.",
+                                                      variant: "destructive"
+                                                    });
+                                                    return;
+                                                  }
+                                                  
+                                                  console.log("[By Supermarket] Đang cập nhật với playlist ID:", selectedId);
+                                                  
+                                                  // Thực hiện cập nhật
+                                                  if (assignmentToUpdate !== null) {
+                                                    updateAssignmentPlaylistMutation.mutate({
+                                                      assignmentId: assignmentToUpdate,
+                                                      playlistId: selectedId
+                                                    });
+                                                  }
+                                                };
+                                                
                                                 setShowConfirmDialog({
                                                   title: "Cập nhật danh sách phát",
                                                   description: (
-                                                    <>
+                                                    <div className="mb-4">
                                                       <p className="mb-4">Chọn danh sách phát mới cho chương trình <strong>{program.name}</strong></p>
-                                                      <div className="mb-4">
-                                                        <div className="space-y-3 mt-2">
-                                                          {data.playlists.map((playlist: any) => (
-                                                            <div key={playlist.id} className="flex items-center">
-                                                              <input
-                                                                type="radio"
-                                                                id={`playlist-${playlist.id}`}
-                                                                name="playlistSelection"
-                                                                value={playlist.id}
-                                                                className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
-                                                                checked={playlistForUpdate?.id === playlist.id}
-                                                                onChange={() => {
-                                                                  console.log("Đã chọn playlist ID:", playlist.id);
-                                                                  setPlaylistForUpdate(playlist);
-                                                                  setLastSelectedPlaylistId(playlist.id);
-                                                                  
-                                                                  // Hiển thị thông báo để xác nhận việc chọn
-                                                                  toast({
-                                                                    title: "Đã chọn playlist",
-                                                                    description: `Playlist ID: ${playlist.id} đã được chọn.`,
-                                                                  });
-                                                                }}
-                                                              />
-                                                              <label htmlFor={`playlist-${playlist.id}`} className="ml-2 block text-sm font-medium">
-                                                                Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
-                                                              </label>
-                                                            </div>
-                                                          ))}
-                                                        </div>
+                                                      <div className="space-y-3 border p-3 rounded-md max-h-[300px] overflow-y-auto">
+                                                        {data.playlists.map((playlist: any) => (
+                                                          <div key={playlist.id} className="flex items-center p-2 hover:bg-neutral-lightest rounded-md">
+                                                            <input
+                                                              type="radio"
+                                                              id={`playlist-${playlist.id}`}
+                                                              name="playlistSelection"
+                                                              value={playlist.id}
+                                                              className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                                                              onChange={() => handlePlaylistSelect(playlist)}
+                                                            />
+                                                            <label htmlFor={`playlist-${playlist.id}`} className="ml-2 block text-sm font-medium w-full cursor-pointer">
+                                                              Danh sách phát ID: {playlist.id}
+                                                              <span className="block text-xs text-neutral-medium">
+                                                                Tạo lúc: {format(new Date(playlist.createdAt), "dd/MM/yyyy HH:mm")}
+                                                              </span>
+                                                            </label>
+                                                          </div>
+                                                        ))}
                                                       </div>
-                                                    </>
+                                                    </div>
                                                   ),
                                                   confirmText: "Cập nhật",
-                                                  onConfirm: () => {
-                                                    if (!playlistForUpdate) {
-                                                      toast({
-                                                        title: "Hãy chọn danh sách phát",
-                                                        description: "Vui lòng chọn một danh sách phát trước khi cập nhật.",
-                                                        variant: "destructive"
-                                                      });
-                                                      return;
-                                                    }
-                                                    
-                                                    if (assignmentToUpdate !== null) {
-                                                      updateAssignmentPlaylistMutation.mutate({
-                                                        assignmentId: assignmentToUpdate,
-                                                        playlistId: playlistForUpdate.id
-                                                      });
-                                                    }
-                                                  }
+                                                  onConfirm: handleConfirmUpdate
                                                 });
                                               } else {
                                                 toast({
@@ -927,61 +932,77 @@ export default function BroadcastAssignment() {
                                                 const availablePlaylists = data.playlists;
                                                 
                                                 // Tạo các radio buttons thay vì dropdown
+                                                // Tạo một ID tạm thời cho playlist được chọn
+                                                let tempSelectedPlaylistId = null;
+                                                
+                                                // Tạo hàm xử lý riêng cho việc chọn playlist
+                                                const handlePlaylistSelect = (playlist: any) => {
+                                                  console.log("[By Program] Đã chọn playlist ID:", playlist.id);
+                                                  tempSelectedPlaylistId = playlist.id;
+                                                  setPlaylistForUpdate(playlist);
+                                                  setLastSelectedPlaylistId(playlist.id);
+                                                  
+                                                  // Hiển thị thông báo để xác nhận việc chọn
+                                                  toast({
+                                                    title: "Đã chọn playlist",
+                                                    description: `Playlist ID: ${playlist.id} đã được chọn.`,
+                                                  });
+                                                };
+                                                
+                                                // Tạo hàm xử lý riêng cho việc xác nhận cập nhật
+                                                const handleConfirmUpdate = () => {
+                                                  // Kiểm tra nếu đã có playlist được chọn hoặc đã lưu tạm
+                                                  const selectedId = playlistForUpdate?.id || tempSelectedPlaylistId || lastSelectedPlaylistId;
+                                                  
+                                                  if (!selectedId) {
+                                                    toast({
+                                                      title: "Hãy chọn danh sách phát",
+                                                      description: "Vui lòng chọn một danh sách phát trước khi cập nhật.",
+                                                      variant: "destructive"
+                                                    });
+                                                    return;
+                                                  }
+                                                  
+                                                  console.log("Đang cập nhật với playlist ID:", selectedId);
+                                                  
+                                                  // Thực hiện cập nhật
+                                                  if (assignmentToUpdate !== null) {
+                                                    updateAssignmentPlaylistMutation.mutate({
+                                                      assignmentId: assignmentToUpdate,
+                                                      playlistId: selectedId
+                                                    });
+                                                  }
+                                                };
+                                                
                                                 setShowConfirmDialog({
                                                   title: "Cập nhật danh sách phát",
                                                   description: (
-                                                    <>
+                                                    <div className="mb-4">
                                                       <p className="mb-4">Chọn danh sách phát mới cho chương trình <strong>{selectedProgram.name}</strong></p>
-                                                      <div className="mb-4">
-                                                        <div className="space-y-3 mt-2">
-                                                          {data.playlists.map((playlist: any) => (
-                                                            <div key={playlist.id} className="flex items-center">
-                                                              <input
-                                                                type="radio"
-                                                                id={`playlist-by-program-${playlist.id}`}
-                                                                name="playlistSelectionByProgram"
-                                                                value={playlist.id}
-                                                                className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
-                                                                checked={playlistForUpdate?.id === playlist.id}
-                                                                onChange={() => {
-                                                                  console.log("[By Program] Đã chọn playlist ID:", playlist.id);
-                                                                  setPlaylistForUpdate(playlist);
-                                                                  setLastSelectedPlaylistId(playlist.id);
-                                                                  
-                                                                  // Hiển thị thông báo để xác nhận việc chọn
-                                                                  toast({
-                                                                    title: "Đã chọn playlist",
-                                                                    description: `Playlist ID: ${playlist.id} đã được chọn.`,
-                                                                  });
-                                                                }}
-                                                              />
-                                                              <label htmlFor={`playlist-by-program-${playlist.id}`} className="ml-2 block text-sm font-medium">
-                                                                Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
-                                                              </label>
-                                                            </div>
-                                                          ))}
-                                                        </div>
+                                                      <div className="space-y-3 border p-3 rounded-md max-h-[300px] overflow-y-auto">
+                                                        {data.playlists.map((playlist: any) => (
+                                                          <div key={playlist.id} className="flex items-center p-2 hover:bg-neutral-lightest rounded-md">
+                                                            <input
+                                                              type="radio"
+                                                              id={`playlist-by-program-${playlist.id}`}
+                                                              name="playlistSelectionByProgram"
+                                                              value={playlist.id}
+                                                              className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                                                              onChange={() => handlePlaylistSelect(playlist)}
+                                                            />
+                                                            <label htmlFor={`playlist-by-program-${playlist.id}`} className="ml-2 block text-sm font-medium w-full cursor-pointer">
+                                                              Danh sách phát ID: {playlist.id}
+                                                              <span className="block text-xs text-neutral-medium">
+                                                                Tạo lúc: {format(new Date(playlist.createdAt), "dd/MM/yyyy HH:mm")}
+                                                              </span>
+                                                            </label>
+                                                          </div>
+                                                        ))}
                                                       </div>
-                                                    </>
+                                                    </div>
                                                   ),
                                                   confirmText: "Cập nhật",
-                                                  onConfirm: () => {
-                                                    if (!playlistForUpdate) {
-                                                      toast({
-                                                        title: "Hãy chọn danh sách phát",
-                                                        description: "Vui lòng chọn một danh sách phát trước khi cập nhật.",
-                                                        variant: "destructive"
-                                                      });
-                                                      return;
-                                                    }
-                                                    
-                                                    if (assignmentToUpdate !== null) {
-                                                      updateAssignmentPlaylistMutation.mutate({
-                                                        assignmentId: assignmentToUpdate,
-                                                        playlistId: playlistForUpdate.id
-                                                      });
-                                                    }
-                                                  }
+                                                  onConfirm: handleConfirmUpdate
                                                 });
                                               } else {
                                                 toast({
