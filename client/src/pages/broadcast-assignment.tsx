@@ -791,14 +791,44 @@ export default function BroadcastAssignment() {
                     <>
                       <div className="p-4 border-b flex items-center justify-between">
                         <h3 className="font-medium">Danh sách siêu thị được gán</h3>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setShowSelectSupermarketDialog(true);
-                          }}
-                        >
-                          Gán cho siêu thị khác
-                        </Button>
+                        <div className="flex flex-col gap-2">
+                          {/* Hiển thị dropdown chọn playlist ở đây */}
+                          <Select 
+                            value={selectedPlaylist?.id?.toString() || ""}
+                            onValueChange={(value) => {
+                              const playlist = playlists.find(p => p.id.toString() === value);
+                              setSelectedPlaylist(playlist || null);
+                            }}
+                          >
+                            <SelectTrigger className="h-8 text-xs w-[200px]">
+                              <SelectValue placeholder="Chọn danh sách phát trước" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {playlists.map((playlist) => (
+                                <SelectItem key={playlist.id} value={playlist.id.toString()}>
+                                  Danh sách phát ID: {playlist.id}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (!selectedPlaylist) {
+                                toast({
+                                  title: "Vui lòng chọn danh sách phát",
+                                  description: "Bạn cần chọn một danh sách phát trước khi gán cho siêu thị",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              setShowSelectSupermarketDialog(true);
+                            }}
+                          >
+                            Gán cho siêu thị khác
+                          </Button>
+                        </div>
                       </div>
                       
                       <div className="max-h-[500px] overflow-auto">
