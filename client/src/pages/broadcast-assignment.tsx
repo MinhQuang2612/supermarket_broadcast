@@ -139,14 +139,18 @@ export default function BroadcastAssignment() {
   const regions = regionsData || [];
   
   // Fetch all provinces (for display in table)
-  const { data: allProvinces = [] } = useQuery<Province[]>({
+  const { data: provincesData = [] } = useQuery<Province[]>({
     queryKey: ['/api/provinces'],
   });
   
+  const provinces = provincesData || [];
+  
   // Fetch all communes (for display in table)
-  const { data: allCommunes = [] } = useQuery<Commune[]>({
+  const { data: communesData = [] } = useQuery<Commune[]>({
     queryKey: ['/api/communes'],
   });
+  
+  const communes = communesData || [];
   
   // Fetch assignments for selected supermarket
   const {
@@ -286,8 +290,8 @@ export default function BroadcastAssignment() {
   const formatFullAddress = (supermarket: Supermarket) => {
     if (!supermarket) return '';
     
-    const commune = allCommunes.find(c => c.id === supermarket.communeId);
-    const province = allProvinces.find(p => p.id === supermarket.provinceId);
+    const commune = communes.find(c => c.id === supermarket.communeId);
+    const province = provinces.find(p => p.id === supermarket.provinceId);
     const region = regions.find(r => r.id === supermarket.regionId);
     
     return `${supermarket.address}${commune ? ', ' + commune.name : ''}${province ? ', ' + province.name : ''}${region ? ', ' + region.name : ''}`;
@@ -657,11 +661,33 @@ export default function BroadcastAssignment() {
                             <TableRow key={assignment.id}>
                               <TableCell>
                                 <div className="font-medium">
-                                  {assignment.supermarketName}
+                                  {(() => {
+                                    // Tìm siêu thị từ danh sách đã fetched
+                                    const supermarket = supermarkets.find(s => s.id === assignment.supermarketId);
+                                    return supermarket ? supermarket.name : 'Unknown Supermarket';
+                                  })()}
                                 </div>
                               </TableCell>
-                              <TableCell className="max-w-[250px] truncate">
-                                {assignment.supermarketAddress}
+                              <TableCell className="max-w-[250px]">
+                                {(() => {
+                                  // Find supermarket from fetched list
+                                  const supermarket = supermarkets.find(s => s.id === assignment.supermarketId);
+                                  if (!supermarket) return 'Unknown Address';
+                                  
+                                  // Find commune, province, region
+                                  const commune = communes.find(c => c.id === supermarket.communeId);
+                                  const province = provinces.find(p => p.id === supermarket.provinceId);
+                                  const region = regions.find(r => r.id === supermarket.regionId);
+                                  
+                                  return (
+                                    <div className="truncate">
+                                      {supermarket.address}
+                                      {commune && `, ${commune.name}`}
+                                      {province && `, ${province.name}`}
+                                      {region && `, ${region.name}`}
+                                    </div>
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell>
                                 {assignment.playlistId ? (
