@@ -294,9 +294,16 @@ export default function BroadcastAssignment() {
   // Open assign dialog
   const openAssignDialog = () => {
     if (activeTab === "supermarkets" && selectedSupermarket && programs.length > 0) {
-      setSelectedProgram(programs[0]);
+      // Chọn program đầu tiên và load playlists của nó
+      const initialProgram = programs[0];
+      setSelectedProgram(initialProgram);
+      loadProgramPlaylists(initialProgram.id);
       setShowAssignDialog(true);
     } else if (activeTab === "programs" && selectedProgram && supermarkets.length > 0) {
+      // Đã chọn program, chỉ cần load playlists nếu chưa load
+      if (!playlists.length) {
+        loadProgramPlaylists(selectedProgram.id);
+      }
       setSelectedSupermarket(supermarkets[0]);
       setShowAssignDialog(true);
     }
