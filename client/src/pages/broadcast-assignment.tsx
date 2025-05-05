@@ -227,6 +227,18 @@ export default function BroadcastAssignment() {
       broadcastProgramId: number;
       playlistId?: number;
     }) => {
+      // Kiểm tra nếu chương trình đã được gán cho siêu thị này
+      if (selectedSupermarket && assignments) {
+        // Tìm xem đã tồn tại gán với cùng broadcastProgramId chưa
+        const existingAssignment = assignments.find(
+          assignment => assignment.broadcastProgramId === data.broadcastProgramId
+        );
+        
+        if (existingAssignment) {
+          throw new Error("Chương trình này đã được gán cho siêu thị. Vui lòng chọn chương trình khác.");
+        }
+      }
+      
       return apiRequest('POST', '/api/broadcast-assignments', data);
     },
     onSuccess: () => {
@@ -363,14 +375,14 @@ export default function BroadcastAssignment() {
                                     <div className="text-xs text-neutral-medium mt-1 line-clamp-1">
                                       {getFullAddress(supermarket)}
                                     </div>
-                                    {supermarket.currentProgram && (
+                                    {supermarket.programCount ? (
                                       <Badge 
                                         variant="outline" 
                                         className="mt-1 bg-blue-50 text-blue-700 border-blue-200"
                                       >
-                                        {supermarket.currentProgram}
+                                        Đã có {supermarket.programCount} chương trình
                                       </Badge>
-                                    )}
+                                    ) : null}
                                   </div>
                                 </div>
                               </TableCell>
