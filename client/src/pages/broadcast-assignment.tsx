@@ -59,6 +59,8 @@ export default function BroadcastAssignment() {
   const [activeTab, setActiveTab] = useState<string>("supermarkets");
   const [selectedSupermarket, setSelectedSupermarket] = useState<Supermarket | null>(null);
   const [selectedProgram, setSelectedProgram] = useState<BroadcastProgram | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showUnassignDialog, setShowUnassignDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -184,7 +186,7 @@ export default function BroadcastAssignment() {
 
   // Create assignment mutation
   const createAssignmentMutation = useMutation({
-    mutationFn: async (data: { supermarketId: number, broadcastProgramId: number }) => {
+    mutationFn: async (data: { supermarketId: number, broadcastProgramId: number, playlistId?: number }) => {
       const res = await apiRequest("POST", "/api/broadcast-assignments", data);
       return await res.json();
     },
@@ -249,6 +251,44 @@ export default function BroadcastAssignment() {
   // Handle program selection
   const handleSelectProgram = (program: BroadcastProgram) => {
     setSelectedProgram(program);
+    
+    // Khi chọn chương trình, tải danh sách playlist của chương trình đó
+    if (program) {
+      loadProgramPlaylists(program.id);
+    } else {
+      setPlaylists([]);
+      setSelectedPlaylist(null);
+    }
+  };
+  
+  // Load playlists for a program
+  const loadProgramPlaylists = async (programId: number) => {
+    try {
+      const response = await fetch(`/api/broadcast-programs/${programId}/playlists`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch playlists: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Loaded playlists for program:", data);
+      
+      setPlaylists(data.playlists || []);
+      
+      // Nếu có ít nhất một playlist, chọn playlist đầu tiên
+      if (data.playlists && data.playlists.length > 0) {
+        setSelectedPlaylist(data.playlists[0]);
+      } else {
+        setSelectedPlaylist(null);
+      }
+    } catch (error) {
+      console.error("Error loading program playlists:", error);
+      toast({
+        title: "Không thể tải danh sách playlist",
+        description: error instanceof Error ? error.message : "Đã xảy ra lỗi",
+        variant: "destructive",
+      });
+      setPlaylists([]);
+      setSelectedPlaylist(null);
+    }
   };
 
   // Open assign dialog
@@ -272,10 +312,21 @@ export default function BroadcastAssignment() {
   // Handle assignment confirmation
   const confirmAssignment = () => {
     if (selectedSupermarket && selectedProgram) {
-      createAssignmentMutation.mutate({
+      const assignmentData: {
+        supermarketId: number;
+        broadcastProgramId: number;
+        playlistId?: number;
+      } = {
         supermarketId: selectedSupermarket.id,
         broadcastProgramId: selectedProgram.id
-      });
+      };
+      
+      // Thêm playlistId nếu đã chọn playlist
+      if (selectedPlaylist) {
+        assignmentData.playlistId = selectedPlaylist.id;
+      }
+      
+      createAssignmentMutation.mutate(assignmentData);
     }
   };
 
@@ -845,14 +896,55 @@ export default function BroadcastAssignment() {
             <p className="mb-4">
               Bạn có chắc chắn muốn gán:
             </p>
-            <div className="bg-neutral-lightest p-3 rounded-md mb-4 flex items-center">
-              <Radio className="h-5 w-5 mr-2 text-primary" />
-              <div className="font-medium">
-                {selectedProgram?.name} 
-                {selectedProgram && <span className="text-sm font-normal text-neutral-medium ml-2">
-                  ({format(new Date(selectedProgram.date), "dd/MM/yyyy")})
-                </span>}
+            <div className="bg-neutral-lightest p-3 rounded-md mb-4">
+              <div className="flex items-center mb-3">
+                <Radio className="h-5 w-5 mr-2 text-primary" />
+                <div className="font-medium">
+                  {selectedProgram?.name} 
+                  {selectedProgram && <span className="text-sm font-normal text-neutral-medium ml-2">
+                    ({format(new Date(selectedProgram.date), "dd/MM/yyyy")})
+                  </span>}
+                </div>
               </div>
+              
+              {/* Playlist Selection */}
+              {playlists.length > 0 && (
+                <div className="mt-2 border-t pt-2">
+                  <label className="block text-sm font-medium mb-2">
+                    Chọn danh sách phát cho siêu thị này:
+                  </label>
+                  <Select 
+                    value={selectedPlaylist?.id?.toString() || ""}
+                    onValueChange={(value) => {
+                      const playlist = playlists.find(p => p.id.toString() === value);
+                      setSelectedPlaylist(playlist || null);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Chọn danh sách phát" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {playlists.map((playlist, index) => (
+                        <SelectItem key={playlist.id} value={playlist.id.toString()}>
+                          Danh sách phát #{index + 1} - {new Date(playlist.createdAt).toLocaleString()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-neutral-medium mt-1">
+                    Mỗi siêu thị có thể có danh sách phát riêng trong cùng một chương trình phát.
+                  </p>
+                </div>
+              )}
+              
+              {playlists.length === 0 && (
+                <div className="mt-2 border-t pt-2">
+                  <p className="text-sm text-yellow-600 flex items-center">
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    Chương trình này chưa có danh sách phát nào. Vui lòng tạo danh sách phát trước.
+                  </p>
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-center my-2">
               <ArrowRight className="h-6 w-6 text-neutral-medium" />

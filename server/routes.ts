@@ -1683,10 +1683,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Chương trình phát không tồn tại" });
       }
       
-      // Check if a playlist exists for this program
-      const playlist = await storage.getPlaylistByProgramId(validation.data.broadcastProgramId);
-      if (!playlist) {
-        return res.status(400).json({ message: "Chương trình phát chưa có danh sách phát" });
+      // Trước đây kiểm tra bắt buộc phải có playlist, giờ chỉ kiểm tra nếu không có playlistId được cung cấp
+      if (!validation.data.playlistId) {
+        // Kiểm tra xem có playlist mặc định cho chương trình này không
+        const defaultPlaylist = await storage.getPlaylistByProgramId(validation.data.broadcastProgramId);
+        if (defaultPlaylist) {
+          // Nếu có playlist mặc định, sử dụng playlist mặc định
+          validation.data.playlistId = defaultPlaylist.id;
+        }
+        // Không báo lỗi nếu không có playlist mặc định, cho phép gán chương trình mà không có playlist
       }
       
       // Check if assignment already exists for this supermarket
