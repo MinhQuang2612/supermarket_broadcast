@@ -666,19 +666,22 @@ export default function PlaylistPreview() {
                       <SelectContent>
                         {programPlaylists.map((playlist) => (
                           <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                            Danh sách phát #{playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
+                            Danh sách phát ID: {playlist.id} - {format(new Date(playlist.createdAt), "dd/MM/yyyy, h:mm:ss a")}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <div className="mt-3">
+                    <div className="mt-3 p-4 border rounded-md bg-background">
                       {programPlaylists.map((playlist) => (
                         selectedPlaylistId === playlist.id && (
-                          <div key={`selected-${playlist.id}`} className="flex items-center text-sm text-muted-foreground">
-                            ✓ Danh sách phát #{playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
+                          <div key={`selected-${playlist.id}`} className="mb-2">
+                            Danh sách phát ID: {playlist.id} - {format(new Date(playlist.createdAt), "dd/MM/yyyy, h:mm:ss a")}
                           </div>
                         )
                       ))}
+                      {programPlaylists.length > 0 && !selectedPlaylistId && (
+                        <div className="text-muted-foreground">Vui lòng chọn danh sách phát</div>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-2">
                       Chương trình này có {programPlaylists.length} danh sách phát
