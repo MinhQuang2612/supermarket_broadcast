@@ -365,12 +365,11 @@ export default function BroadcastAssignment() {
     const commune = communes.find(c => c.id === supermarket.communeId);
     const province = provinces.find(p => p.id === supermarket.provinceId);
     
-    return formatFullAddress({
-      address: supermarket.address,
-      communeName: commune?.name,
-      provinceName: province?.name,
-      // Người dùng không muốn hiển thị region
-    });
+    let address = supermarket.address || '';
+    if (commune?.name) address += `, ${commune.name}`;
+    if (province?.name) address += `, ${province.name}`;
+    
+    return address;
   };
   
   return (
@@ -830,17 +829,8 @@ export default function BroadcastAssignment() {
                                     const supermarket = supermarkets.find(s => s.id === assignment.supermarketId);
                                     if (!supermarket) return 'Unknown Address';
                                     
-                                    // Find commune, province - no region display per user request
-                                    const commune = communes.find(c => c.id === supermarket.communeId);
-                                    const province = provinces.find(p => p.id === supermarket.provinceId);
-                                    
-                                    return (
-                                      <div className="truncate">
-                                        {supermarket.address}
-                                        {commune && `, ${commune.name}`}
-                                        {province && `, ${province.name}`}
-                                      </div>
-                                    );
+                                    // Get address using our helper function
+                                    return getFullAddress(supermarket);
                                   })()}
                                 </TableCell>
                                 <TableCell>
