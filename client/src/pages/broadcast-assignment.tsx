@@ -94,6 +94,12 @@ export default function BroadcastAssignment() {
   const [showConfirmDeleteDialog, setShowConfirmDeleteDialog] = useState(false);
   const [showSelectSupermarketDialog, setShowSelectSupermarketDialog] = useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState<{
+    title: string;
+    description: React.ReactNode;
+    confirmText: string;
+    onConfirm: () => void;
+  } | null>(null);
   
   // Fetch supermarkets with pagination
   const {
@@ -258,6 +264,37 @@ export default function BroadcastAssignment() {
     onError: (error: Error) => {
       toast({
         title: "Lỗi khi gán chương trình",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Update assignment playlist mutation
+  const updateAssignmentPlaylistMutation = useMutation({
+    mutationFn: (data: { 
+      assignmentId: number;
+      playlistId: number;
+    }) => {
+      return apiRequest('PATCH', `/api/broadcast-assignments/${data.assignmentId}`, {
+        playlistId: data.playlistId
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Cập nhật thành công",
+        description: "Danh sách phát đã được cập nhật thành công.",
+      });
+      setShowAssignDialog(false);
+      setSelectedSupermarket(null);
+      setSelectedProgram(null);
+      setSelectedPlaylist(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-assignments/by-supermarket'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-assignments/by-program'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Lỗi khi cập nhật danh sách phát",
         description: error.message,
         variant: "destructive",
       });
@@ -518,18 +555,62 @@ export default function BroadcastAssignment() {
                                       const program = programs.find(p => p.id === assignment.broadcastProgramId);
                                       if (program) {
                                         setSelectedProgram(program);
+                                        // Lưu trữ assignment ID để cập nhật sau này
+                                        const assignmentToUpdate = assignment.id;
+                                        
                                         // Lấy danh sách playlist của chương trình này
                                         fetch(`/api/broadcast-programs/${program.id}/playlists`)
                                           .then(res => res.json())
                                           .then(data => {
                                             // Chọn playlist đầu tiên (nếu có)
                                             if (data.playlists && data.playlists.length > 0) {
-                                              setSelectedPlaylist(data.playlists[0]);
-                                              toast({
-                                                title: "Cập nhật playlist",
-                                                description: "Chọn playlist mới để cập nhật cho gán này",
+                                              const currentPlaylist = assignment.playlistId 
+                                                ? data.playlists.find(p => p.id === assignment.playlistId)
+                                                : null;
+                                                
+                                              setSelectedPlaylist(currentPlaylist || data.playlists[0]);
+                                              
+                                              // Hiển thị dialog xác nhận
+                                              setShowConfirmDialog({
+                                                title: "Cập nhật danh sách phát",
+                                                description: (
+                                                  <>
+                                                    <p className="mb-4">Chọn danh sách phát mới cho chương trình <strong>{program.name}</strong></p>
+                                                    <div className="mb-4">
+                                                      <label className="block text-sm font-medium mb-2">
+                                                        Chọn danh sách phát:
+                                                      </label>
+                                                      <Select 
+                                                        value={currentPlaylist?.id?.toString() || data.playlists[0].id.toString()}
+                                                        onValueChange={(value) => {
+                                                          const playlist = data.playlists.find(p => p.id.toString() === value);
+                                                          setSelectedPlaylist(playlist || null);
+                                                        }}
+                                                      >
+                                                        <SelectTrigger>
+                                                          <SelectValue placeholder="Chọn danh sách phát" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                          {data.playlists.map((playlist, index) => (
+                                                            <SelectItem key={playlist.id} value={playlist.id.toString()}>
+                                                              Danh sách phát #{index + 1} - {new Date(playlist.createdAt).toLocaleString()}
+                                                            </SelectItem>
+                                                          ))}
+                                                        </SelectContent>
+                                                      </Select>
+                                                    </div>
+                                                  </>
+                                                ),
+                                                confirmText: "Cập nhật",
+                                                onConfirm: () => {
+                                                  if (selectedPlaylist) {
+                                                    updateAssignmentPlaylistMutation.mutate({
+                                                      assignmentId: assignmentToUpdate,
+                                                      playlistId: selectedPlaylist.id
+                                                    });
+                                                  }
+                                                }
                                               });
-                                              setShowAssignDialog(true);
                                             } else {
                                               toast({
                                                 title: "Không có playlist",
@@ -761,18 +842,62 @@ export default function BroadcastAssignment() {
                                     title="Cập nhật danh sách phát"
                                     onClick={() => {
                                       if (selectedProgram) {
+                                        // Lưu trữ assignment ID để cập nhật sau này
+                                        const assignmentToUpdate = assignment.id;
+                                        
                                         // Lấy danh sách playlist của chương trình này
                                         fetch(`/api/broadcast-programs/${selectedProgram.id}/playlists`)
                                           .then(res => res.json())
                                           .then(data => {
                                             // Chọn playlist đầu tiên (nếu có)
                                             if (data.playlists && data.playlists.length > 0) {
-                                              setSelectedPlaylist(data.playlists[0]);
-                                              toast({
-                                                title: "Cập nhật playlist",
-                                                description: "Chọn playlist mới để cập nhật cho gán này",
+                                              const currentPlaylist = assignment.playlistId 
+                                                ? data.playlists.find(p => p.id === assignment.playlistId)
+                                                : null;
+                                                
+                                              setSelectedPlaylist(currentPlaylist || data.playlists[0]);
+                                              
+                                              // Hiển thị dialog xác nhận
+                                              setShowConfirmDialog({
+                                                title: "Cập nhật danh sách phát",
+                                                description: (
+                                                  <>
+                                                    <p className="mb-4">Chọn danh sách phát mới cho chương trình <strong>{selectedProgram.name}</strong></p>
+                                                    <div className="mb-4">
+                                                      <label className="block text-sm font-medium mb-2">
+                                                        Chọn danh sách phát:
+                                                      </label>
+                                                      <Select 
+                                                        value={currentPlaylist?.id?.toString() || data.playlists[0].id.toString()}
+                                                        onValueChange={(value) => {
+                                                          const playlist = data.playlists.find(p => p.id.toString() === value);
+                                                          setSelectedPlaylist(playlist || null);
+                                                        }}
+                                                      >
+                                                        <SelectTrigger>
+                                                          <SelectValue placeholder="Chọn danh sách phát" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                          {data.playlists.map((playlist, index) => (
+                                                            <SelectItem key={playlist.id} value={playlist.id.toString()}>
+                                                              Danh sách phát #{index + 1} - {new Date(playlist.createdAt).toLocaleString()}
+                                                            </SelectItem>
+                                                          ))}
+                                                        </SelectContent>
+                                                      </Select>
+                                                    </div>
+                                                  </>
+                                                ),
+                                                confirmText: "Cập nhật",
+                                                onConfirm: () => {
+                                                  if (selectedPlaylist) {
+                                                    updateAssignmentPlaylistMutation.mutate({
+                                                      assignmentId: assignmentToUpdate,
+                                                      playlistId: selectedPlaylist.id
+                                                    });
+                                                  }
+                                                }
                                               });
-                                              setShowAssignDialog(true);
                                             } else {
                                               toast({
                                                 title: "Không có playlist",

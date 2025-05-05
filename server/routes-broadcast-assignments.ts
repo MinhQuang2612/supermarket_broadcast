@@ -196,6 +196,58 @@ export function registerBroadcastAssignmentRoutes(app: Express) {
     }
   });
 
+  // Update a broadcast assignment's playlist
+  app.patch("/api/broadcast-assignments/:id", isManagerOrAdmin, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as any;
+      const assignmentId = parseInt(req.params.id);
+      const { playlistId } = req.body;
+      
+      if (!playlistId || typeof playlistId !== 'number') {
+        return res.status(400).json({ message: "ID danh sách phát không hợp lệ" });
+      }
+      
+      // Check if assignment exists
+      const assignment = await storage.getBroadcastAssignment(assignmentId);
+      if (!assignment) {
+        return res.status(404).json({ message: "Không tìm thấy gán kết" });
+      }
+      
+      // Check if playlist exists
+      const playlist = await storage.getPlaylist(playlistId);
+      if (!playlist) {
+        return res.status(404).json({ message: "Không tìm thấy danh sách phát" });
+      }
+      
+      // Check if playlist belongs to the same program as the assignment
+      if (playlist.broadcastProgramId !== assignment.broadcastProgramId) {
+        return res.status(400).json({ 
+          message: "Danh sách phát này không thuộc về chương trình đã gán" 
+        });
+      }
+      
+      // Update the assignment
+      const updatedAssignment = await storage.updateBroadcastAssignment(assignmentId, {
+        playlistId,
+      });
+      
+      // Get related data for activity log and response
+      const supermarket = await storage.getSupermarket(assignment.supermarketId);
+      const program = await storage.getBroadcastProgram(assignment.broadcastProgramId);
+      
+      // Log the activity
+      await storage.createActivityLog({
+        userId: user.id,
+        action: "update_broadcast_assignment",
+        details: `Cập nhật danh sách phát cho chương trình ${program?.name || 'Unknown'} tại siêu thị ${supermarket?.name || 'Unknown'}`,
+      });
+      
+      res.json(updatedAssignment);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Create a new broadcast assignment
   app.post("/api/broadcast-assignments", isManagerOrAdmin, async (req: Request, res: Response, next: NextFunction) => {
     try {
