@@ -1,0 +1,117 @@
+Giải thuật sắp xếp phát playlist trong 15 giờ
+1. Input
+Danh sách các file audio:
+Mỗi file thuộc một nhóm chương trình (Lời chào, Chương trình khuyến mãi, Mẹo vặt, Nhạc, hoặc nhóm khác).
+Mỗi file có các thông số:
+Tần suất lặp (số lần phát/ngày hoặc mặc định).
+Khung giờ phát (nếu có, ưu tiên cao hơn tần suất chung).
+Thời lượng file (giả sử đã biết, tính bằng giây hoặc phút).
+Danh sách siêu thị:
+Mỗi siêu thị có danh sách chương trình riêng hoặc dùng chung.
+Thời gian hoạt động: 15 giờ/ngày (giả sử từ 7:00 đến 22:00, đồng hồ 24 giờ).
+Ràng buộc:
+Lời chào: Phát đầu tiên trong ngày.
+Chương trình khuyến mãi: Phân bổ đồng đều trong 15 giờ, không phát liên tục cùng một file.
+Mẹo vặt: 20 file, mỗi file phát ít nhất 1 lần, cách nhau ~40 phút, không liền kề. Nếu tần suất > 1, tuân theo quy tắc khuyến mãi.
+Nhạc: Tự động chèn vào khoảng trống, đảm bảo tỷ lệ chương trình/nhạc hợp lý (từ 1:1 đến 6:1).
+Báo lỗi nếu tỷ lệ chương trình/nhạc > 7:1 hoặc tổng thời gian chương trình vượt ngưỡng.
+2. Output
+Danh sách phát (playlist):
+Một chuỗi các file audio được sắp xếp theo thời gian trong 15 giờ.
+Đảm bảo thứ tự, tần suất, và khung giờ phát phù hợp.
+Hỗ trợ kiểm tra số lượt phát, thứ tự xuất hiện, và nghe thử.
+3. Các bước giải thuật
+Bước 1: Khởi tạo
+Tạo timeline 15 giờ (chia nhỏ thành các slot thời gian, ví dụ: mỗi slot 1 phút, tổng cộng 15 × 60 = 900 slot).
+Gán Lời chào vào slot đầu tiên (thời điểm 7:00).
+Tải danh sách file audio và thông số (tần suất, khung giờ, nhóm chương trình).
+Kiểm tra tổng thời gian phát của các chương trình (trừ Nhạc):
+Nếu vượt ngưỡng (ví dụ: > 80% tổng thời gian 15 giờ), báo lỗi và yêu cầu admin điều chỉnh tần suất.
+Bước 2: Xử lý khung giờ ưu tiên
+Đối với các file có khung giờ phát cụ thể:
+Gán các file này vào các slot trong khung giờ tương ứng.
+Đảm bảo tần suất lặp trong khung giờ được phân bổ đồng đều:
+Tính khoảng cách thời gian giữa các lần phát: khoảng cách = (thời gian khung giờ) / (tần suất lặp).
+Ví dụ: File A có tần suất 10 lần trong khung giờ 9:00–11:00 (120 phút), thì phát mỗi 12 phút một lần.
+Đánh dấu các slot đã gán để tránh trùng lặp.
+Bước 3: Xử lý tần suất chung
+Đối với các file không có khung giờ cụ thể:
+Chương trình khuyến mãi:
+Tính khoảng cách thời gian giữa các lần phát: khoảng cách = 15 × 60 / tần suất.
+Ví dụ: File KM A có tần suất 30 lần/ngày, thì phát mỗi 30 phút (900 / 30 = 30 phút).
+Đảm bảo không có hai lần phát liên tiếp của cùng một file bằng cách xen kẽ với các file khác hoặc Nhạc.
+Mẹo vặt:
+Nếu mỗi file phát 1 lần (20 file), phân bổ đồng đều trong 15 giờ:
+Khoảng cách giữa các file: 900 / 20 ≈ 45 phút.
+Đảm bảo không có hai file Mẹo vặt liền kề bằng cách chèn Nhạc hoặc chương trình khác.
+Nếu file có tần suất > 1, áp dụng quy tắc của Chương trình khuyến mãi.
+Các nhóm khác:
+Tương tự Chương trình khuyến mãi, phân bổ đồng đều theo tần suất.
+Bước 4: Chèn Nhạc
+Sau khi gán các chương trình (Lời chào, Khuyến mãi, Mẹo vặt, v.v.), kiểm tra các slot còn trống.
+Chèn Nhạc vào các slot trống, ưu tiên:
+Đảm bảo tỷ lệ chương trình/nhạc nằm trong khoảng 1:1 đến 6:1.
+Nếu tỷ lệ < 1:1 (quá ít chương trình), Nhạc sẽ chiếm phần lớn, phát liên tiếp.
+Nếu tỷ lệ > 6:1, kiểm tra xem có vượt 7:1 không:
+Nếu vượt, báo lỗi và yêu cầu admin điều chỉnh tần suất.
+Sắp xếp thứ tự Nhạc ngẫu nhiên hoặc theo quy tắc (ví dụ: ưu tiên các file chưa phát gần đây).
+Bước 5: Kiểm tra và tối ưu
+Kiểm tra ràng buộc:
+Lời chào phát đầu tiên.
+Không có hai file cùng loại (Khuyến mãi, Mẹo vặt) liền kề.
+Tần suất lặp của mỗi file đúng như cài đặt.
+Tỷ lệ chương trình/nhạc hợp lý.
+Tối ưu hóa:
+Nếu có slot trống không cần thiết, điều chỉnh khoảng cách phát để phân bổ đồng đều hơn.
+Nếu có xung đột (ví dụ: hai file cùng khung giờ), ưu tiên file có tần suất cao hơn hoặc báo lỗi cho admin.
+Bước 6: Lưu và xuất playlist
+Lưu playlist vào cơ sở dữ liệu, bao gồm:
+Thứ tự phát, thời gian phát, và file audio tương ứng.
+Số lượt phát/ngày của từng file.
+Hỗ trợ admin:
+Xem thứ tự phát và kiểm tra tỷ lệ chương trình/nhạc.
+Nghe thử playlist để đảm bảo chất lượng âm thanh (Sample Rate).
+Bước 7: Cập nhật thực tế
+Gửi playlist đến siêu thị qua server.
+Nếu có cập nhật từ admin:
+Thông báo siêu thị để tải lại playlist.
+Đảm bảo file đang phát không bị gián đoạn (chỉ cập nhật sau khi file hiện tại kết thúc).
+4. Xử lý lỗi
+Tỷ lệ chương trình/nhạc:
+Nếu > 7:1, báo lỗi: "Quá nhiều chương trình, vui lòng giảm tần suất."
+Nếu < 1:1, cảnh báo: "Quá ít chương trình, playlist chủ yếu là Nhạc."
+Xung đột khung giờ:
+Nếu nhiều file trùng khung giờ và vượt số slot khả dụng, báo lỗi: "Khung giờ X có quá nhiều file, vui lòng điều chỉnh."
+File lỗi:
+Nếu file audio không tải được hoặc không đáp ứng Sample Rate, báo lỗi: "File X không hợp lệ, vui lòng kiểm tra."
+5. Độ phức tạp
+Thời gian:
+Khởi tạo timeline: O(1).
+Gán khung giờ ưu tiên: O(N × M), với N là số file, M là số slot trong khung giờ.
+Phân bổ tần suất chung: O(N × T), với T là số slot (900).
+Chèn Nhạc: O(T).
+Tổng: Gần đúng O(N × T), có thể tối ưu bằng cách chia nhỏ timeline.
+Không gian: O(T) cho timeline và O(N) cho danh sách file.
+6. Ví dụ minh họa
+Input:
+
+Lời chào: 1 file, phát đầu tiên.
+Khuyến mãi: File A (30 lần/ngày), File B (15 lần/ngày).
+Mẹo vặt: 20 file, mỗi file 1 lần.
+Nhạc: 10 file, tự động chèn.
+Khung giờ: File A phát 10 lần từ 9:00–11:00.
+Quy trình:
+
+Gán Lời chào vào 7:00.
+Gán File A vào 9:00–11:00, mỗi 12 phút (10 lần).
+Phân bổ 20 lần còn lại của File A trong 15 giờ (mỗi 42 phút).
+Phân bổ File B (mỗi 60 phút).
+Phân bổ 20 file Mẹo vặt, mỗi file cách nhau ~45 phút, không liền kề.
+Chèn Nhạc vào các slot trống, đảm bảo tỷ lệ 1:1 đến 6:1.
+Kiểm tra: Không có File A hoặc Mẹo vặt liền kề, tỷ lệ chương trình/nhạc hợp lý.
+Output:
+
+Playlist: [Lời chào (7:00), Nhạc, File A (9:00), Mẹo vặt 1, File B, ...].
+Báo cáo: File A (30 lần), File B (15 lần), Mẹo vặt (20 lần), Nhạc (~100 lần).
+Kết luận
+Giải thuật trên đảm bảo phân bổ playlist đồng đều, tuân thủ tần suất, khung giờ, và các ràng buộc về nhóm chương trình. Nó cũng hỗ trợ kiểm tra lỗi và tối ưu hóa, giúp admin dễ dàng quản lý và siêu thị phát chương trình mượt mà. Nếu cần chi tiết hơn (ví dụ: mã giả hoặc xử lý trường hợp cụ thể), hãy cho tôi biết!

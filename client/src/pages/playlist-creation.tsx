@@ -577,7 +577,7 @@ export default function PlaylistCreation() {
           <CardHeader>
             <CardTitle>Tạo danh sách phát</CardTitle>
             <CardDescription>
-              Tạo và quản lý danh sách phát cho chương trình phát sóng
+              Mỗi chương trình phát có thể có nhiều danh sách phát khác nhau áp dụng cho các siêu thị khác nhau
             </CardDescription>
           </CardHeader>
           <CardContent>
