@@ -872,7 +872,7 @@ export default function BroadcastAssignment() {
                           {(user?.role === "admin" || user?.role === "manager") && (
                             <Button 
                               size="sm" 
-                              onClick={openAssignDialog}
+                              onClick={handleProgramAssignClick}
                               disabled={isLoadingSupermarkets || supermarkets.length === 0}
                             >
                               <Link className="h-4 w-4 mr-2" />

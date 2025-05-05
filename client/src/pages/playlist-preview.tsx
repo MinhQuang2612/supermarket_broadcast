@@ -563,7 +563,7 @@ export default function PlaylistPreview() {
   };
 
   const isLoading = isLoadingPrograms || isLoadingAudio || isLoadingPlaylist;
-  const selectedProgramData = programs.find(p => p.id === selectedProgram);
+  const selectedProgramData = programs.find(p => p.id === (selectedProgram?.id || -1));
   const currentAudioFile = currentAudioIndex >= 0 && currentAudioIndex < playlistItems.length
     ? getAudioFile(playlistItems[currentAudioIndex].audioFileId)
     : null;
