@@ -5,7 +5,9 @@ import {
   Supermarket, 
   BroadcastAssignment as Assignment,
   Playlist,
-  Region
+  Region,
+  Province,
+  Commune
 } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -53,7 +55,13 @@ import {
   Loader2
 } from "lucide-react";
 import { format } from "date-fns";
-import { PaginationMetadata } from "@/types/pagination";
+// Define pagination metadata interface
+interface PaginationMetadata {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 export default function BroadcastAssignment() {
   const { user } = useAuth();
@@ -124,12 +132,21 @@ export default function BroadcastAssignment() {
   }, [programData]);
   
   // Fetch regions
-  const { data: regionsData } = useQuery<{ regions: Region[] }>({
-    queryKey: ['/api/regions'],
-    queryFn: () => fetch('/api/regions').then(res => res.json()),
+  const { data: regionsData } = useQuery<Region[]>({
+    queryKey: ['/api/regions']
   });
   
-  const regions = regionsData?.regions || [];
+  const regions = regionsData || [];
+  
+  // Fetch all provinces (for display in table)
+  const { data: allProvinces = [] } = useQuery<Province[]>({
+    queryKey: ['/api/provinces'],
+  });
+  
+  // Fetch all communes (for display in table)
+  const { data: allCommunes = [] } = useQuery<Commune[]>({
+    queryKey: ['/api/communes'],
+  });
   
   // Fetch assignments for selected supermarket
   const {
@@ -269,8 +286,8 @@ export default function BroadcastAssignment() {
   const formatFullAddress = (supermarket: Supermarket) => {
     if (!supermarket) return '';
     
-    const commune = communes.find(c => c.id === supermarket.communeId);
-    const province = provinces.find(p => p.id === supermarket.provinceId);
+    const commune = allCommunes.find(c => c.id === supermarket.communeId);
+    const province = allProvinces.find(p => p.id === supermarket.provinceId);
     const region = regions.find(r => r.id === supermarket.regionId);
     
     return `${supermarket.address}${commune ? ', ' + commune.name : ''}${province ? ', ' + province.name : ''}${region ? ', ' + region.name : ''}`;
