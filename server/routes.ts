@@ -953,8 +953,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allPrograms = await storage.getAllBroadcastPrograms();
       const totalCount = allPrograms.length;
       
+      // Bổ sung thông tin số lượng siêu thị được gán cho mỗi chương trình
+      const enrichedPrograms = await Promise.all(
+        allPrograms.map(async (program) => {
+          const assignments = await storage.getBroadcastProgramAssignments(program.id);
+          return {
+            ...program,
+            assignedSupermarketCount: assignments.length
+          };
+        })
+      );
+      
       // Apply pagination
-      const paginatedPrograms = allPrograms.slice(offset, offset + limit);
+      const paginatedPrograms = enrichedPrograms.slice(offset, offset + limit);
       
       // Return with pagination metadata
       res.json({
