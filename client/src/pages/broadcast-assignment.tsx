@@ -584,34 +584,42 @@ export default function BroadcastAssignment() {
                                                 // Không tự động chọn playlist
                                                 setPlaylistForUpdate(null);
                                                 
-                                                // Hiển thị dialog xác nhận
+                                                // Lưu danh sách playlist để sử dụng sau
+                                                const availablePlaylists = data.playlists;
+                                                
+                                                // Tạo các radio buttons thay vì dropdown
                                                 setShowConfirmDialog({
                                                   title: "Cập nhật danh sách phát",
                                                   description: (
                                                     <>
                                                       <p className="mb-4">Chọn danh sách phát mới cho chương trình <strong>{program.name}</strong></p>
                                                       <div className="mb-4">
-                                                        <label className="block text-sm font-medium mb-2">
-                                                          Chọn danh sách phát:
-                                                        </label>
-                                                        <Select 
-                                                          value={playlistForUpdate?.id?.toString() || ""}
-                                                          onValueChange={(value) => {
-                                                            const playlist = data.playlists.find((p: any) => p.id.toString() === value);
-                                                            setPlaylistForUpdate(playlist || null);
-                                                          }}
-                                                        >
-                                                          <SelectTrigger>
-                                                            <SelectValue placeholder="Chọn danh sách phát" />
-                                                          </SelectTrigger>
-                                                          <SelectContent>
-                                                            {data.playlists.map((playlist: any) => (
-                                                              <SelectItem key={playlist.id} value={playlist.id.toString()}>
+                                                        <div className="space-y-3 mt-2">
+                                                          {data.playlists.map((playlist: any) => (
+                                                            <div key={playlist.id} className="flex items-center">
+                                                              <input
+                                                                type="radio"
+                                                                id={`playlist-${playlist.id}`}
+                                                                name="playlistSelection"
+                                                                value={playlist.id}
+                                                                className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                                                                onChange={() => {
+                                                                  console.log("Đã chọn playlist ID:", playlist.id);
+                                                                  setPlaylistForUpdate(playlist);
+                                                                  
+                                                                  // Hiển thị thông báo để xác nhận việc chọn
+                                                                  toast({
+                                                                    title: "Đã chọn playlist",
+                                                                    description: `Playlist ID: ${playlist.id} đã được chọn.`,
+                                                                  });
+                                                                }}
+                                                              />
+                                                              <label htmlFor={`playlist-${playlist.id}`} className="ml-2 block text-sm font-medium">
                                                                 Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
-                                                              </SelectItem>
-                                                            ))}
-                                                          </SelectContent>
-                                                        </Select>
+                                                              </label>
+                                                            </div>
+                                                          ))}
+                                                        </div>
                                                       </div>
                                                     </>
                                                   ),
@@ -899,39 +907,57 @@ export default function BroadcastAssignment() {
                                                 setPlaylistForUpdate(null);
                                                 
                                                 // Hiển thị dialog xác nhận
+                                                // Lưu danh sách playlist để sử dụng sau
+                                                const availablePlaylists = data.playlists;
+                                                
+                                                // Tạo các radio buttons thay vì dropdown
                                                 setShowConfirmDialog({
                                                   title: "Cập nhật danh sách phát",
                                                   description: (
                                                     <>
                                                       <p className="mb-4">Chọn danh sách phát mới cho chương trình <strong>{selectedProgram.name}</strong></p>
                                                       <div className="mb-4">
-                                                        <label className="block text-sm font-medium mb-2">
-                                                          Chọn danh sách phát:
-                                                        </label>
-                                                        <Select 
-                                                          value={playlistForUpdate?.id?.toString() || ""}
-                                                          onValueChange={(value) => {
-                                                            const playlist = data.playlists.find((p: any) => p.id.toString() === value);
-                                                            setPlaylistForUpdate(playlist || null);
-                                                          }}
-                                                        >
-                                                          <SelectTrigger>
-                                                            <SelectValue placeholder="Chọn danh sách phát" />
-                                                          </SelectTrigger>
-                                                          <SelectContent>
-                                                            {data.playlists.map((playlist: any) => (
-                                                              <SelectItem key={playlist.id} value={playlist.id.toString()}>
+                                                        <div className="space-y-3 mt-2">
+                                                          {data.playlists.map((playlist: any) => (
+                                                            <div key={playlist.id} className="flex items-center">
+                                                              <input
+                                                                type="radio"
+                                                                id={`playlist-by-program-${playlist.id}`}
+                                                                name="playlistSelectionByProgram"
+                                                                value={playlist.id}
+                                                                className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                                                                onChange={() => {
+                                                                  console.log("[By Program] Đã chọn playlist ID:", playlist.id);
+                                                                  setPlaylistForUpdate(playlist);
+                                                                  
+                                                                  // Hiển thị thông báo để xác nhận việc chọn
+                                                                  toast({
+                                                                    title: "Đã chọn playlist",
+                                                                    description: `Playlist ID: ${playlist.id} đã được chọn.`,
+                                                                  });
+                                                                }}
+                                                              />
+                                                              <label htmlFor={`playlist-by-program-${playlist.id}`} className="ml-2 block text-sm font-medium">
                                                                 Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
-                                                              </SelectItem>
-                                                            ))}
-                                                          </SelectContent>
-                                                        </Select>
+                                                              </label>
+                                                            </div>
+                                                          ))}
+                                                        </div>
                                                       </div>
                                                     </>
                                                   ),
                                                   confirmText: "Cập nhật",
                                                   onConfirm: () => {
-                                                    if (playlistForUpdate && assignmentToUpdate !== null) {
+                                                    if (!playlistForUpdate) {
+                                                      toast({
+                                                        title: "Hãy chọn danh sách phát",
+                                                        description: "Vui lòng chọn một danh sách phát trước khi cập nhật.",
+                                                        variant: "destructive"
+                                                      });
+                                                      return;
+                                                    }
+                                                    
+                                                    if (assignmentToUpdate !== null) {
                                                       updateAssignmentPlaylistMutation.mutate({
                                                         assignmentId: assignmentToUpdate,
                                                         playlistId: playlistForUpdate.id
