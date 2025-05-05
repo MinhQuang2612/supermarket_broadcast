@@ -288,13 +288,18 @@ export default function BroadcastAssignment() {
     setShowSelectSupermarketDialog(true);
   };
   
-  const formatFullAddress = (supermarket: Supermarket) => {
+  // Use the imported formatFullAddress utility instead of the local function
+  const getFullAddress = (supermarket: Supermarket) => {
     if (!supermarket) return '';
     
     const commune = communes.find(c => c.id === supermarket.communeId);
     const province = provinces.find(p => p.id === supermarket.provinceId);
     
-    return `${supermarket.address}${commune ? ', ' + commune.name : ''}${province ? ', ' + province.name : ''}`;
+    return formatFullAddress(
+      supermarket.address,
+      commune?.name,
+      province?.name
+    );
   };
 
   return (
@@ -356,7 +361,7 @@ export default function BroadcastAssignment() {
                                   <div>
                                     <div className="font-medium">{supermarket.name}</div>
                                     <div className="text-xs text-neutral-medium mt-1 line-clamp-1">
-                                      {formatFullAddress(supermarket)}
+                                      {getFullAddress(supermarket)}
                                     </div>
                                     {supermarket.currentProgram && (
                                       <Badge 
@@ -405,7 +410,7 @@ export default function BroadcastAssignment() {
                     <>
                       Chương trình phát tại {selectedSupermarket.name}
                       <span className="block text-sm font-normal text-neutral-medium mt-1">
-                        {formatFullAddress(selectedSupermarket)}
+                        {getFullAddress(selectedSupermarket)}
                       </span>
                     </>
                   ) : (
