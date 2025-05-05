@@ -46,7 +46,7 @@ import { format } from "date-fns";
 
 export default function PlaylistPreview() {
   const { toast } = useToast();
-  const [selectedProgram, setSelectedProgram] = useState<number | null>(null);
+  const [selectedProgram, setSelectedProgram] = useState<BroadcastProgram | null>(null);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<number | null>(null);
   const [currentAudioIndex, setCurrentAudioIndex] = useState<number>(-1);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -177,7 +177,32 @@ export default function PlaylistPreview() {
 
   // Handle program selection
   const handleProgramSelect = (programId: string) => {
-    setSelectedProgram(parseInt(programId));
+    console.log("Selected program ID:", programId);
+    const programIdNumber = parseInt(programId);
+    
+    if (isNaN(programIdNumber)) {
+      console.error("Invalid program ID:", programId);
+      toast({
+        title: "Lỗi chọn chương trình",
+        description: "ID chương trình không hợp lệ",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Find the program object from the list of programs
+    const program = programs.find(p => p.id === programIdNumber);
+    if (!program) {
+      console.error("Program not found with ID:", programIdNumber);
+      toast({
+        title: "Lỗi chọn chương trình",
+        description: "Không tìm thấy chương trình phát tương ứng",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setSelectedProgram(program); // Set the full program object
     setSelectedPlaylistId(null); // Reset selected playlist
     setCurrentAudioIndex(-1);
     setIsPlaying(false);
