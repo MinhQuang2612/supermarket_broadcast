@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import DataTable from "@/components/data-table";
+import { Pagination } from "@/components/pagination";
 import ConfirmDialog from "@/components/confirm-dialog";
 import { 
   Card, 
@@ -39,6 +40,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Store, 
   Radio, 
@@ -356,7 +358,7 @@ export default function BroadcastAssignment() {
                     </div>
                     
                     <div className="p-4 border-t">
-                      <DataTable.Pagination
+                      <Pagination
                         totalItems={supermarketTotal}
                         pageSize={supermarketLimit}
                         page={supermarketPage}
@@ -481,7 +483,7 @@ export default function BroadcastAssignment() {
                     
                     {assignments.length > 0 && (
                       <div className="p-4 border-t">
-                        <DataTable.Pagination
+                        <Pagination
                           totalItems={assignmentTotal}
                           pageSize={assignmentLimit}
                           page={assignmentPage}
@@ -555,7 +557,7 @@ export default function BroadcastAssignment() {
                     </div>
                     
                     <div className="p-4 border-t">
-                      <DataTable.Pagination
+                      <Pagination
                         totalItems={programTotal}
                         pageSize={programLimit}
                         page={programPage}
@@ -670,7 +672,7 @@ export default function BroadcastAssignment() {
                     
                     {programAssignments.length > 0 && (
                       <div className="p-4 border-t">
-                        <DataTable.Pagination
+                        <Pagination
                           totalItems={assignmentTotal}
                           pageSize={assignmentLimit}
                           page={assignmentPage}
