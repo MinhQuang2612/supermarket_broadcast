@@ -72,14 +72,24 @@ export function registerBroadcastAssignmentRoutes(app: Express) {
           const program = await storage.getBroadcastProgram(assignment.broadcastProgramId);
           const supermarket = await storage.getSupermarket(assignment.supermarketId);
           
+          // Lấy thông tin chi tiết về commune, province và region
+          const commune = supermarket?.communeId ? await storage.getCommune(supermarket.communeId) : null;
+          const province = supermarket?.provinceId ? await storage.getProvince(supermarket.provinceId) : null;
+          const region = supermarket?.regionId ? await storage.getRegion(supermarket.regionId) : null;
+          
+          const fullAddress = supermarket ? 
+            `${supermarket.address}${commune ? ', ' + commune.name : ''}${province ? ', ' + province.name : ''}` 
+            : 'Unknown Address';
+          
           return {
             ...assignment,
             programName: program?.name || 'Unknown Program',
             programDate: program?.date || new Date(),
             supermarketName: supermarket?.name || 'Unknown Supermarket',
-            supermarketAddress: supermarket ? 
-              `${supermarket.address}${supermarket.communeName ? ', ' + supermarket.communeName : ''}${supermarket.provinceName ? ', ' + supermarket.provinceName : ''}` 
-              : 'Unknown Address'
+            supermarketAddress: fullAddress,
+            communeName: commune?.name || '',
+            provinceName: province?.name || '',
+            regionName: region?.name || ''
           };
         })
       );
@@ -125,14 +135,24 @@ export function registerBroadcastAssignmentRoutes(app: Express) {
           const program = await storage.getBroadcastProgram(assignment.broadcastProgramId);
           const supermarket = await storage.getSupermarket(assignment.supermarketId);
           
+          // Lấy thông tin chi tiết về commune, province và region
+          const commune = supermarket?.communeId ? await storage.getCommune(supermarket.communeId) : null;
+          const province = supermarket?.provinceId ? await storage.getProvince(supermarket.provinceId) : null;
+          const region = supermarket?.regionId ? await storage.getRegion(supermarket.regionId) : null;
+          
+          const fullAddress = supermarket ? 
+            `${supermarket.address}${commune ? ', ' + commune.name : ''}${province ? ', ' + province.name : ''}` 
+            : 'Unknown Address';
+          
           return {
             ...assignment,
             programName: program?.name || 'Unknown Program',
             programDate: program?.date || new Date(),
             supermarketName: supermarket?.name || 'Unknown Supermarket',
-            supermarketAddress: supermarket ? 
-              `${supermarket.address}${supermarket.communeName ? ', ' + supermarket.communeName : ''}${supermarket.provinceName ? ', ' + supermarket.provinceName : ''}` 
-              : 'Unknown Address'
+            supermarketAddress: fullAddress,
+            communeName: commune?.name || '',
+            provinceName: province?.name || '',
+            regionName: region?.name || ''
           };
         })
       );
