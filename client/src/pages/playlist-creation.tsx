@@ -661,19 +661,31 @@ export default function PlaylistCreation() {
                             </div>
                           </SelectItem>
                           <SelectSeparator />
-                          {playlists.map((playlist, index) => {
+                          {playlists.map((playlist) => {
                             // Dùng ID thực từ database, không dùng index
-                            console.log(`Rendering playlist option: ID=${playlist.id}, index=${index}`);
+                            console.log(`Rendering playlist option: ID=${playlist.id}`);
                             return (
                               <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                                Danh sách phát #{index + 1} - {new Date(playlist.createdAt).toLocaleString()}
+                                Danh sách phát ID: {playlist.id} - {format(new Date(playlist.createdAt), "dd/MM/yyyy, h:mm:ss a")}
                               </SelectItem>
                             );
                           })}
                         </SelectContent>
                       </Select>
                       
-                      <div className="flex items-center space-x-2">
+                      <div className="mt-3 p-4 border rounded-md bg-background">
+                        {existingPlaylist ? (
+                          <div>
+                            Danh sách phát ID: {existingPlaylist.id} - {format(new Date(existingPlaylist.createdAt), "dd/MM/yyyy, h:mm:ss a")}
+                          </div>
+                        ) : (
+                          <div className="text-muted-foreground">
+                            {playlists.length > 0 ? "Chọn danh sách phát hoặc tạo mới" : "Tạo mới danh sách phát"}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 mt-2">
                         {existingPlaylist ? (
                           <Badge variant="outline" className="bg-success-light/20 text-success">
                             <CheckCircle className="h-3 w-3 mr-1" /> Đang chỉnh sửa playlist
