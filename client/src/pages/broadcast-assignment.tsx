@@ -292,9 +292,8 @@ export default function BroadcastAssignment() {
     
     const commune = communes.find(c => c.id === supermarket.communeId);
     const province = provinces.find(p => p.id === supermarket.provinceId);
-    const region = regions.find(r => r.id === supermarket.regionId);
     
-    return `${supermarket.address}${commune ? ', ' + commune.name : ''}${province ? ', ' + province.name : ''}${region ? ', ' + region.name : ''}`;
+    return `${supermarket.address}${commune ? ', ' + commune.name : ''}${province ? ', ' + province.name : ''}`;
   };
 
   return (
@@ -674,17 +673,15 @@ export default function BroadcastAssignment() {
                                   const supermarket = supermarkets.find(s => s.id === assignment.supermarketId);
                                   if (!supermarket) return 'Unknown Address';
                                   
-                                  // Find commune, province, region
+                                  // Find commune, province - no region display per user request
                                   const commune = communes.find(c => c.id === supermarket.communeId);
                                   const province = provinces.find(p => p.id === supermarket.provinceId);
-                                  const region = regions.find(r => r.id === supermarket.regionId);
                                   
                                   return (
                                     <div className="truncate">
                                       {supermarket.address}
                                       {commune && `, ${commune.name}`}
                                       {province && `, ${province.name}`}
-                                      {region && `, ${region.name}`}
                                     </div>
                                   );
                                 })()}
