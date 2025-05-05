@@ -1,0 +1,600 @@
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { 
+  BroadcastProgram, 
+  Supermarket as SupermarketBase, 
+  BroadcastAssignment as Assignment,
+  Playlist,
+  Region,
+  Province,
+  Commune
+} from "@shared/schema";
+
+// Mở rộng kiểu dữ liệu Supermarket để có thêm programCount
+interface Supermarket extends SupermarketBase {
+  programCount?: number;
+}
+
+// Mở rộng kiểu dữ liệu Assignment để có thêm các trường bổ sung
+interface EnrichedAssignment extends Assignment {
+  programName?: string;
+  programDate?: Date;
+  supermarketName?: string;
+  supermarketAddress?: string;
+}
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { formatFullAddress, formatDate } from "@/lib/format-utils";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import DashboardLayout from "@/components/layout/dashboard-layout";
+import DataTable from "@/components/data-table";
+import { Pagination } from "@/components/pagination";
+import ConfirmDialog from "@/components/confirm-dialog";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle,
+  CardDescription 
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  Store, 
+  Radio, 
+  Link, 
+  Check, 
+  X, 
+  AlertTriangle, 
+  Search,
+  Unlink,
+  Loader2,
+  Pencil
+} from "lucide-react";
+import { format } from "date-fns";
+// Define pagination metadata interface
+interface PaginationMetadata {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export default function BroadcastAssignment() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<"bySupermarket" | "byProgram">("bySupermarket");
+  
+  // Pagination
+  const [supermarketPage, setSupermarketPage] = useState(1);
+  const [supermarketLimit, setSupermarketLimit] = useState(10);
+  const [supermarketSearch, setSupermarketSearch] = useState("");
+  const [supermarketTotal, setSupermarketTotal] = useState(0);
+  
+  const [programPage, setProgramPage] = useState(1);
+  const [programLimit, setProgramLimit] = useState(10);
+  const [programTotal, setProgramTotal] = useState(0);
+  
+  const [assignmentPage, setAssignmentPage] = useState(1);
+  const [assignmentLimit, setAssignmentLimit] = useState(10);
+  const [assignmentTotal, setAssignmentTotal] = useState(0);
+  
+  // State for selected items
+  const [selectedSupermarket, setSelectedSupermarket] = useState<Supermarket | null>(null);
+  const [selectedProgram, setSelectedProgram] = useState<BroadcastProgram | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
+  
+  // State for dialogs
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [showConfirmDeleteDialog, setShowConfirmDeleteDialog] = useState(false);
+  const [showSelectSupermarketDialog, setShowSelectSupermarketDialog] = useState(false);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<EnrichedAssignment | null>(null);
+  const [assignmentToUpdate, setAssignmentToUpdate] = useState<number | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState<{
+    title: string;
+    description: React.ReactNode;
+    confirmText: string;
+    onConfirm: () => void;
+  } | null>(null);
+  
+  // Fetch supermarkets with pagination
+  const {
+    data: supermarketData,
+    isLoading: loadingSupermarkets,
+  } = useQuery<{ supermarkets: Supermarket[], pagination: PaginationMetadata }>({
+    queryKey: ['/api/supermarkets', supermarketPage, supermarketLimit, supermarketSearch],
+    queryFn: () => 
+      fetch(`/api/supermarkets?page=${supermarketPage}&limit=${supermarketLimit}&search=${supermarketSearch}`)
+        .then(res => res.json()),
+  });
+  
+  // Extract supermarkets and update total
+  const supermarkets = supermarketData?.supermarkets || [];
+  useEffect(() => {
+    if (supermarketData?.pagination) {
+      setSupermarketTotal(supermarketData.pagination.total);
+    }
+  }, [supermarketData]);
+  
+  // Fetch programs with pagination
+  const {
+    data: programData,
+    isLoading: loadingPrograms,
+  } = useQuery<{ programs: BroadcastProgram[], pagination: PaginationMetadata }>({
+    queryKey: ['/api/broadcast-programs', programPage, programLimit],
+    queryFn: () => 
+      fetch(`/api/broadcast-programs?page=${programPage}&limit=${programLimit}`)
+        .then(res => res.json()),
+  });
+  
+  // Extract programs and update total
+  const programs = programData?.programs || [];
+  useEffect(() => {
+    if (programData?.pagination) {
+      setProgramTotal(programData.pagination.total);
+    }
+  }, [programData]);
+  
+  // Fetch regions
+  const { data: regionsData } = useQuery<Region[]>({
+    queryKey: ['/api/regions']
+  });
+  
+  const regions = regionsData || [];
+  
+  // Fetch all provinces (for display in table)
+  const { data: provincesData = [] } = useQuery<Province[]>({
+    queryKey: ['/api/provinces'],
+  });
+  
+  const provinces = provincesData || [];
+  
+  // Fetch all communes (for display in table)
+  const { data: communesData = [] } = useQuery<Commune[]>({
+    queryKey: ['/api/communes'],
+  });
+  
+  const communes = communesData || [];
+  
+  // Fetch assignments for selected supermarket
+  const {
+    data: assignmentData,
+    isLoading: loadingAssignments,
+    refetch: refetchAssignments,
+  } = useQuery<{ assignments: EnrichedAssignment[], pagination: PaginationMetadata }>({
+    queryKey: [
+      '/api/broadcast-assignments/by-supermarket', 
+      selectedSupermarket?.id, 
+      assignmentPage, 
+      assignmentLimit
+    ],
+    queryFn: () => 
+      selectedSupermarket 
+        ? fetch(`/api/broadcast-assignments/by-supermarket/${selectedSupermarket.id}?page=${assignmentPage}&limit=${assignmentLimit}`)
+            .then(res => res.json())
+        : Promise.resolve({ assignments: [], pagination: { total: 0, page: 1, limit: 10, totalPages: 0 } }),
+    enabled: !!selectedSupermarket,
+  });
+  
+  // Extract assignments and update total
+  const assignments = assignmentData?.assignments || [];
+  useEffect(() => {
+    if (assignmentData?.pagination) {
+      setAssignmentTotal(assignmentData.pagination.total);
+    }
+  }, [assignmentData]);
+  
+  // Fetch assignments for selected program
+  const {
+    data: programAssignmentsData,
+    isLoading: loadingProgramAssignments,
+    refetch: refetchProgramAssignments,
+  } = useQuery<{ assignments: EnrichedAssignment[], pagination: PaginationMetadata }>({
+    queryKey: [
+      '/api/broadcast-assignments/by-program', 
+      selectedProgram?.id,
+      assignmentPage,
+      assignmentLimit
+    ],
+    queryFn: () => 
+      selectedProgram 
+        ? fetch(`/api/broadcast-assignments/by-program/${selectedProgram.id}?page=${assignmentPage}&limit=${assignmentLimit}`)
+            .then(res => res.json())
+        : Promise.resolve({ assignments: [], pagination: { total: 0, page: 1, limit: 10, totalPages: 0 } }),
+    enabled: !!selectedProgram,
+  });
+  
+  // Extract program assignments
+  const programAssignments = programAssignmentsData?.assignments || [];
+  
+  // Fetch playlists for the selected program
+  const {
+    data: playlistsData,
+    isLoading: loadingPlaylists,
+  } = useQuery<{ playlists: Playlist[] }>({
+    queryKey: ['/api/broadcast-programs', selectedProgram?.id, 'playlists'],
+    queryFn: () => 
+      selectedProgram 
+        ? fetch(`/api/broadcast-programs/${selectedProgram.id}/playlists`)
+            .then(res => res.json())
+        : Promise.resolve({ playlists: [] }),
+    enabled: !!selectedProgram,
+  });
+  
+  const playlists = playlistsData?.playlists || [];
+  
+  // Create assignment mutation
+  const createAssignmentMutation = useMutation({
+    mutationFn: (data: { 
+      supermarketId: number; 
+      broadcastProgramId: number;
+      playlistId?: number;
+    }) => {
+      // Kiểm tra nếu chương trình đã được gán cho siêu thị này
+      if (selectedSupermarket && assignments) {
+        // Tìm xem đã tồn tại gán với cùng broadcastProgramId chưa
+        const existingAssignment = assignments.find(
+          assignment => assignment.broadcastProgramId === data.broadcastProgramId
+        );
+        
+        if (existingAssignment) {
+          throw new Error("Chương trình này đã được gán cho siêu thị. Vui lòng chọn chương trình khác.");
+        }
+      }
+      
+      return apiRequest('POST', '/api/broadcast-assignments', data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Gán chương trình thành công",
+        description: "Chương trình phát sóng đã được gán cho siêu thị.",
+      });
+      setShowAssignDialog(false);
+      setSelectedSupermarket(null);
+      setSelectedProgram(null);
+      setSelectedPlaylist(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-assignments/by-supermarket'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-assignments/by-program'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/supermarkets'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Lỗi khi gán chương trình",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Update assignment playlist mutation
+  const updateAssignmentPlaylistMutation = useMutation({
+    mutationFn: (data: { 
+      assignmentId: number;
+      playlistId: number;
+    }) => {
+      return apiRequest('PATCH', `/api/broadcast-assignments/${data.assignmentId}`, {
+        playlistId: data.playlistId
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Cập nhật thành công",
+        description: "Danh sách phát đã được cập nhật thành công.",
+      });
+      setShowAssignDialog(false);
+      setShowConfirmDialog(null);
+      setSelectedSupermarket(null);
+      setSelectedProgram(null);
+      setSelectedPlaylist(null);
+      setAssignmentToUpdate(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-assignments/by-supermarket'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-assignments/by-program'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Lỗi khi cập nhật danh sách phát",
+        description: error.message,
+        variant: "destructive",
+      });
+      setShowConfirmDialog(null);
+      setAssignmentToUpdate(null);
+    }
+  });
+  
+  // Delete assignment mutation
+  const deleteAssignmentMutation = useMutation({
+    mutationFn: (assignmentId: number) => {
+      return apiRequest('DELETE', `/api/broadcast-assignments/${assignmentId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Hủy gán chương trình thành công",
+        description: "Chương trình phát sóng đã được hủy khỏi siêu thị.",
+      });
+      setShowConfirmDeleteDialog(false);
+      setAssignmentToDelete(null);
+      refetchAssignments();
+      refetchProgramAssignments();
+      queryClient.invalidateQueries({ queryKey: ['/api/supermarkets'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Lỗi khi hủy gán chương trình",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const handleSelectSupermarket = (supermarket: Supermarket) => {
+    setSelectedSupermarket(supermarket);
+    setAssignmentPage(1);
+  };
+  
+  const handleSelectProgram = (program: BroadcastProgram) => {
+    setSelectedProgram(program);
+    setSelectedPlaylist(null);
+    setAssignmentPage(1);
+    setShowSelectSupermarketDialog(true);
+  };
+  
+  // Use the imported formatFullAddress utility instead of the local function
+  const getFullAddress = (supermarket: Supermarket) => {
+    if (!supermarket) return '';
+    
+    const commune = communes.find(c => c.id === supermarket.communeId);
+    const province = provinces.find(p => p.id === supermarket.provinceId);
+    
+    return formatFullAddress(
+      supermarket.address,
+      commune?.name,
+      province?.name
+    );
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Phân bổ chương trình phát</h1>
+      </div>
+      <p className="text-neutral-medium mb-4">Gán chương trình phát cho các siêu thị</p>
+      
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "bySupermarket" | "byProgram")}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="bySupermarket">Theo siêu thị</TabsTrigger>
+          <TabsTrigger value="byProgram">Theo chương trình</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="bySupermarket">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Supermarket List */}
+            <Card className="col-span-1">
+              <CardHeader className="px-4 py-3">
+                <CardTitle className="text-lg">Danh sách siêu thị</CardTitle>
+                <CardDescription>Chọn siêu thị để xem các chương trình đã gán</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="p-4 border-b">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-neutral-medium" />
+                    <Input
+                      placeholder="Tìm siêu thị..."
+                      className="pl-8"
+                      value={supermarketSearch}
+                      onChange={(e) => {
+                        setSupermarketSearch(e.target.value);
+                        setSupermarketPage(1);
+                      }}
+                    />
+                  </div>
+                </div>
+                
+                {loadingSupermarkets ? (
+                  <div className="p-8 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-neutral-medium" />
+                    <p className="text-neutral-medium">Đang tải danh sách siêu thị...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="max-h-[500px] overflow-auto">
+                      <Table>
+                        <TableBody>
+                          {supermarkets.map((supermarket) => (
+                            <TableRow 
+                              key={supermarket.id}
+                              className={`cursor-pointer ${selectedSupermarket?.id === supermarket.id ? 'bg-neutral-lightest' : ''}`}
+                              onClick={() => handleSelectSupermarket(supermarket)}
+                            >
+                              <TableCell className="py-3">
+                                <div className="flex items-start">
+                                  <Store className={`h-5 w-5 mr-2 mt-0.5 ${supermarket.status === 'active' ? 'text-green-500' : 'text-yellow-500'}`} />
+                                  <div>
+                                    <div className="font-medium">{supermarket.name}</div>
+                                    <div className="text-xs text-neutral-medium mt-1 line-clamp-1">
+                                      {getFullAddress(supermarket)}
+                                    </div>
+                                    {supermarket.programCount ? (
+                                      <Badge 
+                                        variant="outline" 
+                                        className="mt-1 bg-blue-50 text-blue-700 border-blue-200"
+                                      >
+                                        Đã có {supermarket.programCount} chương trình
+                                      </Badge>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          
+                          {supermarkets.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={3} className="h-24 text-center">
+                                Không có siêu thị nào.
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    
+                    <div className="p-4 border-t">
+                      <Pagination
+                        totalItems={supermarketTotal}
+                        pageSize={supermarketLimit}
+                        page={supermarketPage}
+                        onPageChange={setSupermarketPage}
+                        onPageSizeChange={setSupermarketLimit}
+                      />
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Program Assignment List */}
+            <Card className="col-span-1 lg:col-span-2">
+              <CardHeader className="px-4 py-3">
+                <CardTitle className="text-lg">
+                  {selectedSupermarket ? (
+                    <>
+                      Chương trình phát tại {selectedSupermarket.name}
+                      <span className="block text-sm font-normal text-neutral-medium mt-1">
+                        {getFullAddress(selectedSupermarket)}
+                      </span>
+                    </>
+                  ) : (
+                    "Chương trình phát sóng đã gán"
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {!selectedSupermarket ? (
+                  <div className="p-8 text-center">
+                    <Store className="h-12 w-12 mx-auto mb-3 text-neutral-medium" />
+                    <p className="text-lg font-medium">Chưa chọn siêu thị</p>
+                    <p className="text-neutral-medium">Vui lòng chọn một siêu thị từ danh sách bên trái</p>
+                  </div>
+                ) : loadingAssignments ? (
+                  <div className="p-8 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-neutral-medium" />
+                    <p className="text-neutral-medium">Đang tải dữ liệu...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-4 border-b flex items-center justify-between">
+                      <h3 className="font-medium">Danh sách chương trình đã gán</h3>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          if (programs.length > 0) {
+                            setSelectedProgram(programs[0]);
+                            setSelectedPlaylist(null);
+                            setShowAssignDialog(true);
+                          } else {
+                            toast({
+                              title: "Không có chương trình nào",
+                              description: "Không có chương trình nào để gán cho siêu thị này.",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                      >
+                        Gán chương trình mới
+                      </Button>
+                    </div>
+                    
+                    <div className="max-h-[500px] overflow-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Tên chương trình</TableHead>
+                            <TableHead>Ngày phát</TableHead>
+                            <TableHead>Danh sách phát</TableHead>
+                            <TableHead></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {assignments.map((assignment) => (
+                            <TableRow key={assignment.id}>
+                              <TableCell>
+                                <div className="font-medium">
+                                  {(() => {
+                                    // Tìm chương trình phát từ danh sách đã fetched
+                                    const program = programs.find(p => p.id === assignment.broadcastProgramId);
+                                    return program ? program.name : 'Unknown Program';
+                                  })()}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {(() => {
+                                  // Tìm chương trình phát từ danh sách đã fetched
+                                  const program = programs.find(p => p.id === assignment.broadcastProgramId);
+                                  return program ? format(new Date(program.date), "dd/MM/yyyy") : 'Unknown Date';
+                                })()}
+                              </TableCell>
+                              <TableCell>
+                                {assignment.playlistId ? (
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                    Có (ID: {assignment.playlistId})
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">
+                                    Không có
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Cập nhật danh sách phát"
+                                    onClick={() => {
+                                      // Lấy chương trình hiện tại
+                                      const program = programs.find(p => p.id === assignment.broadcastProgramId);
+                                      if (program) {
+                                        setSelectedProgram(program);
+                                        // Lưu trữ assignment ID để cập nhật sau này
+                                        setAssignmentToUpdate(assignment.id);
+                                        
+                                        // Lấy danh sách playlist của chương trình này
+                                        fetch(`/api/broadcast-programs/${program.id}/playlists`)
+                                          .then(res => res.json())
+                                          .then(data => {
+                                            // Chọn playlist đầu tiên (nếu có)
+                                            if (data.playlists && data.playlists.length > 0) {
+                                              const currentPlaylist = assignment.playlistId 
+                                                ? data.playlists.find(p => p.id === assignment.playlistId)
+                                                : null;
+                                                
+                                              setSelectedPlaylist(currentPlaylist || data.playlists[0]);
+                                              
+                                              // Hiển thị dialog xác nhận
+                                              setShowConfirmDialog({
+                                                title: "Cập nhật danh sách phát",
+                                                description: (
+                                                  <>
+                                                    <p className="mb-4">Chọn danh sách phát mới cho chương trình <strong>{program.name}</strong></p>
+                                                    <div className="mb-4">
+                                                      <label className="block text-sm font-medium mb-2">
+                                                        Chọn danh sách phát:
+                                                      </label>

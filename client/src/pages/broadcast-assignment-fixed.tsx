@@ -2,16 +2,33 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   BroadcastProgram, 
-  Supermarket, 
+  Supermarket as SupermarketBase, 
   BroadcastAssignment as Assignment,
   Playlist,
-  Region
+  Region,
+  Province,
+  Commune
 } from "@shared/schema";
+
+// Mở rộng kiểu dữ liệu Supermarket để có thêm programCount
+interface Supermarket extends SupermarketBase {
+  programCount?: number;
+}
+
+// Mở rộng kiểu dữ liệu Assignment để có thêm các trường bổ sung
+interface EnrichedAssignment extends Assignment {
+  programName?: string;
+  programDate?: Date;
+  supermarketName?: string;
+  supermarketAddress?: string;
+}
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { formatFullAddress, formatDate } from "@/lib/format-utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import DataTable from "@/components/data-table";
+import { Pagination } from "@/components/pagination";
 import ConfirmDialog from "@/components/confirm-dialog";
 import { 
   Card, 
@@ -39,6 +56,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Store, 
   Radio, 
@@ -48,10 +66,17 @@ import {
   AlertTriangle, 
   Search,
   Unlink,
-  Loader2
+  Loader2,
+  Pencil
 } from "lucide-react";
 import { format } from "date-fns";
-import { PaginationMetadata } from "@/types/pagination";
+// Define pagination metadata interface
+interface PaginationMetadata {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 export default function BroadcastAssignment() {
   const { user } = useAuth();
@@ -81,7 +106,14 @@ export default function BroadcastAssignment() {
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showConfirmDeleteDialog, setShowConfirmDeleteDialog] = useState(false);
   const [showSelectSupermarketDialog, setShowSelectSupermarketDialog] = useState(false);
-  const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<EnrichedAssignment | null>(null);
+  const [assignmentToUpdate, setAssignmentToUpdate] = useState<number | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState<{
+    title: string;
+    description: React.ReactNode;
+    confirmText: string;
+    onConfirm: () => void;
+  } | null>(null);
   
   // Fetch supermarkets with pagination
   const {
@@ -122,19 +154,32 @@ export default function BroadcastAssignment() {
   }, [programData]);
   
   // Fetch regions
-  const { data: regionsData } = useQuery<{ regions: Region[] }>({
-    queryKey: ['/api/regions'],
-    queryFn: () => fetch('/api/regions').then(res => res.json()),
+  const { data: regionsData } = useQuery<Region[]>({
+    queryKey: ['/api/regions']
   });
   
-  const regions = regionsData?.regions || [];
+  const regions = regionsData || [];
+  
+  // Fetch all provinces (for display in table)
+  const { data: provincesData = [] } = useQuery<Province[]>({
+    queryKey: ['/api/provinces'],
+  });
+  
+  const provinces = provincesData || [];
+  
+  // Fetch all communes (for display in table)
+  const { data: communesData = [] } = useQuery<Commune[]>({
+    queryKey: ['/api/communes'],
+  });
+  
+  const communes = communesData || [];
   
   // Fetch assignments for selected supermarket
   const {
     data: assignmentData,
     isLoading: loadingAssignments,
     refetch: refetchAssignments,
-  } = useQuery<{ assignments: Assignment[], pagination: PaginationMetadata }>({
+  } = useQuery<{ assignments: EnrichedAssignment[], pagination: PaginationMetadata }>({
     queryKey: [
       '/api/broadcast-assignments/by-supermarket', 
       selectedSupermarket?.id, 
@@ -162,7 +207,7 @@ export default function BroadcastAssignment() {
     data: programAssignmentsData,
     isLoading: loadingProgramAssignments,
     refetch: refetchProgramAssignments,
-  } = useQuery<{ assignments: Assignment[], pagination: PaginationMetadata }>({
+  } = useQuery<{ assignments: EnrichedAssignment[], pagination: PaginationMetadata }>({
     queryKey: [
       '/api/broadcast-assignments/by-program', 
       selectedProgram?.id,
@@ -203,6 +248,18 @@ export default function BroadcastAssignment() {
       broadcastProgramId: number;
       playlistId?: number;
     }) => {
+      // Kiểm tra nếu chương trình đã được gán cho siêu thị này
+      if (selectedSupermarket && assignments) {
+        // Tìm xem đã tồn tại gán với cùng broadcastProgramId chưa
+        const existingAssignment = assignments.find(
+          assignment => assignment.broadcastProgramId === data.broadcastProgramId
+        );
+        
+        if (existingAssignment) {
+          throw new Error("Chương trình này đã được gán cho siêu thị. Vui lòng chọn chương trình khác.");
+        }
+      }
+      
       return apiRequest('POST', '/api/broadcast-assignments', data);
     },
     onSuccess: () => {
@@ -224,6 +281,41 @@ export default function BroadcastAssignment() {
         description: error.message,
         variant: "destructive",
       });
+    }
+  });
+  
+  // Update assignment playlist mutation
+  const updateAssignmentPlaylistMutation = useMutation({
+    mutationFn: (data: { 
+      assignmentId: number;
+      playlistId: number;
+    }) => {
+      return apiRequest('PATCH', `/api/broadcast-assignments/${data.assignmentId}`, {
+        playlistId: data.playlistId
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Cập nhật thành công",
+        description: "Danh sách phát đã được cập nhật thành công.",
+      });
+      setShowAssignDialog(false);
+      setShowConfirmDialog(null);
+      setSelectedSupermarket(null);
+      setSelectedProgram(null);
+      setSelectedPlaylist(null);
+      setAssignmentToUpdate(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-assignments/by-supermarket'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-assignments/by-program'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Lỗi khi cập nhật danh sách phát",
+        description: error.message,
+        variant: "destructive",
+      });
+      setShowConfirmDialog(null);
+      setAssignmentToUpdate(null);
     }
   });
   
@@ -264,9 +356,18 @@ export default function BroadcastAssignment() {
     setShowSelectSupermarketDialog(true);
   };
   
-  const formatFullAddress = (supermarket: Supermarket) => {
-    const region = regions.find(r => r.id === supermarket.regionId);
-    return `${supermarket.address}, ${supermarket.communeName}, ${supermarket.provinceName}, ${region?.name || ''}`;
+  // Use the imported formatFullAddress utility instead of the local function
+  const getFullAddress = (supermarket: Supermarket) => {
+    if (!supermarket) return '';
+    
+    const commune = communes.find(c => c.id === supermarket.communeId);
+    const province = provinces.find(p => p.id === supermarket.provinceId);
+    
+    return formatFullAddress(
+      supermarket.address,
+      commune?.name,
+      province?.name
+    );
   };
 
   return (
@@ -328,16 +429,16 @@ export default function BroadcastAssignment() {
                                   <div>
                                     <div className="font-medium">{supermarket.name}</div>
                                     <div className="text-xs text-neutral-medium mt-1 line-clamp-1">
-                                      {formatFullAddress(supermarket)}
+                                      {getFullAddress(supermarket)}
                                     </div>
-                                    {supermarket.currentProgram && (
+                                    {supermarket.programCount ? (
                                       <Badge 
                                         variant="outline" 
                                         className="mt-1 bg-blue-50 text-blue-700 border-blue-200"
                                       >
-                                        {supermarket.currentProgram}
+                                        Đã có {supermarket.programCount} chương trình
                                       </Badge>
-                                    )}
+                                    ) : null}
                                   </div>
                                 </div>
                               </TableCell>
@@ -356,7 +457,7 @@ export default function BroadcastAssignment() {
                     </div>
                     
                     <div className="p-4 border-t">
-                      <DataTable.Pagination
+                      <Pagination
                         totalItems={supermarketTotal}
                         pageSize={supermarketLimit}
                         page={supermarketPage}
@@ -377,7 +478,7 @@ export default function BroadcastAssignment() {
                     <>
                       Chương trình phát tại {selectedSupermarket.name}
                       <span className="block text-sm font-normal text-neutral-medium mt-1">
-                        {formatFullAddress(selectedSupermarket)}
+                        {getFullAddress(selectedSupermarket)}
                       </span>
                     </>
                   ) : (
@@ -436,11 +537,19 @@ export default function BroadcastAssignment() {
                             <TableRow key={assignment.id}>
                               <TableCell>
                                 <div className="font-medium">
-                                  {assignment.programName}
+                                  {(() => {
+                                    // Tìm chương trình phát từ danh sách đã fetched
+                                    const program = programs.find(p => p.id === assignment.broadcastProgramId);
+                                    return program ? program.name : 'Unknown Program';
+                                  })()}
                                 </div>
                               </TableCell>
                               <TableCell>
-                                {format(new Date(assignment.programDate), "dd/MM/yyyy")}
+                                {(() => {
+                                  // Tìm chương trình phát từ danh sách đã fetched
+                                  const program = programs.find(p => p.id === assignment.broadcastProgramId);
+                                  return program ? format(new Date(program.date), "dd/MM/yyyy") : 'Unknown Date';
+                                })()}
                               </TableCell>
                               <TableCell>
                                 {assignment.playlistId ? (
@@ -454,16 +563,105 @@ export default function BroadcastAssignment() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setAssignmentToDelete(assignment);
-                                    setShowConfirmDeleteDialog(true);
-                                  }}
-                                >
-                                  <Unlink className="h-4 w-4 text-red-500" />
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Cập nhật danh sách phát"
+                                    onClick={() => {
+                                      // Lấy chương trình hiện tại
+                                      const program = programs.find(p => p.id === assignment.broadcastProgramId);
+                                      if (program) {
+                                        setSelectedProgram(program);
+                                        // Lưu trữ assignment ID để cập nhật sau này
+                                        setAssignmentToUpdate(assignment.id);
+                                        
+                                        // Lấy danh sách playlist của chương trình này
+                                        fetch(`/api/broadcast-programs/${program.id}/playlists`)
+                                          .then(res => res.json())
+                                          .then(data => {
+                                            // Chọn playlist đầu tiên (nếu có)
+                                            if (data.playlists && data.playlists.length > 0) {
+                                              const currentPlaylist = assignment.playlistId 
+                                                ? data.playlists.find(p => p.id === assignment.playlistId)
+                                                : null;
+                                                
+                                              setSelectedPlaylist(currentPlaylist || data.playlists[0]);
+                                              
+                                              // Hiển thị dialog xác nhận
+                                              setShowConfirmDialog({
+                                                title: "Cập nhật danh sách phát",
+                                                description: (
+                                                  <>
+                                                    <p className="mb-4">Chọn danh sách phát mới cho chương trình <strong>{program.name}</strong></p>
+                                                    <div className="mb-4">
+                                                      <label className="block text-sm font-medium mb-2">
+                                                        Chọn danh sách phát:
+                                                      </label>
+                                                      <Select 
+                                                        value={selectedPlaylist?.id?.toString() || currentPlaylist?.id?.toString() || data.playlists[0].id.toString()}
+                                                        onValueChange={(value) => {
+                                                          const playlist = data.playlists.find(p => p.id.toString() === value);
+                                                          setSelectedPlaylist(playlist || null);
+                                                        }}
+                                                      >
+                                                        <SelectTrigger>
+                                                          <SelectValue placeholder="Chọn danh sách phát" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                          {data.playlists.map((playlist) => (
+                                                            <SelectItem key={playlist.id} value={playlist.id.toString()}>
+                                                              Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
+                                                            </SelectItem>
+                                                          ))}
+                                                        </SelectContent>
+                                                      </Select>
+                                                    </div>
+                                                  </>
+                                                ),
+                                                confirmText: "Cập nhật",
+                                                onConfirm: () => {
+                                                  if (!selectedPlaylist) {
+                                                    toast({
+                                                      title: "Hãy chọn danh sách phát",
+                                                      description: "Vui lòng chọn một danh sách phát trước khi cập nhật.",
+                                                      variant: "destructive"
+                                                    });
+                                                    return;
+                                                  }
+                                                  
+                                                  if (assignmentToUpdate !== null) {
+                                                    updateAssignmentPlaylistMutation.mutate({
+                                                      assignmentId: assignmentToUpdate,
+                                                      playlistId: selectedPlaylist.id
+                                                    });
+                                                  }
+                                              });
+                                            } else {
+                                              toast({
+                                                title: "Không có playlist",
+                                                description: "Chương trình này chưa có playlist nào. Vui lòng tạo playlist trước.",
+                                                variant: "destructive"
+                                              });
+                                            }
+                                          });
+                                      }
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4 text-blue-500" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Hủy gán chương trình"
+                                    onClick={() => {
+                                      setAssignmentToDelete(assignment);
+                                      setShowConfirmDeleteDialog(true);
+                                    }}
+                                  >
+                                    <Unlink className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -481,7 +679,7 @@ export default function BroadcastAssignment() {
                     
                     {assignments.length > 0 && (
                       <div className="p-4 border-t">
-                        <DataTable.Pagination
+                        <Pagination
                           totalItems={assignmentTotal}
                           pageSize={assignmentLimit}
                           page={assignmentPage}
@@ -555,7 +753,7 @@ export default function BroadcastAssignment() {
                     </div>
                     
                     <div className="p-4 border-t">
-                      <DataTable.Pagination
+                      <Pagination
                         totalItems={programTotal}
                         pageSize={programLimit}
                         page={programPage}
@@ -625,11 +823,31 @@ export default function BroadcastAssignment() {
                             <TableRow key={assignment.id}>
                               <TableCell>
                                 <div className="font-medium">
-                                  {assignment.supermarketName}
+                                  {(() => {
+                                    // Tìm siêu thị từ danh sách đã fetched
+                                    const supermarket = supermarkets.find(s => s.id === assignment.supermarketId);
+                                    return supermarket ? supermarket.name : 'Unknown Supermarket';
+                                  })()}
                                 </div>
                               </TableCell>
-                              <TableCell className="max-w-[250px] truncate">
-                                {assignment.supermarketAddress}
+                              <TableCell className="max-w-[250px]">
+                                {(() => {
+                                  // Find supermarket from fetched list
+                                  const supermarket = supermarkets.find(s => s.id === assignment.supermarketId);
+                                  if (!supermarket) return 'Unknown Address';
+                                  
+                                  // Find commune, province - no region display per user request
+                                  const commune = communes.find(c => c.id === supermarket.communeId);
+                                  const province = provinces.find(p => p.id === supermarket.provinceId);
+                                  
+                                  return (
+                                    <div className="truncate">
+                                      {supermarket.address}
+                                      {commune && `, ${commune.name}`}
+                                      {province && `, ${province.name}`}
+                                    </div>
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell>
                                 {assignment.playlistId ? (
@@ -643,16 +861,94 @@ export default function BroadcastAssignment() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setAssignmentToDelete(assignment);
-                                    setShowConfirmDeleteDialog(true);
-                                  }}
-                                >
-                                  <Unlink className="h-4 w-4 text-red-500" />
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Cập nhật danh sách phát"
+                                    onClick={() => {
+                                      if (selectedProgram) {
+                                        // Lưu trữ assignment ID để cập nhật sau này
+                                        setAssignmentToUpdate(assignment.id);
+                                        
+                                        // Lấy danh sách playlist của chương trình này
+                                        fetch(`/api/broadcast-programs/${selectedProgram.id}/playlists`)
+                                          .then(res => res.json())
+                                          .then(data => {
+                                            // Chọn playlist đầu tiên (nếu có)
+                                            if (data.playlists && data.playlists.length > 0) {
+                                              const currentPlaylist = assignment.playlistId 
+                                                ? data.playlists.find(p => p.id === assignment.playlistId)
+                                                : null;
+                                                
+                                              setSelectedPlaylist(currentPlaylist || data.playlists[0]);
+                                              
+                                              // Hiển thị dialog xác nhận
+                                              setShowConfirmDialog({
+                                                title: "Cập nhật danh sách phát",
+                                                description: (
+                                                  <>
+                                                    <p className="mb-4">Chọn danh sách phát mới cho chương trình <strong>{selectedProgram.name}</strong></p>
+                                                    <div className="mb-4">
+                                                      <label className="block text-sm font-medium mb-2">
+                                                        Chọn danh sách phát:
+                                                      </label>
+                                                      <Select 
+                                                        value={selectedPlaylist?.id?.toString() || currentPlaylist?.id?.toString() || data.playlists[0].id.toString()}
+                                                        onValueChange={(value) => {
+                                                          const playlist = data.playlists.find(p => p.id.toString() === value);
+                                                          setSelectedPlaylist(playlist || null);
+                                                        }}
+                                                      >
+                                                        <SelectTrigger>
+                                                          <SelectValue placeholder="Chọn danh sách phát" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                          {data.playlists.map((playlist) => (
+                                                            <SelectItem key={playlist.id} value={playlist.id.toString()}>
+                                                              Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
+                                                            </SelectItem>
+                                                          ))}
+                                                        </SelectContent>
+                                                      </Select>
+                                                    </div>
+                                                  </>
+                                                ),
+                                                confirmText: "Cập nhật",
+                                                onConfirm: () => {
+                                                  if (selectedPlaylist && assignmentToUpdate !== null) {
+                                                    updateAssignmentPlaylistMutation.mutate({
+                                                      assignmentId: assignmentToUpdate,
+                                                      playlistId: selectedPlaylist.id
+                                                    });
+                                                  }
+                                                }
+                                              });
+                                            } else {
+                                              toast({
+                                                title: "Không có playlist",
+                                                description: "Chương trình này chưa có playlist nào. Vui lòng tạo playlist trước.",
+                                                variant: "destructive"
+                                              });
+                                            }
+                                          });
+                                      }
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4 text-blue-500" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Hủy gán chương trình"
+                                    onClick={() => {
+                                      setAssignmentToDelete(assignment);
+                                      setShowConfirmDeleteDialog(true);
+                                    }}
+                                  >
+                                    <Unlink className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -670,7 +966,7 @@ export default function BroadcastAssignment() {
                     
                     {programAssignments.length > 0 && (
                       <div className="p-4 border-t">
-                        <DataTable.Pagination
+                        <Pagination
                           totalItems={assignmentTotal}
                           pageSize={assignmentLimit}
                           page={assignmentPage}
@@ -746,9 +1042,9 @@ export default function BroadcastAssignment() {
                       <SelectValue placeholder="Chọn danh sách phát" />
                     </SelectTrigger>
                     <SelectContent>
-                      {playlists.map((playlist, index) => (
+                      {playlists.map((playlist) => (
                         <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                          Danh sách phát #{index + 1} - {new Date(playlist.createdAt).toLocaleString()}
+                          Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -868,9 +1164,9 @@ export default function BroadcastAssignment() {
                       <SelectValue placeholder="Chọn danh sách phát" />
                     </SelectTrigger>
                     <SelectContent>
-                      {playlists.map((playlist, index) => (
+                      {playlists.map((playlist) => (
                         <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                          Danh sách phát #{index + 1} - {new Date(playlist.createdAt).toLocaleString()}
+                          Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -968,6 +1264,20 @@ export default function BroadcastAssignment() {
           setShowSelectSupermarketDialog(false);
         }}
       />
+      
+      {/* Playlist Update Confirmation Dialog */}
+      {showConfirmDialog && (
+        <ConfirmDialog
+          open={!!showConfirmDialog}
+          onOpenChange={(open) => {
+            if (!open) setShowConfirmDialog(null);
+          }}
+          title={showConfirmDialog.title}
+          description={showConfirmDialog.description}
+          confirmText={showConfirmDialog.confirmText}
+          onConfirm={showConfirmDialog.onConfirm}
+        />
+      )}
     </DashboardLayout>
   );
 }

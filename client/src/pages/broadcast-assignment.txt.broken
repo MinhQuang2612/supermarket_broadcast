@@ -582,11 +582,8 @@ export default function BroadcastAssignment() {
                                           .then(data => {
                                             // Chọn playlist đầu tiên (nếu có)
                                             if (data.playlists && data.playlists.length > 0) {
-                                              const currentPlaylist = assignment.playlistId 
-                                                ? data.playlists.find(p => p.id === assignment.playlistId)
-                                                : null;
-                                                
-                                              setSelectedPlaylist(currentPlaylist || data.playlists[0]);
+                                              // Không tự động chọn playlist, để người dùng phải chọn lại
+                                              setSelectedPlaylist(null);
                                               
                                               // Hiển thị dialog xác nhận
                                               setShowConfirmDialog({
@@ -636,7 +633,7 @@ export default function BroadcastAssignment() {
                                                       playlistId: selectedPlaylist.id
                                                     });
                                                   }
-                                              });
+                                                });
                                             } else {
                                               toast({
                                                 title: "Không có playlist",
@@ -877,11 +874,8 @@ export default function BroadcastAssignment() {
                                           .then(data => {
                                             // Chọn playlist đầu tiên (nếu có)
                                             if (data.playlists && data.playlists.length > 0) {
-                                              const currentPlaylist = assignment.playlistId 
-                                                ? data.playlists.find(p => p.id === assignment.playlistId)
-                                                : null;
-                                                
-                                              setSelectedPlaylist(currentPlaylist || data.playlists[0]);
+                                              // Không tự động chọn playlist, để người dùng phải chọn lại
+                                              setSelectedPlaylist(null);
                                               
                                               // Hiển thị dialog xác nhận
                                               setShowConfirmDialog({
