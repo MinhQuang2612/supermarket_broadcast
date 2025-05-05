@@ -308,17 +308,21 @@ export default function BroadcastAssignment() {
   
   // Update assignment playlist mutation
   const updateAssignmentPlaylistMutation = useMutation({
-    mutationFn: async (data: { assignmentId: number; playlistId: number }) => {
+    mutationFn: async (data: { assignmentId: number; playlistId: number | null | undefined }) => {
       console.log(`Đang gửi yêu cầu cập nhật: Assignment ID=${data.assignmentId}, Playlist ID=${data.playlistId}`);
-      // Sử dụng lastSelectedPlaylistId nếu playlistId không hợp lệ
-      const effectivePlaylistId = data.playlistId || lastSelectedPlaylistId;
       
-      if (!effectivePlaylistId) {
-        throw new Error("Không tìm thấy ID playlist để cập nhật");
+      // Backup nếu không có playlistId
+      if (data.playlistId === null || data.playlistId === undefined) {
+        if (lastSelectedPlaylistId) {
+          data.playlistId = lastSelectedPlaylistId;
+          console.log(`Sử dụng lastSelectedPlaylistId: ${lastSelectedPlaylistId}`);
+        } else {
+          throw new Error("Không tìm thấy ID playlist để cập nhật");
+        }
       }
       
       const response = await apiRequest('PATCH', `/api/broadcast-assignments/${data.assignmentId}`, {
-        playlistId: effectivePlaylistId
+        playlistId: data.playlistId
       });
       return response.json();
     },
