@@ -570,7 +570,7 @@ export default function BroadcastAssignment() {
                                       if (program) {
                                         setSelectedProgram(program);
                                         // Lưu trữ assignment ID để cập nhật sau này
-                                        const assignmentToUpdate = assignment.id;
+                                        setAssignmentToUpdate(assignment.id);
                                         
                                         // Lấy danh sách playlist của chương trình này
                                         fetch(`/api/broadcast-programs/${program.id}/playlists`)
@@ -857,7 +857,7 @@ export default function BroadcastAssignment() {
                                     onClick={() => {
                                       if (selectedProgram) {
                                         // Lưu trữ assignment ID để cập nhật sau này
-                                        const assignmentToUpdate = assignment.id;
+                                        setAssignmentToUpdate(assignment.id);
                                         
                                         // Lấy danh sách playlist của chương trình này
                                         fetch(`/api/broadcast-programs/${selectedProgram.id}/playlists`)
