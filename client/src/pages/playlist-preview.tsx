@@ -575,7 +575,7 @@ export default function PlaylistPreview() {
           <CardHeader>
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle>Nghe thử chương trình</CardTitle>
+                <CardTitle className="mb-2">Nghe thử chương trình</CardTitle>
                 <CardDescription>
                   Nghe thử danh sách phát trước khi phát sóng
                 </CardDescription>
@@ -664,13 +664,22 @@ export default function PlaylistPreview() {
                         <SelectValue placeholder="Chọn danh sách phát" />
                       </SelectTrigger>
                       <SelectContent>
-                        {programPlaylists.map((playlist, index) => (
+                        {programPlaylists.map((playlist) => (
                           <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                            Danh sách phát #{index + 1} - {new Date(playlist.createdAt).toLocaleString()}
+                            Danh sách phát #{playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    <div className="mt-3">
+                      {programPlaylists.map((playlist) => (
+                        selectedPlaylistId === playlist.id && (
+                          <div key={`selected-${playlist.id}`} className="flex items-center text-sm text-muted-foreground">
+                            ✓ Danh sách phát #{playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
+                          </div>
+                        )
+                      ))}
+                    </div>
                     <p className="text-sm text-muted-foreground mt-2">
                       Chương trình này có {programPlaylists.length} danh sách phát
                     </p>
