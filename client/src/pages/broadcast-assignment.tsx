@@ -94,6 +94,8 @@ export default function BroadcastAssignment() {
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [assignmentToDelete, setAssignmentToDelete] = useState<EnrichedAssignment | null>(null);
   const [assignmentToUpdate, setAssignmentToUpdate] = useState<number | null>(null);
+  // Biến state riêng cho chức năng cập nhật playlist
+  const [playlistForUpdate, setPlaylistForUpdate] = useState<Playlist | null>(null);
   
   // Pagination state for supermarkets
   const [supermarketPage, setSupermarketPage] = useState(1);
@@ -322,6 +324,7 @@ export default function BroadcastAssignment() {
       // Reset state
       setAssignmentToUpdate(null);
       setSelectedPlaylist(null);
+      setPlaylistForUpdate(null);
       
       // Refetch data
       if (activeTab === "bySupermarket" && selectedSupermarket) {
@@ -343,6 +346,7 @@ export default function BroadcastAssignment() {
       // Reset state
       setAssignmentToUpdate(null);
       setSelectedPlaylist(null);
+      setPlaylistForUpdate(null);
     }
   });
 
@@ -578,7 +582,7 @@ export default function BroadcastAssignment() {
                                               // Chọn playlist đầu tiên (nếu có)
                                               if (data.playlists && data.playlists.length > 0) {
                                                 // Không tự động chọn playlist
-                                                setSelectedPlaylist(null);
+                                                setPlaylistForUpdate(null);
                                                 
                                                 // Hiển thị dialog xác nhận
                                                 setShowConfirmDialog({
@@ -591,10 +595,10 @@ export default function BroadcastAssignment() {
                                                           Chọn danh sách phát:
                                                         </label>
                                                         <Select 
-                                                          value={selectedPlaylist?.id?.toString() || ""}
+                                                          value={playlistForUpdate?.id?.toString() || ""}
                                                           onValueChange={(value) => {
                                                             const playlist = data.playlists.find((p: any) => p.id.toString() === value);
-                                                            setSelectedPlaylist(playlist || null);
+                                                            setPlaylistForUpdate(playlist || null);
                                                           }}
                                                         >
                                                           <SelectTrigger>
@@ -613,7 +617,7 @@ export default function BroadcastAssignment() {
                                                   ),
                                                   confirmText: "Cập nhật",
                                                   onConfirm: () => {
-                                                    if (!selectedPlaylist) {
+                                                    if (!playlistForUpdate) {
                                                       toast({
                                                         title: "Hãy chọn danh sách phát",
                                                         description: "Vui lòng chọn một danh sách phát trước khi cập nhật.",
@@ -625,7 +629,7 @@ export default function BroadcastAssignment() {
                                                     if (assignmentToUpdate !== null) {
                                                       updateAssignmentPlaylistMutation.mutate({
                                                         assignmentId: assignmentToUpdate,
-                                                        playlistId: selectedPlaylist.id
+                                                        playlistId: playlistForUpdate.id
                                                       });
                                                     }
                                                   }
@@ -892,7 +896,7 @@ export default function BroadcastAssignment() {
                                               // Chọn playlist đầu tiên (nếu có)
                                               if (data.playlists && data.playlists.length > 0) {
                                                 // Không tự động chọn playlist
-                                                setSelectedPlaylist(null);
+                                                setPlaylistForUpdate(null);
                                                 
                                                 // Hiển thị dialog xác nhận
                                                 setShowConfirmDialog({
@@ -905,10 +909,10 @@ export default function BroadcastAssignment() {
                                                           Chọn danh sách phát:
                                                         </label>
                                                         <Select 
-                                                          value={selectedPlaylist?.id?.toString() || ""}
+                                                          value={playlistForUpdate?.id?.toString() || ""}
                                                           onValueChange={(value) => {
                                                             const playlist = data.playlists.find((p: any) => p.id.toString() === value);
-                                                            setSelectedPlaylist(playlist || null);
+                                                            setPlaylistForUpdate(playlist || null);
                                                           }}
                                                         >
                                                           <SelectTrigger>
@@ -927,10 +931,10 @@ export default function BroadcastAssignment() {
                                                   ),
                                                   confirmText: "Cập nhật",
                                                   onConfirm: () => {
-                                                    if (selectedPlaylist && assignmentToUpdate !== null) {
+                                                    if (playlistForUpdate && assignmentToUpdate !== null) {
                                                       updateAssignmentPlaylistMutation.mutate({
                                                         assignmentId: assignmentToUpdate,
-                                                        playlistId: selectedPlaylist.id
+                                                        playlistId: playlistForUpdate.id
                                                       });
                                                     }
                                                   }
