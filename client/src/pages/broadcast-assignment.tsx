@@ -460,11 +460,19 @@ export default function BroadcastAssignment() {
                             <TableRow key={assignment.id}>
                               <TableCell>
                                 <div className="font-medium">
-                                  {assignment.programName}
+                                  {(() => {
+                                    // Tìm chương trình phát từ danh sách đã fetched
+                                    const program = programs.find(p => p.id === assignment.broadcastProgramId);
+                                    return program ? program.name : 'Unknown Program';
+                                  })()}
                                 </div>
                               </TableCell>
                               <TableCell>
-                                {format(new Date(assignment.programDate), "dd/MM/yyyy")}
+                                {(() => {
+                                  // Tìm chương trình phát từ danh sách đã fetched
+                                  const program = programs.find(p => p.id === assignment.broadcastProgramId);
+                                  return program ? format(new Date(program.date), "dd/MM/yyyy") : 'Unknown Date';
+                                })()}
                               </TableCell>
                               <TableCell>
                                 {assignment.playlistId ? (
