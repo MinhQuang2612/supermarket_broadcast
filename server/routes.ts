@@ -389,9 +389,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offset = (page - 1) * pageSize;
       const paginatedSupermarkets = filteredSupermarkets.slice(offset, offset + pageSize);
       
+      // Get assignments count for each supermarket
+      const supermarketsWithProgramCount = await Promise.all(
+        paginatedSupermarkets.map(async (supermarket) => {
+          const assignments = await storage.getSupermarketBroadcastAssignments(supermarket.id);
+          return {
+            ...supermarket,
+            programCount: assignments.length
+          };
+        })
+      );
+      
       // Return with pagination metadata
       res.json({
-        supermarkets: paginatedSupermarkets,
+        supermarkets: supermarketsWithProgramCount,
         pagination: {
           total: totalCount,
           page,
