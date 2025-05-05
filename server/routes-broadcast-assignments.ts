@@ -76,7 +76,13 @@ export function registerBroadcastAssignmentRoutes(app: Express) {
   // Get assignments for a specific supermarket with pagination
   app.get("/api/broadcast-assignments/by-supermarket/:id", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log("Getting assignments for supermarket ID:", req.params.id);
+
       const supermarketId = parseInt(req.params.id);
+      if (isNaN(supermarketId)) {
+        console.log("Invalid supermarket ID:", req.params.id);
+        return res.status(400).json({ message: "ID siêu thị không hợp lệ" });
+      }
       
       // Get pagination parameters from query string
       const page = parseInt(req.query.page as string) || 1;

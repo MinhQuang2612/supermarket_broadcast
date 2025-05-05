@@ -178,7 +178,7 @@ export default function BroadcastAssignment() {
     isLoading: loadingAssignments,
     refetch: refetchAssignments
   } = useQuery<{ assignments: EnrichedAssignment[], pagination: PaginationMetadata }>({
-    queryKey: ['/api/broadcast-assignments/by-supermarket', selectedSupermarket?.id, { page: assignmentPage, limit: assignmentLimit }],
+    queryKey: [`/api/broadcast-assignments/by-supermarket/${selectedSupermarket?.id}`, { page: assignmentPage, limit: assignmentLimit }],
     enabled: !!selectedSupermarket,
     keepPreviousData: true,
   });
@@ -197,7 +197,7 @@ export default function BroadcastAssignment() {
     isLoading: loadingProgramAssignments,
     refetch: refetchProgramAssignments
   } = useQuery<{ assignments: EnrichedAssignment[], pagination: PaginationMetadata }>({
-    queryKey: ['/api/broadcast-assignments/by-program', selectedProgram?.id, { page: assignmentPage, limit: assignmentLimit }],
+    queryKey: [`/api/broadcast-assignments/by-program/${selectedProgram?.id}`, { page: assignmentPage, limit: assignmentLimit }],
     enabled: !!selectedProgram,
     keepPreviousData: true,
   });
