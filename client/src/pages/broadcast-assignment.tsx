@@ -267,8 +267,13 @@ export default function BroadcastAssignment() {
   };
   
   const formatFullAddress = (supermarket: Supermarket) => {
+    if (!supermarket) return '';
+    
+    const commune = communes.find(c => c.id === supermarket.communeId);
+    const province = provinces.find(p => p.id === supermarket.provinceId);
     const region = regions.find(r => r.id === supermarket.regionId);
-    return `${supermarket.address}, ${supermarket.communeName}, ${supermarket.provinceName}, ${region?.name || ''}`;
+    
+    return `${supermarket.address}${commune ? ', ' + commune.name : ''}${province ? ', ' + province.name : ''}${region ? ', ' + region.name : ''}`;
   };
 
   return (
