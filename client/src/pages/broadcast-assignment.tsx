@@ -220,8 +220,8 @@ export default function BroadcastAssignment() {
     data: playlistsData = { playlists: [] },
     isLoading: loadingPlaylists,
     refetch: refetchPlaylists
-  } = useQuery<{ playlists: Playlist[] }>({
-    queryKey: ['/api/broadcast-programs', selectedProgram?.id, 'playlists'],
+  } = useQuery<{ playlists: Playlist[], pagination: PaginationMetadata }>({
+    queryKey: [`/api/broadcast-programs/${selectedProgram?.id}/playlists`],
     enabled: !!selectedProgram,
   });
   
