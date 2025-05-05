@@ -606,7 +606,7 @@ export default function BroadcastAssignment() {
                                                         <SelectContent>
                                                           {data.playlists.map((playlist, index) => (
                                                             <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                                                              Danh sách phát #{index + 1} - {new Date(playlist.createdAt).toLocaleString()}
+                                                              Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
                                                             </SelectItem>
                                                           ))}
                                                         </SelectContent>
@@ -893,7 +893,7 @@ export default function BroadcastAssignment() {
                                                         <SelectContent>
                                                           {data.playlists.map((playlist, index) => (
                                                             <SelectItem key={playlist.id} value={playlist.id.toString()}>
-                                                              Danh sách phát #{index + 1} - {new Date(playlist.createdAt).toLocaleString()}
+                                                              Danh sách phát ID: {playlist.id} - {new Date(playlist.createdAt).toLocaleString()}
                                                             </SelectItem>
                                                           ))}
                                                         </SelectContent>
