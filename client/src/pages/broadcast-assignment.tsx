@@ -967,14 +967,32 @@ export default function BroadcastAssignment() {
               Bạn có chắc chắn muốn gán:
             </p>
             <div className="bg-neutral-lightest p-3 rounded-md mb-4">
-              <div className="flex items-center mb-3">
-                <Radio className="h-5 w-5 mr-2 text-primary" />
-                <div className="font-medium">
-                  {selectedProgram?.name} 
-                  {selectedProgram && <span className="text-sm font-normal text-neutral-medium ml-2">
-                    ({format(new Date(selectedProgram.date), "dd/MM/yyyy")})
-                  </span>}
-                </div>
+              {/* Program Selection */}
+              <div className="mb-3">
+                <label className="block text-sm font-medium mb-2">
+                  Chọn chương trình phát:
+                </label>
+                <Select 
+                  value={selectedProgram?.id?.toString() || ""}
+                  onValueChange={(value) => {
+                    const program = programs.find(p => p.id.toString() === value);
+                    if (program) {
+                      setSelectedProgram(program);
+                      loadProgramPlaylists(program.id);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Chọn chương trình phát" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {programs.map((program) => (
+                      <SelectItem key={program.id} value={program.id.toString()}>
+                        {program.name} ({format(new Date(program.date), "dd/MM/yyyy")})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               {/* Playlist Selection */}
@@ -1007,7 +1025,7 @@ export default function BroadcastAssignment() {
                 </div>
               )}
               
-              {playlists.length === 0 && (
+              {selectedProgram && playlists.length === 0 && (
                 <div className="mt-2 border-t pt-2">
                   <p className="text-sm text-yellow-600 flex items-center">
                     <AlertTriangle className="h-4 w-4 mr-1" />
