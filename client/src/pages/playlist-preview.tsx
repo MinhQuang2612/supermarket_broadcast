@@ -611,7 +611,7 @@ export default function PlaylistPreview() {
                 Chọn chương trình phát
               </label>
               <Select 
-                value={selectedProgram?.toString() || ""} 
+                value={selectedProgram?.id?.toString() || ""} 
                 onValueChange={handleProgramSelect}
               >
                 <SelectTrigger className="w-full md:w-1/2">
