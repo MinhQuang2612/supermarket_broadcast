@@ -438,14 +438,43 @@ export default function PlaylistPreview() {
     setIsPlaying(true);
   };
 
-  // Get audio file by ID
+  // Get audio file by ID with enhanced error handling
   const getAudioFile = (id: number) => {
+    if (!id) {
+      console.error("Invalid audio file ID:", id);
+      return null;
+    }
+    
     console.log("Looking for audio file with ID:", id);
+    
+    if (!audioFiles || audioFiles.length === 0) {
+      console.error("No audio files loaded - audioFiles array is empty");
+      return null;
+    }
+    
     const found = audioFiles.find(file => file.id === id);
+    
     if (!found) {
       console.warn(`⚠️ Audio file with ID ${id} not found in audioFiles list. Available IDs:`, 
-        audioFiles.map(f => f.id));
+        audioFiles.map(f => f.id).sort((a, b) => a - b).join(', '));
+      
+      // Try fetching this specific audio file directly
+      fetch(`/api/audio-files/${id}`)
+        .then(response => {
+          if (response.ok) {
+            return response.json();
+          }
+          throw new Error(`Failed to fetch audio file with ID ${id}`);
+        })
+        .then(file => {
+          console.log(`Successfully fetched audio file with ID ${id} directly:`, file);
+          // No way to update audioFiles array here, but at least we confirmed it exists
+        })
+        .catch(error => {
+          console.error(`Error fetching audio file with ID ${id}:`, error);
+        });
     }
+    
     return found;
   };
   

@@ -700,16 +700,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Audio file routes with pagination
   app.get("/api/audio-files", isAuthenticated, async (req, res, next) => {
     try {
+      console.log(`===== GET AUDIO FILES (User: ${req.user.username}) =====`);
+      
       // Get pagination parameters from query string
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
       
+      console.log(`Pagination params: page=${page}, limit=${limit}, offset=${offset}`);
+      
       // Get group filter if provided
       const group = req.query.group as string;
+      if (group) {
+        console.log(`Filtering by group: ${group}`);
+      }
       
       // Get all audio files
       const allAudioFiles = await storage.getAllAudioFiles();
+      console.log(`Total audio files in storage: ${allAudioFiles.length}`);
+      
+      if (allAudioFiles.length > 0) {
+        console.log(`First few audio files: ${JSON.stringify(allAudioFiles.slice(0, 3).map(file => ({ id: file.id, filename: file.filename }))).substring(0, 200)}...`);
+        console.log(`Audio file IDs: ${allAudioFiles.map(file => file.id).sort((a, b) => a - b).join(', ')}`);
+      }
       
       // Apply group filter if provided
       const filteredAudioFiles = group 
@@ -717,9 +730,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : allAudioFiles;
       
       const totalCount = filteredAudioFiles.length;
+      console.log(`After filtering: ${filteredAudioFiles.length} files match criteria`);
       
-      // Apply pagination
-      const paginatedAudioFiles = filteredAudioFiles.slice(offset, offset + limit);
+      // Apply pagination (or return all if limit is very high)
+      let paginatedAudioFiles;
+      if (limit > 500) {
+        console.log(`Returning all ${filteredAudioFiles.length} files without pagination (high limit: ${limit})`);
+        paginatedAudioFiles = filteredAudioFiles;
+      } else {
+        paginatedAudioFiles = filteredAudioFiles.slice(offset, offset + limit);
+        console.log(`After pagination: returning ${paginatedAudioFiles.length} files`);
+      }
       
       // Return with pagination metadata
       res.json({
@@ -731,6 +752,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalPages: Math.ceil(totalCount / limit)
         }
       });
+      
+      console.log(`===== GET AUDIO FILES COMPLETED =====`);
     } catch (error) {
       next(error);
     }
