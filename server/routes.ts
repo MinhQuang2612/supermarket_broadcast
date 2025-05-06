@@ -1347,7 +1347,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         itemCount: Array.isArray(playlist.items) ? playlist.items.length : 'not an array'
       }));
       
-      res.json(playlist);
+      // Verify the items is properly parsed as array
+      let formattedItems = playlist.items;
+      if (!Array.isArray(playlist.items) && typeof playlist.items === 'string') {
+        try {
+          console.log("Items is a string, attempting to parse JSON");
+          formattedItems = JSON.parse(playlist.items);
+          console.log("Successfully parsed items JSON string into array");
+        } catch (parseError) {
+          console.error("Failed to parse items as JSON:", parseError);
+        }
+      }
+      
+      // Log the audio file IDs contained in this playlist
+      if (Array.isArray(formattedItems)) {
+        const audioIds = formattedItems.map(item => item.audioFileId).sort((a, b) => a - b);
+        const uniqueAudioIds = [...new Set(audioIds)];
+        console.log(`Playlist contains references to these audio file IDs: ${uniqueAudioIds.join(', ')}`);
+        
+        // Get the audio files referenced by this playlist
+        const allAudioFiles = await storage.getAllAudioFiles();
+        const existingAudioIds = allAudioFiles.map(file => file.id).sort((a, b) => a - b);
+        console.log(`Database contains these audio file IDs: ${existingAudioIds.join(', ')}`);
+        
+        // Check for audio files that are referenced but don't exist
+        const missingAudioIds = uniqueAudioIds.filter(id => !existingAudioIds.includes(id));
+        if (missingAudioIds.length > 0) {
+          console.warn(`WARNING: Playlist references ${missingAudioIds.length} audio files that don't exist: ${missingAudioIds.join(', ')}`);
+        } else {
+          console.log("All audio files referenced by this playlist exist in the database.");
+        }
+      } else {
+        console.warn("Playlist items is not an array:", typeof formattedItems);
+      }
+      
+      // Send back the playlist with properly formatted items
+      res.json({
+        ...playlist,
+        items: formattedItems
+      });
     } catch (error) {
       console.error("GET SPECIFIC PLAYLIST - Error:", error);
       next(error);
