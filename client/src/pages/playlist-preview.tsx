@@ -498,12 +498,21 @@ export default function PlaylistPreview() {
       return individualAudioFiles[id];
     }
     
-    // Then check in the main audioFiles array
+    // Then check in the main audioFiles array - enhanced with strict ID matching and debug logs
     if (audioFiles && audioFiles.length > 0) {
-      const found = audioFiles.find(file => file.id === id);
+      // Convert id to number to ensure type matching
+      const numericId = Number(id);
+      
+      // Find the audio file with matching ID
+      const found = audioFiles.find(file => Number(file.id) === numericId);
       
       if (found) {
+        console.log(`Found audio file ${numericId} in main cache: ${found.displayName}`);
         return found;
+      } else {
+        // If not found, log all available IDs for debugging
+        console.warn(`⚠️ Audio file with ID ${numericId} not found in main cache. Available IDs:`, 
+          audioFiles.map(file => file.id).sort((a, b) => a - b).join(', '));
       }
     } else {
       console.warn("No audio files loaded - audioFiles array is empty or null");
@@ -547,16 +556,19 @@ export default function PlaylistPreview() {
   useEffect(() => {
     if (!playlistItems || !audioFiles || audioFiles.length === 0) return;
     
-    const missingIds = playlistItems
-      .map(item => item.audioFileId)
-      .filter(id => !audioFiles.some(file => file.id === id));
+    // Convert IDs to numbers for strict comparison
+    const playlistItemIds = playlistItems.map(item => Number(item.audioFileId));
+    const audioFileIds = audioFiles.map(file => Number(file.id));
+    
+    // Find missing IDs using number comparison
+    const missingIds = playlistItemIds.filter(id => !audioFileIds.includes(id));
     
     setMissingAudioFileIds(missingIds);
     
     if (missingIds.length > 0) {
       console.warn("Phát hiện audio files bị thiếu:", missingIds);
-      console.warn("Audio file IDs trong playlist:", playlistItems.map(item => item.audioFileId).sort((a, b) => a - b).join(', '));
-      console.warn("Audio file IDs có sẵn:", audioFiles.map(file => file.id).sort((a, b) => a - b).join(', '));
+      console.warn("Audio file IDs trong playlist:", playlistItemIds.sort((a, b) => a - b).join(', '));
+      console.warn("Audio file IDs có sẵn:", audioFileIds.sort((a, b) => a - b).join(', '));
       
       // Hiển thị thông báo cho người dùng về file bị thiếu
       toast({
@@ -564,6 +576,8 @@ export default function PlaylistPreview() {
         description: "Một số file âm thanh trong danh sách phát này không còn tồn tại trong hệ thống. Bạn có thể cần chuẩn hóa lại danh sách phát.",
         variant: "destructive",
       });
+    } else {
+      console.log("Tất cả audio files trong playlist đều tồn tại trong hệ thống.");
     }
   }, [playlistItems, audioFiles, toast]);
 
