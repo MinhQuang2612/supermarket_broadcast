@@ -39,6 +39,15 @@ export default function AudioPlayer({
     setLoading(true);
     setError(false);
     
+    if (!src) {
+      console.error("No audio source provided to player");
+      setError(true);
+      setLoading(false);
+      return;
+    }
+    
+    console.log("Initializing audio player with source:", src);
+    
     if (soundRef.current) {
       soundRef.current.stop();
       soundRef.current.unload();
@@ -66,12 +75,25 @@ export default function AudioPlayer({
         if (onEnded) onEnded();
       },
       onloaderror: (id, error) => {
-        console.error("Error loading audio:", error);
+        console.error("Error loading audio:", error, "Source:", src);
+        
+        // Try direct fetch to check if the file exists
+        fetch(src)
+          .then(response => {
+            console.log(`Fetch test response status: ${response.status} for ${src}`);
+            if (!response.ok) {
+              console.error(`HTTP error ${response.status} fetching audio from ${src}`);
+            }
+          })
+          .catch(fetchError => {
+            console.error("Fetch test failed:", fetchError);
+          });
+          
         setError(true);
         setLoading(false);
       },
       onplayerror: (id, error) => {
-        console.error("Error playing audio:", error);
+        console.error("Error playing audio:", error, "Source:", src);
         setError(true);
       },
     });
