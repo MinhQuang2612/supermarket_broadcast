@@ -69,7 +69,7 @@ export default function PlaylistPreview() {
   // Extract programs array from paginated response
   const programs = programsData?.programs || [];
 
-  // Fetch audio files with pagination
+  // Fetch audio files with pagination - modified to get all audio files using a large limit
   const { data: audioFilesData, isLoading: isLoadingAudio } = useQuery<{
     audioFiles: AudioFile[],
     pagination: {
@@ -79,7 +79,18 @@ export default function PlaylistPreview() {
       totalPages: number;
     }
   }>({
-    queryKey: ['/api/audio-files'],
+    queryKey: ['/api/audio-files', { limit: 999 }], // Requesting with high limit to get all files
+    queryFn: async () => {
+      // Tạo URL với tham số limit lớn để lấy tất cả files
+      const response = await fetch(`/api/audio-files?limit=999`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch audio files');
+      }
+      const data = await response.json();
+      console.log("🔍 Successfully loaded audio files:", data.audioFiles.length);
+      console.log("🔍 Audio file IDs:", data.audioFiles.map((file: AudioFile) => file.id).sort((a: number, b: number) => a - b).join(', '));
+      return data;
+    }
   });
   
   // Extract audio files array from paginated response
@@ -400,10 +411,17 @@ export default function PlaylistPreview() {
     
     if (missingIds.length > 0) {
       console.warn("Phát hiện audio files bị thiếu:", missingIds);
-      console.warn("Audio file IDs trong playlist:", playlistItems.map(item => item.audioFileId));
-      console.warn("Audio file IDs có sẵn:", audioFiles.map(file => file.id));
+      console.warn("Audio file IDs trong playlist:", playlistItems.map(item => item.audioFileId).sort((a, b) => a - b).join(', '));
+      console.warn("Audio file IDs có sẵn:", audioFiles.map(file => file.id).sort((a, b) => a - b).join(', '));
+      
+      // Hiển thị thông báo cho người dùng về file bị thiếu
+      toast({
+        title: `Có ${missingIds.length} file âm thanh bị thiếu`,
+        description: "Một số file âm thanh trong danh sách phát này không còn tồn tại trong hệ thống. Bạn có thể cần chuẩn hóa lại danh sách phát.",
+        variant: "warning",
+      });
     }
-  }, [playlistItems, audioFiles]);
+  }, [playlistItems, audioFiles, toast]);
 
   // Format time (seconds -> MM:SS)
   const formatTime = (seconds: number) => {
