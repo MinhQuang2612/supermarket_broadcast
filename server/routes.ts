@@ -1577,7 +1577,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Không tìm thấy danh sách phát" });
       }
       
-      console.log(`Found playlist with ${playlist.items ? playlist.items.length : 0} items`);
+      // Đảm bảo items là mảng, parse nếu cần
+      let playlistItems = playlist.items;
+      if (!Array.isArray(playlistItems) && typeof playlistItems === 'string') {
+        try {
+          console.log("Items is a string, parsing as JSON");
+          playlistItems = JSON.parse(playlistItems);
+          console.log("Successfully parsed items as JSON array");
+        } catch (parseError) {
+          console.error("Failed to parse items as JSON:", parseError);
+          return res.status(500).json({ 
+            message: "Lỗi khi xử lý dữ liệu danh sách phát",
+            error: parseError.message 
+          });
+        }
+      }
+      
+      if (!Array.isArray(playlistItems)) {
+        console.error("Items is not an array after parsing attempt:", typeof playlistItems);
+        return res.status(500).json({ 
+          message: "Định dạng danh sách phát không hợp lệ",
+          error: "Playlist items is not an array" 
+        });
+      }
+      
+      console.log(`Found playlist with ${playlistItems.length} items`);
       
       // Lấy danh sách audio files có sẵn
       const audioFiles = await storage.getAllAudioFiles();
@@ -1586,17 +1610,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Found ${audioFiles.length} audio files in system`);
       console.log(`Audio file IDs in system: ${audioFileIds.sort((a, b) => a - b).join(', ')}`);
       
-      if (!playlist.items || !Array.isArray(playlist.items) || playlist.items.length === 0) {
+      if (playlistItems.length === 0) {
         console.log(`Playlist has no items to clean`);
         return res.status(200).json({ 
           message: "Danh sách phát không có nội dung để chuẩn hóa",
-          playlist,
-          removedItems: 0
+          playlist: {
+            ...playlist,
+            items: playlistItems
+          },
+          removedItems: 0,
+          audioFiles: [] // Trả về mảng rỗng để client biết không có file âm thanh
         });
       }
       
       // Get all audio file IDs in the playlist
-      const playlistItemIds = playlist.items.map(item => item.audioFileId);
+      const playlistItemIds = playlistItems.map(item => item.audioFileId);
       console.log(`Audio file IDs in playlist: ${playlistItemIds.sort((a, b) => a - b).join(', ')}`);
       
       // Find which files are missing
@@ -1604,22 +1632,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Missing audio files: ${missingFiles.length > 0 ? missingFiles.join(', ') : 'None'}`);
       
       // Lọc ra các items có audio file tồn tại
-      const items = playlist.items.filter(item => 
+      const filteredItems = playlistItems.filter(item => 
         audioFileIds.includes(item.audioFileId)
       );
       
-      console.log(`Filtered playlist now has ${items.length} items`);
+      console.log(`Filtered playlist now has ${filteredItems.length} items`);
       
       // So sánh với số lượng cũ để tính số lượng bị loại bỏ
-      const originalCount = playlist.items.length;
-      const removedCount = originalCount - items.length;
+      const originalCount = playlistItems.length;
+      const removedCount = originalCount - filteredItems.length;
       
       if (removedCount === 0) {
         console.log(`No cleanup needed for playlist ${id}`);
+        
+        // Lấy thông tin đầy đủ của các file âm thanh được sử dụng
+        const usedAudioFiles = await Promise.all(
+          playlistItemIds.map(audioId => 
+            storage.getAudioFile(audioId)
+          )
+        );
+        
         return res.status(200).json({ 
           message: "Danh sách phát không cần chuẩn hóa",
-          playlist,
-          removedItems: 0
+          playlist: {
+            ...playlist,
+            items: playlistItems
+          },
+          removedItems: 0,
+          audioFiles: usedAudioFiles.filter(file => file !== undefined)
         });
       }
       
@@ -1628,10 +1668,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Cập nhật playlist với items đã được lọc
       const updatedPlaylist = await storage.updatePlaylist(id, {
         ...playlist,
-        items: items
+        items: filteredItems
       });
       
       console.log(`Playlist ${id} updated successfully`);
+      
+      // Lấy thông tin đầy đủ của các file âm thanh còn lại
+      const remainingAudioIds = filteredItems.map(item => item.audioFileId);
+      const remainingAudioFiles = await Promise.all(
+        remainingAudioIds.map(audioId => 
+          storage.getAudioFile(audioId)
+        )
+      );
       
       // Log the activity
       await storage.createActivityLog({
@@ -1644,8 +1692,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(200).json({ 
         message: `Đã chuẩn hóa danh sách phát, loại bỏ ${removedCount} file âm thanh không tồn tại`, 
-        playlist: updatedPlaylist,
-        removedItems: removedCount
+        playlist: {
+          ...updatedPlaylist,
+          items: filteredItems
+        },
+        removedItems: removedCount,
+        audioFiles: remainingAudioFiles.filter(file => file !== undefined)
       });
     } catch (error) {
       console.error("Error cleaning playlist:", error);

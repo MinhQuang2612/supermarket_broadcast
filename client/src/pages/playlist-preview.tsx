@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import ConfirmDialog from "@/components/confirm-dialog";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import AudioPlayer from "@/components/audio-player";
+import MissingAudioAlert from "@/components/missing-audio-alert";
 import { 
   Card, 
   CardContent, 
