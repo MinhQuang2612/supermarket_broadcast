@@ -250,30 +250,67 @@ export default function PlaylistPreview() {
     setIsPlaying(false);
     
     try {
+      // Fetch audio files first to ensure they're loaded
+      console.log("Preloading audio files before loading playlist");
+      const audioResponse = await fetch(`/api/audio-files?limit=999`);
+      if (!audioResponse.ok) {
+        throw new Error(`Không thể tải danh sách file âm thanh: ${audioResponse.status}`);
+      }
+      
+      const audioData = await audioResponse.json();
+      console.log(`Preloaded ${audioData.audioFiles.length} audio files with IDs:`, 
+        audioData.audioFiles.map((file: AudioFile) => file.id).sort((a: number, b: number) => a - b).join(', '));
+      
       // Truy vấn trực tiếp API để lấy playlist theo ID thực tế
       console.log("Fetching directly from API: /api/playlists/" + id);
-      const response = await fetch(`/api/playlists/${id}`);
+      const playlistResponse = await fetch(`/api/playlists/${id}`);
       
-      if (!response.ok) {
-        console.error(`API error (${response.status}): /api/playlists/${id}`);
-        throw new Error(`Không thể lấy danh sách phát: ${response.status}`);
+      if (!playlistResponse.ok) {
+        console.error(`API error (${playlistResponse.status}): /api/playlists/${id}`);
+        throw new Error(`Không thể lấy danh sách phát: ${playlistResponse.status}`);
       }
       
       // Lấy dữ liệu playlist trực tiếp từ API
-      const playlist = await response.json();
+      const playlist = await playlistResponse.json();
       console.log("Received playlist directly from API:", playlist);
       
-      // Invalidate the query to update cache
+      if (playlist.items && Array.isArray(playlist.items)) {
+        console.log("Playlist item IDs:", playlist.items.map((item: PlaylistItem) => item.audioFileId).sort((a: number, b: number) => a - b).join(', '));
+        
+        // Check for missing audio files
+        const missingIds = playlist.items
+          .map((item: PlaylistItem) => item.audioFileId)
+          .filter((id: number) => !audioData.audioFiles.some((file: AudioFile) => file.id === id));
+        
+        if (missingIds.length > 0) {
+          console.warn(`Found ${missingIds.length} missing audio files in playlist:`, missingIds);
+          toast({
+            title: `Phát hiện ${missingIds.length} file âm thanh bị thiếu`,
+            description: "Một số file âm thanh không tồn tại trong hệ thống. Hãy sử dụng nút 'Chuẩn hóa danh sách phát' để loại bỏ chúng.",
+            variant: "destructive",
+          });
+        }
+      }
+      
+      // Invalidate and refetch queries
+      await queryClient.invalidateQueries({
+        queryKey: ['/api/audio-files']
+      });
+      
       await queryClient.invalidateQueries({
         queryKey: ['/api/playlists', id]
       });
       
       // Force refetch to update React Query cache
       await queryClient.refetchQueries({
+        queryKey: ['/api/audio-files']
+      });
+      
+      await queryClient.refetchQueries({
         queryKey: ['/api/playlists', id]
       });
       
-      console.log("Invalidated and refetched playlist data for ID:", id);
+      console.log("Invalidated and refetched all necessary data for playback");
     } catch (error) {
       console.error("Error refreshing playlist data:", error);
       toast({
