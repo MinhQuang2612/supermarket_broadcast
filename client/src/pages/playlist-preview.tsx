@@ -157,13 +157,37 @@ export default function PlaylistPreview() {
     }
   }, [programPlaylists, selectedPlaylistId]);
 
-  // Fetch selected playlist details
+  // Fetch selected playlist details - with direct fetch to avoid problems with TanStack Query
   const { 
     data: existingPlaylist, 
     isLoading: isLoadingPlaylist,
     refetch: refetchPlaylist
   } = useQuery<Playlist>({
     queryKey: ['/api/playlists', selectedPlaylistId],
+    queryFn: async () => {
+      if (!selectedPlaylistId) {
+        console.warn("No playlist ID selected, can't fetch playlist");
+        return null;
+      }
+      
+      console.log(`Fetching directly from API: /api/playlists/${selectedPlaylistId}`);
+      
+      const response = await fetch(`/api/playlists/${selectedPlaylistId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch playlist with ID ${selectedPlaylistId}: ${response.status}`);
+      }
+      
+      const playlist = await response.json();
+      console.log("Received playlist directly from API:", playlist);
+      
+      // Log playlist item IDs for debugging
+      if (playlist && playlist.items && Array.isArray(playlist.items)) {
+        const itemIds = playlist.items.map(item => item.audioFileId);
+        console.log("Playlist item IDs:", itemIds.sort((a, b) => a - b).join(', '));
+      }
+      
+      return playlist;
+    },
     enabled: !!selectedPlaylistId,
     staleTime: 0,
     refetchOnWindowFocus: true,
@@ -172,23 +196,23 @@ export default function PlaylistPreview() {
   // Load playlist items from existing playlist
   useEffect(() => {
     // Add more detailed debugging
-    console.log("ExistingPlaylist:", JSON.stringify(existingPlaylist, null, 2));
+    console.log("ExistingPlaylist:", existingPlaylist);
     
     if (existingPlaylist && existingPlaylist.items && Array.isArray(existingPlaylist.items)) {
       try {
-        console.log("Processing playlist items:", existingPlaylist.items);
+        console.log("Processing playlist items:", existingPlaylist.items.length);
         
-        // Log audio file IDs in the playlist
-        const audioIds = existingPlaylist.items.map(item => item.audioFileId).sort((a, b) => a - b);
+        // Log audio file IDs in the playlist - convert to Number for consistency
+        const audioIds = existingPlaylist.items.map(item => Number(item.audioFileId)).sort((a, b) => a - b);
         console.log("Playlist audio file IDs:", audioIds.join(', '));
         
         // Log available audio file IDs
         if (audioFiles && audioFiles.length > 0) {
-          const availableIds = audioFiles.map(file => file.id).sort((a, b) => a - b);
+          const availableIds = audioFiles.map(file => Number(file.id)).sort((a, b) => a - b);
           console.log("Available audio file IDs:", availableIds.join(', '));
           
-          // Check for missing audio files
-          const missingIds = audioIds.filter(id => !availableIds.includes(id));
+          // Check for missing audio files - using strict number comparison
+          const missingIds = audioIds.filter(id => !availableIds.includes(Number(id)));
           if (missingIds.length > 0) {
             console.warn(`⚠️ Found ${missingIds.length} missing audio files:`, missingIds.join(', '));
             
