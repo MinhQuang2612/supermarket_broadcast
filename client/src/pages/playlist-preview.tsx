@@ -177,6 +177,49 @@ export default function PlaylistPreview() {
       try {
         console.log("Processing playlist items:", existingPlaylist.items);
         
+        // Log audio file IDs in the playlist
+        const audioIds = existingPlaylist.items.map(item => item.audioFileId).sort((a, b) => a - b);
+        console.log("Playlist audio file IDs:", audioIds.join(', '));
+        
+        // Log available audio file IDs
+        if (audioFiles && audioFiles.length > 0) {
+          const availableIds = audioFiles.map(file => file.id).sort((a, b) => a - b);
+          console.log("Available audio file IDs:", availableIds.join(', '));
+          
+          // Check for missing audio files
+          const missingIds = audioIds.filter(id => !availableIds.includes(id));
+          if (missingIds.length > 0) {
+            console.warn(`⚠️ Found ${missingIds.length} missing audio files:`, missingIds.join(', '));
+            
+            // Try fetching these specific audio files individually
+            missingIds.forEach(id => {
+              fetch(`/api/audio-files/${id}`)
+                .then(response => {
+                  if (response.ok) return response.json();
+                  throw new Error(`Audio file ${id} not found on server`);
+                })
+                .then(file => {
+                  console.log(`✅ Found audio file ${id} in direct API call:`, file.displayName);
+                  // We can't update audioFiles array here, but at least we verified it exists
+                })
+                .catch(error => {
+                  console.error(`❌ Failed to retrieve audio file ${id}:`, error.message);
+                });
+            });
+            
+            // Display a warning toast
+            toast({
+              title: `Phát hiện ${missingIds.length} file âm thanh bị thiếu`,
+              description: "Một số file âm thanh trong playlist không tải được. Bạn có thể cần chuẩn hóa lại danh sách phát.",
+              variant: "destructive",
+            });
+          } else {
+            console.log("✅ All audio files in the playlist are available!");
+          }
+        } else {
+          console.error("❌ No audio files loaded yet - audioFiles is empty or null");
+        }
+        
         const items = existingPlaylist.items as PlaylistItem[];
         // Sort by play time
         const sortedItems = [...items].sort((a, b) => {
@@ -200,7 +243,7 @@ export default function PlaylistPreview() {
       setCurrentAudioIndex(-1);
       setIsPlaying(false);
     }
-  }, [existingPlaylist]);
+  }, [existingPlaylist, audioFiles, toast]);
 
   // Handle program selection
   const handleProgramSelect = (programId: string) => {
@@ -438,44 +481,62 @@ export default function PlaylistPreview() {
     setIsPlaying(true);
   };
 
-  // Get audio file by ID with enhanced error handling
+  // Cache for individual audio file fetch results
+  const [individualAudioFiles, setIndividualAudioFiles] = useState<{[key: number]: AudioFile}>({});
+  
+  // Get audio file by ID with enhanced error handling and direct fetch capability
   const getAudioFile = (id: number) => {
     if (!id) {
       console.error("Invalid audio file ID:", id);
       return null;
     }
     
-    console.log("Looking for audio file with ID:", id);
-    
-    if (!audioFiles || audioFiles.length === 0) {
-      console.error("No audio files loaded - audioFiles array is empty");
-      return null;
+    // First check if we've already individually fetched this file
+    if (individualAudioFiles[id]) {
+      console.log(`Using individually cached audio file ${id}: ${individualAudioFiles[id].displayName}`);
+      return individualAudioFiles[id];
     }
     
-    const found = audioFiles.find(file => file.id === id);
-    
-    if (!found) {
-      console.warn(`⚠️ Audio file with ID ${id} not found in audioFiles list. Available IDs:`, 
-        audioFiles.map(f => f.id).sort((a, b) => a - b).join(', '));
+    // Then check in the main audioFiles array
+    if (audioFiles && audioFiles.length > 0) {
+      const found = audioFiles.find(file => file.id === id);
       
-      // Try fetching this specific audio file directly
-      fetch(`/api/audio-files/${id}`)
-        .then(response => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error(`Failed to fetch audio file with ID ${id}`);
-        })
-        .then(file => {
-          console.log(`Successfully fetched audio file with ID ${id} directly:`, file);
-          // No way to update audioFiles array here, but at least we confirmed it exists
-        })
-        .catch(error => {
-          console.error(`Error fetching audio file with ID ${id}:`, error);
-        });
+      if (found) {
+        return found;
+      }
+    } else {
+      console.warn("No audio files loaded - audioFiles array is empty or null");
     }
     
-    return found;
+    // If file was not found in regular cache, try to fetch it directly and add to our individual cache
+    console.warn(`⚠️ Audio file with ID ${id} not found in regular cache. Attempting direct fetch.`);
+    
+    // Start an async fetch but don't block the function
+    (async () => {
+      try {
+        const response = await fetch(`/api/audio-files/${id}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch audio file with ID ${id}: ${response.status}`);
+        }
+        
+        const file = await response.json();
+        console.log(`✅ Successfully fetched audio file with ID ${id} directly:`, file.displayName);
+        
+        // Add to our individual cache
+        setIndividualAudioFiles(prev => ({
+          ...prev,
+          [id]: file
+        }));
+        
+        // Force a component update to use the newly fetched file
+        // This would happen on next render anyway due to state update
+      } catch (error) {
+        console.error(`❌ Error fetching audio file with ID ${id}:`, error);
+      }
+    })();
+    
+    // Return null for this render cycle, but the component will update after fetch completes
+    return null;
   };
   
   // State to track missing audio files
