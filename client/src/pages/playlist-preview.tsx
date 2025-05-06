@@ -69,7 +69,7 @@ export default function PlaylistPreview() {
   // Extract programs array from paginated response
   const programs = programsData?.programs || [];
 
-  // Fetch audio files with pagination - modified to get all audio files using a large limit
+  // Fetch audio files with pagination and make query more reliable
   const { data: audioFilesData, isLoading: isLoadingAudio } = useQuery<{
     audioFiles: AudioFile[],
     pagination: {
@@ -79,18 +79,34 @@ export default function PlaylistPreview() {
       totalPages: number;
     }
   }>({
-    queryKey: ['/api/audio-files', { limit: 999 }], // Requesting with high limit to get all files
+    queryKey: ['/api/audio-files'],
     queryFn: async () => {
-      // Tạo URL với tham số limit lớn để lấy tất cả files
+      // Query with large limit to get all audio files
       const response = await fetch(`/api/audio-files?limit=999`);
       if (!response.ok) {
         throw new Error('Failed to fetch audio files');
       }
+      
       const data = await response.json();
+      
+      // Thêm debug log để kiểm tra dữ liệu
       console.log("🔍 Successfully loaded audio files:", data.audioFiles.length);
       console.log("🔍 Audio file IDs:", data.audioFiles.map((file: AudioFile) => file.id).sort((a: number, b: number) => a - b).join(', '));
+      
+      // Nếu không tìm thấy audio files, thử tải lại hoặc hiển thị thông báo
+      if (!data.audioFiles || data.audioFiles.length === 0) {
+        console.error("No audio files found in the system!");
+        toast({
+          title: "Không tìm thấy file âm thanh nào",
+          description: "Hệ thống không tìm thấy file âm thanh nào. Vui lòng kiểm tra lại.",
+          variant: "destructive",
+        });
+      }
+      
       return data;
-    }
+    },
+    staleTime: 0, // Không cache kết quả
+    refetchOnWindowFocus: true, // Luôn tải lại khi focus vào cửa sổ
   });
   
   // Extract audio files array from paginated response
@@ -418,7 +434,7 @@ export default function PlaylistPreview() {
       toast({
         title: `Có ${missingIds.length} file âm thanh bị thiếu`,
         description: "Một số file âm thanh trong danh sách phát này không còn tồn tại trong hệ thống. Bạn có thể cần chuẩn hóa lại danh sách phát.",
-        variant: "warning",
+        variant: "destructive",
       });
     }
   }, [playlistItems, audioFiles, toast]);
