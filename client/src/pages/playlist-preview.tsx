@@ -664,54 +664,7 @@ export default function PlaylistPreview() {
     },
   });
   
-  // Clean playlist mutation (removes references to non-existent audio files)
-  const cleanPlaylistMutation = useMutation({
-    mutationFn: async () => {
-      try {
-        console.log("Starting cleanup process for playlist ID:", selectedPlaylistId);
-        
-        if (!selectedPlaylistId) {
-          throw new Error("Không có danh sách phát nào được chọn để chuẩn hóa");
-        }
-        
-        // Thực hiện chuẩn hóa với ID được chọn
-        const res = await apiRequest("POST", `/api/playlists/${selectedPlaylistId}/clean`);
-        console.log("Clean response status:", res.status);
-        
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({ message: "Không thể đọc thông tin lỗi" }));
-          console.error("Clean error response:", errorData);
-          throw new Error(errorData.message || "Không thể chuẩn hóa danh sách phát");
-        }
-        
-        return await res.json();
-      } catch (error) {
-        console.error("Error during clean operation:", error);
-        throw error;
-      }
-    },
-    onSuccess: (data) => {
-      // Invalidate both the playlists list and the specific playlist
-      queryClient.invalidateQueries({ queryKey: ['/api/broadcast-programs', selectedProgram, 'playlists'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/playlists', selectedPlaylistId] });
-      
-      // Refetch the playlist data to update the UI
-      refetchPlaylist();
-      
-      toast({
-        title: "Đã chuẩn hóa danh sách phát",
-        description: data.message || `Đã loại bỏ ${data.removedItems} file âm thanh không tồn tại`,
-      });
-    },
-    onError: (error: Error) => {
-      console.error("Clean mutation error:", error);
-      toast({
-        title: "Không thể chuẩn hóa danh sách phát",
-        description: error.message || "Đã xảy ra lỗi khi chuẩn hóa danh sách phát",
-        variant: "destructive",
-      });
-    },
-  });
+  // Chức năng chuẩn hóa danh sách phát đã được di chuyển sang component MissingAudioAlert
   
   // Handle delete playlist
   const handleDeletePlaylist = () => {
@@ -744,16 +697,7 @@ export default function PlaylistPreview() {
               </div>
               {existingPlaylist && (
                 <div className="flex space-x-2">
-                  {missingAudioFileIds.length > 0 && (
-                    <Button
-                      variant="outline"
-                      onClick={() => cleanPlaylistMutation.mutate()}
-                      disabled={cleanPlaylistMutation.isPending}
-                    >
-                      <Filter className="h-4 w-4 mr-2" />
-                      Chuẩn hóa danh sách phát
-                    </Button>
-                  )}
+                  {/* Nút chuẩn hóa đã được thay thế bằng component MissingAudioAlert */}
                   <Button
                     variant="destructive"
                     onClick={handleDeletePlaylist}
@@ -854,24 +798,20 @@ export default function PlaylistPreview() {
                 {existingPlaylist ? (
                   <>
                     {missingAudioFileIds.length > 0 && (
-                      <div className="p-4 mb-4 border border-yellow-200 bg-yellow-50 rounded-md">
-                        <div className="flex gap-2">
-                          <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
-                          <div>
-                            <h4 className="font-medium text-yellow-800">Có file âm thanh bị thiếu</h4>
-                            <p className="text-sm text-yellow-700 mt-1">
-                              Một số file âm thanh trong danh sách phát này không còn tồn tại trong hệ thống. 
-                              Những file này sẽ bị bỏ qua khi phát.
-                            </p>
-                            <p className="text-sm text-yellow-700 mt-1">
-                              ID của các file bị thiếu: {missingAudioFileIds.join(', ')}
-                            </p>
-                            <p className="text-sm text-yellow-700 mt-1">
-                              ID của các file có sẵn: {audioFiles.map(file => file.id).join(', ')}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                      <MissingAudioAlert 
+                        missingAudioIds={missingAudioFileIds} 
+                        playlistId={selectedPlaylistId}
+                        onComplete={() => {
+                          console.log("Playlist cleaning complete - refreshing data");
+                          // Refresh the playlist data
+                          refetchPlaylist();
+                          // Reset audio player state
+                          setCurrentAudioIndex(-1);
+                          setIsPlaying(false);
+                          // Reset missing audio files
+                          setMissingAudioFileIds([]);
+                        }}
+                      />
                     )}
                   
                     {/* Audio Player */}
