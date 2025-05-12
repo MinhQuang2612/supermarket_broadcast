@@ -17,6 +17,8 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -1067,6 +1069,48 @@ export default function AudioManagement() {
         description={`Bạn có chắc chắn muốn tải xuống file ${fileToDownload?.displayName || ''}?`}
         onConfirm={confirmSingleDownload}
       />
+    
+      {/* Dialog thay đổi nhóm cho file đơn lẻ */}
+      <Dialog open={showSingleGroupChangeDialog} onOpenChange={setShowSingleGroupChangeDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Thay đổi nhóm cho file</DialogTitle>
+            <DialogDescription>
+              Chọn nhóm mới cho file {selectedFile?.filename}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="single-file-group">Nhóm</Label>
+              <Select
+                value={selectedGroup || ""}
+                onValueChange={(value) => setSelectedGroup(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn nhóm" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Quảng cáo">Quảng cáo</SelectItem>
+                  <SelectItem value="Giải trí">Giải trí</SelectItem>
+                  <SelectItem value="Thông báo">Thông báo</SelectItem>
+                  <SelectItem value="Tin tức">Tin tức</SelectItem>
+                  <SelectItem value="Âm nhạc">Âm nhạc</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSingleGroupChangeDialog(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleSingleGroupChange} disabled={!selectedGroup}>
+              Lưu thay đổi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
