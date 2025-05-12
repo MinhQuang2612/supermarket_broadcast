@@ -297,12 +297,15 @@ export default function AudioManagement() {
   };
 
   // Handle file selection for download/preview/delete
-  const handleFileAction = (file: AudioFile, action: "preview" | "delete") => {
+  const handleFileAction = (file: AudioFile, action: "preview" | "delete" | "changeGroup") => {
     setSelectedFile(file);
     if (action === "preview") {
       setShowPreviewDialog(true);
     } else if (action === "delete") {
       setShowDeleteDialog(true);
+    } else if (action === "changeGroup") {
+      setSingleChangeGroup(file.group);
+      setShowSingleGroupChangeDialog(true);
     }
   };
 
@@ -386,6 +389,28 @@ export default function AudioManagement() {
         toast({
           title: "Cập nhật thất bại",
           description: error.message || "Không thể cập nhật nhóm cho các file đã chọn",
+          variant: "destructive",
+        });
+      });
+  };
+  
+  // Perform single group change
+  const performSingleGroupChange = () => {
+    if (!selectedFile) return;
+    
+    apiRequest('PATCH', `/api/audio-files/${selectedFile.id}/group`, { group: singleChangeGroup })
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/audio-files'] });
+        setShowSingleGroupChangeDialog(false);
+        toast({
+          title: "Cập nhật thành công",
+          description: `Đã thay đổi nhóm của file "${selectedFile.displayName}"`,
+        });
+      })
+      .catch(error => {
+        toast({
+          title: "Cập nhật thất bại",
+          description: error.message || "Không thể cập nhật nhóm cho file này",
           variant: "destructive",
         });
       });
@@ -703,14 +728,25 @@ export default function AudioManagement() {
                         <Download className="h-4 w-4 text-primary" />
                       </Button>
                       {(user?.role === "admin" || user?.role === "manager") && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleFileAction(file, "delete")}
-                          title="Xóa"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleFileAction(file, "changeGroup")}
+                            title="Thay đổi nhóm"
+                            disabled={file.status === "used"}
+                          >
+                            <FolderEdit className="h-4 w-4 text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleFileAction(file, "delete")}
+                            title="Xóa"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   );
@@ -951,6 +987,55 @@ export default function AudioManagement() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowBulkGroupChangeDialog(false)}>Hủy</Button>
             <Button onClick={performBulkGroupChange}>Cập nhật nhóm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Single Group Change Dialog */}
+      <Dialog open={showSingleGroupChangeDialog} onOpenChange={setShowSingleGroupChangeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Thay đổi nhóm file</DialogTitle>
+            <DialogDescription>
+              {selectedFile && `Chọn nhóm mới cho 1 file đã chọn`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {selectedFile && (
+              <>
+                <div className="mb-4">
+                  <Label className="text-neutral-medium mb-1 block">Tên file</Label>
+                  <div className="font-medium text-sm">{selectedFile.displayName}</div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Nhóm hiện tại</Label>
+                  <Badge className={getGroupBadgeClass(selectedFile.group)}>
+                    {formatGroup(selectedFile.group)}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Chọn nhóm mới</Label>
+                  <Select value={singleChangeGroup} onValueChange={setSingleChangeGroup}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn nhóm" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="greetings">Lời chào</SelectItem>
+                      <SelectItem value="promotions">Khuyến mãi</SelectItem>
+                      <SelectItem value="tips">Mẹo vặt</SelectItem>
+                      <SelectItem value="announcements">Thông báo</SelectItem>
+                      <SelectItem value="music">Nhạc</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSingleGroupChangeDialog(false)}>Hủy</Button>
+            <Button onClick={performSingleGroupChange}>Cập nhật nhóm</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
