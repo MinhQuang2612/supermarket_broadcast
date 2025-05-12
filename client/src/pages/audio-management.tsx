@@ -640,32 +640,7 @@ export default function AudioManagement() {
             isLoading={isLoading}
           />
           
-          {/* Select All Actions */}
-          <div className="mt-4 p-4 bg-white rounded-lg shadow flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline"
-                onClick={selectAllFiles}
-                className="flex items-center"
-              >
-                <CheckSquare className="mr-2 h-4 w-4" />
-                Chọn tất cả
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={deselectAllFiles}
-                className="flex items-center"
-              >
-                <Square className="mr-2 h-4 w-4" />
-                Bỏ chọn tất cả
-              </Button>
-            </div>
-            <div>
-              {selectedFiles.length > 0 && (
-                <div>Đã chọn {selectedFiles.length} file</div>
-              )}
-            </div>
-          </div>
+
           
           {/* Bulk Actions */}
           {selectedFiles.length > 0 && (
