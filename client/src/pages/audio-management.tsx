@@ -1135,7 +1135,11 @@ export default function AudioManagement() {
             <Button variant="outline" onClick={() => setShowSingleGroupChangeDialog(false)}>
               Hủy
             </Button>
-            <Button onClick={handleSingleGroupChange} disabled={!selectedGroup} className="bg-blue-500 hover:bg-blue-600 text-white">
+            <Button 
+              onClick={handleSingleGroupChange} 
+              disabled={!selectedGroup || selectedGroup === selectedFile?.group} 
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+            >
               Cập nhật nhóm
             </Button>
           </DialogFooter>
