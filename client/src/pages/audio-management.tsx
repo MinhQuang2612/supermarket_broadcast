@@ -61,10 +61,9 @@ export default function AudioManagement() {
   const [uploadProgress, setUploadProgress] = useState(0);
   
   // Fetch audio files
-  const { data: audioFilesData, isLoading } = useQuery<{ audioFiles: AudioFile[], pagination: any }>({
+  const { data: audioFiles = [], isLoading } = useQuery<AudioFile[]>({
     queryKey: ['/api/audio-files'],
   });
-  const audioFiles: AudioFile[] = audioFilesData?.audioFiles || [];
 
   // Upload audio mutation
   const uploadAudioMutation = useMutation({
@@ -320,7 +319,7 @@ export default function AudioManagement() {
   };
 
   // Filter files based on filters and search term
-  const filteredFiles = audioFiles.filter((file: AudioFile) => {
+  const filteredFiles = audioFiles.filter(file => {
     const matchesGroup = groupFilter === "all" || file.group === groupFilter;
     const matchesStatus = statusFilter === "all" || file.status === statusFilter;
     const matchesSearch = 
@@ -462,24 +461,11 @@ export default function AudioManagement() {
                 header: "Sample Rate",
                 accessorKey: "sampleRate",
                 cell: ({ row }) => {
-                  const sampleRate = row.getValue("sampleRate") as number | null;
+                  const sampleRate = row.getValue("sampleRate") as number;
                   
                   return (
                     <div className="text-sm text-neutral-dark">
-                      {sampleRate ? `${sampleRate} Hz` : "N/A"}
-                    </div>
-                  );
-                },
-              },
-              {
-                header: "Ngày tải lên",
-                accessorKey: "uploadedAt",
-                cell: ({ row }) => {
-                  const uploadedAt = row.getValue("uploadedAt") as string;
-                  
-                  return (
-                    <div className="text-sm text-neutral-dark">
-                      {format(new Date(uploadedAt), "dd/MM/yyyy")}
+                      {sampleRate ? `${sampleRate / 1000} kHz` : "N/A"}
                     </div>
                   );
                 },
@@ -489,53 +475,59 @@ export default function AudioManagement() {
                 accessorKey: "status",
                 cell: ({ row }) => {
                   const status = row.getValue("status") as string;
-                  const badgeClass = status === "used"
-                    ? "bg-success-light/20 text-success"
-                    : "bg-neutral-medium/20 text-neutral-dark";
-                  const label = status === "used" ? "Đang sử dụng" : "Chưa sử dụng";
                   
                   return (
-                    <Badge variant="outline" className={badgeClass}>
-                      {label}
+                    <Badge variant={status === "used" ? "default" : "outline"}>
+                      {status === "used" ? "Đang sử dụng" : "Chưa sử dụng"}
                     </Badge>
                   );
                 },
               },
               {
-                header: "Thao tác",
+                header: "Ngày tạo",
+                accessorKey: "createdAt",
+                cell: ({ row }) => {
+                  const date = row.getValue("createdAt") as string;
+                  
+                  return (
+                    <div className="text-sm text-neutral-dark">
+                      {format(new Date(date), "dd/MM/yyyy HH:mm")}
+                    </div>
+                  );
+                },
+              },
+              {
+                header: "",
                 id: "actions",
                 cell: ({ row }) => {
                   const file = row.original as AudioFile;
                   
                   return (
-                    <div className="flex space-x-2">
+                    <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handleFileAction(file, "preview")}
-                        className="h-8 w-8 text-primary hover:text-primary-dark"
+                        title="Nghe thử"
                       >
-                        <PlayCircle className="h-4 w-4" />
+                        <PlayCircle className="h-4 w-4 text-primary" />
                       </Button>
-                      
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDownload(file)}
-                        className="h-8 w-8 text-primary hover:text-primary-dark"
+                        title="Tải xuống"
                       >
-                        <Download className="h-4 w-4" />
+                        <Download className="h-4 w-4 text-primary" />
                       </Button>
-                      
                       {(user?.role === "admin" || user?.role === "manager") && (
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleFileAction(file, "delete")}
-                          className="h-8 w-8 text-danger hover:text-danger-dark"
-                          disabled={file.status === "used"}
+                          title="Xóa"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       )}
                     </div>
@@ -551,23 +543,14 @@ export default function AudioManagement() {
           {selectedFiles.length > 0 && (
             <div className="mt-4 p-4 bg-white rounded-lg shadow">
               <h3 className="font-semibold mb-4">Thao tác hàng loạt ({selectedFiles.length} file được chọn)</h3>
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  variant="outline"
-                  className="border-danger text-danger hover:bg-danger/10"
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant="destructive" 
                   onClick={handleBulkDelete}
-                  disabled={selectedFiles.some(file => file.status === "used")}
+                  className="flex items-center"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Xóa đã chọn
-                </Button>
-                <Button variant="outline">
-                  <Tag className="mr-2 h-4 w-4" />
-                  Thay đổi nhóm
-                </Button>
-                <Button variant="outline">
-                  <Download className="mr-2 h-4 w-4" />
-                  Tải xuống
+                  Xóa file đã chọn
                 </Button>
               </div>
             </div>
@@ -577,15 +560,26 @@ export default function AudioManagement() {
       
       {/* Upload Dialog */}
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Tải lên file audio</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Nhóm file</Label>
+              <Label>Danh sách file ({uploadFiles.length})</Label>
+              <div className="max-h-40 overflow-y-auto mt-2 p-3 border rounded-md">
+                {uploadFiles.map((file, index) => (
+                  <div key={index} className="text-sm py-1">
+                    {file.name} ({formatFileSize(file.size)})
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <Label>Chọn nhóm cho file audio</Label>
               <Select value={uploadGroup} onValueChange={setUploadGroup}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full mt-2">
                   <SelectValue placeholder="Chọn nhóm" />
                 </SelectTrigger>
                 <SelectContent>
@@ -598,80 +592,96 @@ export default function AudioManagement() {
               </Select>
             </div>
             
-            <div>
-              <Label>File được chọn ({uploadFiles.length})</Label>
-              <div className="max-h-40 overflow-y-auto border rounded-md p-2 mt-1">
-                {uploadFiles.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between py-1 text-sm">
-                    <div className="flex items-center">
-                      <Music className="h-4 w-4 mr-2 text-primary" />
-                      <span className="truncate">{file.name}</span>
-                    </div>
-                    <span>{formatFileSize(file.size)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {uploadProgress > 0 && uploadProgress < 100 && (
+            {uploadProgress > 0 && (
               <div>
-                <Label>Tiến độ</Label>
-                <div className="w-full bg-neutral-light rounded-full h-2 mt-1">
+                <Label>Tiến trình</Label>
+                <div className="h-2 w-full bg-neutral-light rounded-full mt-2">
                   <div 
-                    className="bg-primary h-2 rounded-full" 
+                    className="h-full bg-primary rounded-full" 
                     style={{ width: `${uploadProgress}%` }}
-                  ></div>
+                  />
                 </div>
                 <p className="text-xs text-right mt-1">{uploadProgress}%</p>
               </div>
             )}
             
-            <div className="flex justify-end space-x-2 pt-4">
+            <div className="flex justify-end gap-2">
               <Button
-                type="button"
                 variant="outline"
-                onClick={() => setShowUploadDialog(false)}
-                disabled={uploadAudioMutation.isPending}
+                onClick={() => {
+                  setShowUploadDialog(false);
+                  setUploadFiles([]);
+                  setUploadProgress(0);
+                }}
               >
                 Hủy
               </Button>
-              <Button 
-                onClick={handleUpload} 
-                disabled={uploadFiles.length === 0 || uploadAudioMutation.isPending}
+              <Button
+                onClick={handleUpload}
+                disabled={uploadFiles.length === 0 || uploadProgress > 0}
               >
-                {uploadAudioMutation.isPending ? "Đang tải lên..." : "Tải lên"}
+                <CloudUpload className="mr-2 h-4 w-4" />
+                Tải lên
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
       
-      {/* Audio Preview Dialog */}
+      {/* Preview Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Nghe thử file audio</DialogTitle>
+            <DialogTitle>
+              {selectedFile?.displayName}
+            </DialogTitle>
           </DialogHeader>
+          
           {selectedFile && (
-            <>
+            <div className="space-y-4">
+              <div className="flex items-center justify-center">
+                <Badge variant="outline" className={getGroupBadgeClass(selectedFile.group)}>
+                  {formatGroup(selectedFile.group)}
+                </Badge>
+              </div>
+              
               <AudioPlayer 
-                src={`/api/audio-files/${selectedFile.id}/stream?t=${new Date().getTime()}`}
-                title={selectedFile.displayName}
+                audioUrl={`/api/audio-files/${selectedFile.id}/stream`} 
+                artistName="Audio File"
+                trackName={selectedFile.displayName}
               />
-              <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+              
+              <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-neutral-medium">Thời lượng:</div>
-                <div className="font-medium">{formatTime(selectedFile.duration)}</div>
-                
-                <div className="text-neutral-medium">Kích thước:</div>
-                <div className="font-medium">{formatFileSize(selectedFile.fileSize)}</div>
+                <div>{formatTime(selectedFile.duration)}</div>
                 
                 <div className="text-neutral-medium">Sample Rate:</div>
-                <div className="font-medium">{selectedFile.sampleRate ? `${selectedFile.sampleRate} Hz` : "N/A"}</div>
+                <div>{selectedFile.sampleRate ? `${selectedFile.sampleRate / 1000} kHz` : "N/A"}</div>
                 
-                <div className="text-neutral-medium">Loại file:</div>
-                <div className="font-medium">{selectedFile.fileType}</div>
+                <div className="text-neutral-medium">Kích thước:</div>
+                <div>{formatFileSize(selectedFile.fileSize)}</div>
+                
+                <div className="text-neutral-medium">Ngày tạo:</div>
+                <div>{format(new Date(selectedFile.createdAt), "dd/MM/yyyy HH:mm")}</div>
+                
+                <div className="text-neutral-medium">Trạng thái:</div>
+                <div>
+                  <Badge variant={selectedFile.status === "used" ? "default" : "outline"}>
+                    {selectedFile.status === "used" ? "Đang sử dụng" : "Chưa sử dụng"}
+                  </Badge>
+                </div>
               </div>
-            </>
+              
+              <div className="flex justify-end gap-2">
+                <Button
+                  onClick={() => handleDownload(selectedFile)}
+                  variant="outline"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Tải xuống
+                </Button>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -681,11 +691,11 @@ export default function AudioManagement() {
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         title="Xóa file audio"
-        description={`Bạn có chắc chắn muốn xóa file "${selectedFile?.displayName}"? Hành động này không thể hoàn tác.`}
-        onConfirm={confirmDelete}
+        description="Bạn có chắc chắn muốn xóa file audio này? Hành động này không thể hoàn tác."
         confirmText="Xóa"
-        isLoading={deleteAudioMutation.isPending}
-        variant="destructive"
+        cancelText="Hủy"
+        onConfirm={confirmDelete}
+        destructive
       />
       
       {/* Bulk Delete Confirmation Dialog */}
@@ -694,10 +704,10 @@ export default function AudioManagement() {
         onOpenChange={setShowBulkDeleteDialog}
         title="Xóa nhiều file audio"
         description={`Bạn có chắc chắn muốn xóa ${selectedFiles.length} file audio đã chọn? Hành động này không thể hoàn tác.`}
-        onConfirm={confirmBulkDelete}
         confirmText="Xóa"
-        isLoading={bulkDeleteMutation.isPending}
-        variant="destructive"
+        cancelText="Hủy"
+        onConfirm={confirmBulkDelete}
+        destructive
       />
     </DashboardLayout>
   );
