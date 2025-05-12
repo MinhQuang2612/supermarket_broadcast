@@ -455,6 +455,24 @@ export default function AudioManagement() {
                   <SelectItem value="unused">Chưa sử dụng</SelectItem>
                 </SelectContent>
               </Select>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={selectAllFiles}
+                title="Chọn tất cả file"
+              >
+                <CheckSquare className="mr-1 h-4 w-4" />
+                Chọn tất cả
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={deselectAllFiles}
+                title="Bỏ chọn tất cả file"
+              >
+                <Square className="mr-1 h-4 w-4" />
+                Bỏ chọn
+              </Button>
             </div>
             
             <div className="relative">
