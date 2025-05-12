@@ -90,25 +90,37 @@ export default function AudioManagement() {
         formData.append("duration", Math.round(duration).toString());
       }
       
-      const res = await fetch("/api/audio-files", {
-        method: "POST",
-        body: formData,
-        credentials: "include"
-      });
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || `Failed to upload ${file.name}`);
+      try {
+        const res = await fetch("/api/audio-files", {
+          method: "POST",
+          body: formData,
+          credentials: "include"
+        });
+        
+        if (!res.ok) {
+          let errorMessage = `Lỗi: ${res.status} ${res.statusText}`;
+          try {
+            const errorData = await res.json();
+            if (errorData && errorData.message) {
+              errorMessage = errorData.message;
+            }
+          } catch (e) {
+            const errorText = await res.text();
+            if (errorText) {
+              errorMessage = errorText;
+            }
+          }
+          throw new Error(errorMessage || `Không thể tải lên file ${file.name}`);
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error("Upload error:", error);
+        throw error;
       }
-      
-      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/audio-files'] });
-      toast({
-        title: "Upload thành công",
-        description: "File âm thanh đã được tải lên",
-      });
     },
     onError: (error: Error) => {
       toast({
@@ -198,36 +210,85 @@ export default function AudioManagement() {
     setUploadProgress(0);
     const totalFiles = uploadFiles.length;
     let successCount = 0;
+    let errors = [];
     
-    for (let i = 0; i < totalFiles; i++) {
-      try {
-        await uploadAudioMutation.mutateAsync({
-          file: uploadFiles[i],
-          group: uploadGroup
-        });
-        successCount++;
-      } catch (error) {
-        console.error(`Failed to upload ${uploadFiles[i].name}:`, error);
+    try {
+      // Kiểm tra file trước khi tải lên
+      for (let i = 0; i < uploadFiles.length; i++) {
+        const file = uploadFiles[i];
+        
+        // Kiểm tra định dạng file
+        if (!file.type.startsWith('audio/')) {
+          errors.push(`${file.name}: Không phải file âm thanh hợp lệ`);
+          continue;
+        }
+        
+        // Kiểm tra kích thước file (giới hạn 50MB)
+        if (file.size > 50 * 1024 * 1024) {
+          errors.push(`${file.name}: File quá lớn (tối đa 50MB)`);
+          continue;
+        }
       }
       
-      setUploadProgress(Math.round(((i + 1) / totalFiles) * 100));
-    }
-    
-    setShowUploadDialog(false);
-    setUploadFiles([]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    
-    if (successCount === totalFiles) {
+      // Hiển thị lỗi nếu có file không hợp lệ
+      if (errors.length > 0) {
+        toast({
+          title: "Không thể tải lên một số file",
+          description: errors.join(', '),
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Tải lên từng file
+      for (let i = 0; i < totalFiles; i++) {
+        try {
+          await uploadAudioMutation.mutateAsync({
+            file: uploadFiles[i],
+            group: uploadGroup
+          });
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to upload ${uploadFiles[i].name}:`, error);
+          const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+          errors.push(`${uploadFiles[i].name}: ${errorMessage}`);
+        }
+        
+        setUploadProgress(Math.round(((i + 1) / totalFiles) * 100));
+      }
+      
+      setShowUploadDialog(false);
+      setUploadFiles([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      
+      if (successCount === totalFiles) {
+        toast({
+          title: "Upload hoàn tất",
+          description: `${successCount} file đã được tải lên thành công`,
+        });
+      } else {
+        toast({
+          title: "Upload không hoàn tất",
+          description: `${successCount}/${totalFiles} file được tải lên thành công`,
+          variant: "destructive",
+        });
+        
+        if (errors.length > 0) {
+          setTimeout(() => {
+            toast({
+              title: "Chi tiết lỗi",
+              description: errors.join('; '),
+              variant: "destructive",
+            });
+          }, 1000);
+        }
+      }
+    } catch (error) {
       toast({
-        title: "Upload hoàn tất",
-        description: `${successCount} file đã được tải lên thành công`,
-      });
-    } else {
-      toast({
-        title: "Upload không hoàn tất",
-        description: `${successCount}/${totalFiles} file được tải lên thành công`,
+        title: "Lỗi tải lên",
+        description: "Đã xảy ra lỗi khi tải lên file",
         variant: "destructive",
       });
     }
