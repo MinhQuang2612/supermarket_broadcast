@@ -17,6 +17,8 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -817,7 +819,7 @@ export default function AudioManagement() {
         confirmText="Xóa"
         cancelText="Hủy"
         onConfirm={confirmDelete}
-        destructive
+        variant="destructive"
       />
       
       {/* Bulk Delete Confirmation Dialog */}
@@ -829,7 +831,7 @@ export default function AudioManagement() {
         confirmText="Xóa"
         cancelText="Hủy"
         onConfirm={confirmBulkDelete}
-        destructive
+        variant="destructive"
       />
       
       {/* Bulk Group Change Dialog */}
