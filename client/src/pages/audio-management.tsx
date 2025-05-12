@@ -41,7 +41,8 @@ import {
   Tag,
   Music,
   CheckSquare,
-  Square
+  Square,
+  FolderEdit
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -252,6 +253,20 @@ export default function AudioManagement() {
       setShowBulkDeleteDialog(true);
     }
   };
+  
+  // Bulk group change function
+  const handleBulkGroupChange = () => {
+    if (selectedFiles.length > 0) {
+      setShowBulkGroupChangeDialog(true);
+    }
+  };
+  
+  // Bulk download function
+  const handleBulkDownload = () => {
+    if (selectedFiles.length > 0) {
+      setShowBulkDownloadDialog(true);
+    }
+  };
 
   // Confirm delete file
   const confirmDelete = () => {
@@ -265,6 +280,51 @@ export default function AudioManagement() {
     if (selectedFiles.length > 0) {
       bulkDeleteMutation.mutate(selectedFiles.map(file => file.id));
     }
+  };
+  
+  // Perform bulk group change
+  const performBulkGroupChange = () => {
+    // Sử dụng Promise.all để thay đổi nhóm cho tất cả các file đã chọn
+    const updatePromises = selectedFiles.map(file => 
+      apiRequest('PATCH', `/api/audio-files/${file.id}/group`, { group: bulkChangeGroup })
+    );
+    
+    Promise.all(updatePromises)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/audio-files'] });
+        setShowBulkGroupChangeDialog(false);
+        setSelectedFiles([]);
+        toast({
+          title: "Cập nhật thành công",
+          description: `Đã thay đổi nhóm của ${selectedFiles.length} file`,
+        });
+      })
+      .catch(error => {
+        toast({
+          title: "Cập nhật thất bại",
+          description: error.message || "Không thể cập nhật nhóm cho các file đã chọn",
+          variant: "destructive",
+        });
+      });
+  };
+  
+  // Perform bulk download
+  const performBulkDownload = () => {
+    // Tạo danh sách các file cần tải về
+    selectedFiles.forEach(file => {
+      const link = document.createElement('a');
+      link.href = `/api/audio-files/${file.id}/download`;
+      link.download = file.displayName || `audio-${file.id}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+    
+    setShowBulkDownloadDialog(false);
+    toast({
+      title: "Tải xuống đang bắt đầu",
+      description: `${selectedFiles.length} file sẽ được tải xuống`,
+    });
   };
 
   // Format time (seconds -> MM:SS)
@@ -596,6 +656,24 @@ export default function AudioManagement() {
                   <Trash2 className="mr-2 h-4 w-4" />
                   Xóa file đã chọn
                 </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={handleBulkGroupChange}
+                  className="flex items-center"
+                >
+                  <FolderEdit className="mr-2 h-4 w-4" />
+                  Thay đổi nhóm
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={handleBulkDownload}
+                  className="flex items-center"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Tải xuống
+                </Button>
               </div>
             </div>
           )}
@@ -752,6 +830,61 @@ export default function AudioManagement() {
         cancelText="Hủy"
         onConfirm={confirmBulkDelete}
         destructive
+      />
+      
+      {/* Bulk Group Change Dialog */}
+      <Dialog open={showBulkGroupChangeDialog} onOpenChange={setShowBulkGroupChangeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Thay đổi nhóm file</DialogTitle>
+            <DialogDescription>
+              Chọn nhóm mới cho {selectedFiles.length} file đã chọn
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nhóm hiện tại</Label>
+              <div className="flex flex-wrap gap-2">
+                {Array.from(new Set(selectedFiles.map(file => file.group))).map(group => (
+                  <Badge key={group} className={getGroupBadgeClass(group)}>
+                    {formatGroup(group)}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Chọn nhóm mới</Label>
+              <Select value={bulkChangeGroup} onValueChange={setBulkChangeGroup}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn nhóm" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="greetings">Lời chào</SelectItem>
+                  <SelectItem value="promotions">Khuyến mãi</SelectItem>
+                  <SelectItem value="tips">Mẹo vặt</SelectItem>
+                  <SelectItem value="announcements">Thông báo</SelectItem>
+                  <SelectItem value="music">Nhạc</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkGroupChangeDialog(false)}>Hủy</Button>
+            <Button onClick={performBulkGroupChange}>Cập nhật nhóm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Bulk Download Confirmation Dialog */}
+      <ConfirmDialog
+        open={showBulkDownloadDialog}
+        onOpenChange={setShowBulkDownloadDialog}
+        title="Tải xuống file audio"
+        description={`Bạn có chắc chắn muốn tải xuống ${selectedFiles.length} file đã chọn không?`}
+        confirmText="Tải xuống"
+        cancelText="Hủy"
+        onConfirm={performBulkDownload}
       />
     </DashboardLayout>
   );
