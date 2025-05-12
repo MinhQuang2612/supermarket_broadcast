@@ -101,6 +101,17 @@ export const insertCommuneSchema = createInsertSchema(communes).omit({
   id: true,
 });
 
+// Supermarket types
+export const supermarketTypes = pgTable("supermarket_types", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // Ví dụ: "general", "mini", "hyper"
+  displayName: text("display_name").notNull(), // Hiển thị: "Siêu thị lớn", "Siêu thị mini", ...
+});
+
+export const supermarketTypesRelations = relations(supermarketTypes, ({ many }) => ({
+  supermarkets: many(supermarkets),
+}));
+
 // Supermarket model
 export const supermarkets = pgTable("supermarkets", {
   id: serial("id").primaryKey(),
@@ -112,6 +123,7 @@ export const supermarkets = pgTable("supermarkets", {
   status: text("status").notNull().default("active"), // "active", "paused"
   currentProgram: text("current_program"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  supermarketTypeId: integer("supermarket_type_id").notNull().references(() => supermarketTypes.id),
 });
 
 export const supermarketsRelations = relations(supermarkets, ({ many, one }) => ({
@@ -130,11 +142,30 @@ export const supermarketsRelations = relations(supermarkets, ({ many, one }) => 
     fields: [supermarkets.regionId],
     references: [regions.id],
   }),
+  supermarketType: one(supermarketTypes, {
+    fields: [supermarkets.supermarketTypeId],
+    references: [supermarketTypes.id],
+  }),
 }));
 
 export const insertSupermarketSchema = createInsertSchema(supermarkets).omit({
   id: true,
   createdAt: true,
+});
+
+// Audio Groups
+export const audioGroups = pgTable("audio_groups", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(), // "greetings", "promotions", "tips", "announcements", "music"
+  frequency: integer("frequency").notNull().default(1), // Tần suất phát mặc định là 1
+});
+
+export const audioGroupsRelations = relations(audioGroups, ({ many }) => ({
+  audioFiles: many(audioFiles),
+}));
+
+export const insertAudioGroupSchema = createInsertSchema(audioGroups).omit({
+  id: true,
 });
 
 // Audio files
@@ -146,7 +177,7 @@ export const audioFiles = pgTable("audio_files", {
   duration: integer("duration").notNull(), // in seconds
   sampleRate: integer("sample_rate"), // in Hz (e.g., 44100, 48000)
   fileType: text("file_type").notNull(),
-  group: text("group").notNull(), // "greetings", "promotions", "tips", "announcements", "music"
+  audioGroupId: integer("audio_group_id").notNull().references(() => audioGroups.id), // Foreign key to audio_groups
   status: text("status").notNull().default("unused"), // "used", "unused"
   uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
@@ -157,6 +188,10 @@ export const audioFilesRelations = relations(audioFiles, ({ one }) => ({
     fields: [audioFiles.uploadedBy],
     references: [users.id],
     relationName: "uploadedBy",
+  }),
+  audioGroup: one(audioGroups, {
+    fields: [audioFiles.audioGroupId],
+    references: [audioGroups.id],
   }),
 }));
 
@@ -284,6 +319,12 @@ export type Playlist = typeof playlists.$inferSelect;
 export type InsertBroadcastAssignment = z.infer<typeof insertBroadcastAssignmentSchema>;
 export type BroadcastAssignment = typeof broadcastAssignments.$inferSelect;
 
+export type InsertSupermarketType = z.infer<typeof insertSupermarketTypeSchema>;
+export type SupermarketType = typeof supermarketTypes.$inferSelect;
+
+export type InsertAudioGroup = z.infer<typeof insertAudioGroupSchema>;
+export type AudioGroup = typeof audioGroups.$inferSelect;
+
 // Group frequency settings interface
 export interface GroupFrequencySettings {
   enabled: boolean;
@@ -299,9 +340,21 @@ export interface BroadcastProgramSettings {
   tips?: GroupFrequencySettings;
   announcements?: GroupFrequencySettings;
   music?: GroupFrequencySettings;
+  // Dynamically allow any audio group by name
+  [audioGroupName: string]: GroupFrequencySettings | undefined;
 }
 
 export interface PlaylistItem {
   audioFileId: number;
   playTime: string; // HH:MM format
 }
+
+export const insertSupermarketTypeSchema = createInsertSchema(supermarketTypes).omit({
+  id: true,
+});
+
+export const session = pgTable("session", {
+  sid: text("sid").primaryKey(),
+  sess: json("sess").notNull(),
+  expire: timestamp("expire", { precision: 6, mode: "date" }).notNull(),
+});

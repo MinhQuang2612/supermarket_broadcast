@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AudioFile } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -60,6 +60,8 @@ export default function AudioManagement() {
   const [showBulkGroupChangeDialog, setShowBulkGroupChangeDialog] = useState(false);
   const [showBulkDownloadDialog, setShowBulkDownloadDialog] = useState(false);
   const [showSingleGroupChangeDialog, setShowSingleGroupChangeDialog] = useState(false);
+  const [showConfirmBulkGroupChange, setShowConfirmBulkGroupChange] = useState(false);
+  const [showConfirmSingleGroupChange, setShowConfirmSingleGroupChange] = useState(false);
   const [selectedFile, setSelectedFile] = useState<AudioFile | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<AudioFile[]>([]);
   const [bulkChangeGroup, setBulkChangeGroup] = useState("greetings");
@@ -70,13 +72,44 @@ export default function AudioManagement() {
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadGroup, setUploadGroup] = useState("greetings");
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   
   // Fetch audio files
   const { data: audioFilesData, isLoading } = useQuery<{ audioFiles: AudioFile[], pagination: any }>({
-    queryKey: ['/api/audio-files'],
+    queryKey: ['/api/audio-files', page, pageSize, groupFilter, statusFilter, searchTerm],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('limit', pageSize.toString());
+      if (groupFilter !== "all") params.append('group', groupFilter);
+      if (statusFilter !== "all") params.append('status', statusFilter);
+      if (searchTerm) params.append('search', searchTerm);
+      const response = await fetch(`/api/audio-files?${params.toString()}`);
+      return await response.json();
+    },
+    placeholderData: previous => previous,
   });
   
   const audioFiles = audioFilesData?.audioFiles || [];
+  const pagination = audioFilesData?.pagination || { page: 1, totalPages: 1, total: 0, limit: pageSize };
+
+  // Fetch audio groups
+  const { data: audioGroups = [] } = useQuery<{ id: number, name: string, frequency: number }[]>({
+    queryKey: ['/api/audio-groups'],
+  });
+
+  // Hàm chuyển đổi từ tên nhóm sang ID nhóm
+  const getAudioGroupIdByName = (name: string): number => {
+    const group = audioGroups.find(g => g.name === name);
+    return group?.id || 1; // Trả về ID 1 (music) nếu không tìm thấy
+  };
+
+  // Hàm chuyển đổi từ ID nhóm sang tên nhóm
+  const getAudioGroupNameById = (id: number): string => {
+    const group = audioGroups.find(g => g.id === id);
+    return group?.name || 'music';
+  };
 
   // Upload audio mutation
   const uploadAudioMutation = useMutation({
@@ -84,7 +117,7 @@ export default function AudioManagement() {
       const formData = new FormData();
       formData.append("audioFile", file);
       formData.append("displayName", file.name.replace(/\.[^/.]+$/, ""));
-      formData.append("group", group);
+      formData.append("audioGroupId", getAudioGroupIdByName(group).toString());
       
       // Get audio duration (if possible)
       const duration = await getAudioDuration(file);
@@ -304,7 +337,7 @@ export default function AudioManagement() {
     } else if (action === "delete") {
       setShowDeleteDialog(true);
     } else if (action === "changeGroup") {
-      setSingleChangeGroup(file.group);
+      setSingleChangeGroup(getAudioGroupNameById(file.audioGroupId));
       setShowSingleGroupChangeDialog(true);
     }
   };
@@ -372,7 +405,7 @@ export default function AudioManagement() {
   const performBulkGroupChange = () => {
     // Sử dụng Promise.all để thay đổi nhóm cho tất cả các file đã chọn
     const updatePromises = selectedFiles.map(file => 
-      apiRequest('PATCH', `/api/audio-files/${file.id}/group`, { group: bulkChangeGroup })
+      apiRequest('PATCH', `/api/audio-files/${file.id}/group`, { audioGroupId: getAudioGroupIdByName(bulkChangeGroup) })
     );
     
     Promise.all(updatePromises)
@@ -398,7 +431,7 @@ export default function AudioManagement() {
   const performSingleGroupChange = () => {
     if (!selectedFile) return;
     
-    apiRequest('PATCH', `/api/audio-files/${selectedFile.id}/group`, { group: singleChangeGroup })
+    apiRequest('PATCH', `/api/audio-files/${selectedFile.id}/group`, { audioGroupId: getAudioGroupIdByName(singleChangeGroup) })
       .then(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/audio-files'] });
         setShowSingleGroupChangeDialog(false);
@@ -505,7 +538,8 @@ export default function AudioManagement() {
 
   // Filter files based on filters and search term
   const filteredFiles = audioFiles.filter(file => {
-    const matchesGroup = groupFilter === "all" || file.group === groupFilter;
+    const groupName = getAudioGroupNameById(file.audioGroupId);
+    const matchesGroup = groupFilter === "all" || groupName === groupFilter;
     const matchesStatus = statusFilter === "all" || file.status === statusFilter;
     const matchesSearch = 
       file.displayName.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -513,6 +547,35 @@ export default function AudioManagement() {
     
     return matchesGroup && matchesStatus && matchesSearch;
   });
+
+  // Xác nhận cập nhật nhóm hàng loạt
+  const confirmBulkGroupChange = () => {
+    setShowConfirmBulkGroupChange(true);
+  };
+
+  // Thực hiện cập nhật nhóm hàng loạt sau xác nhận
+  const doBulkGroupChange = () => {
+    setShowConfirmBulkGroupChange(false);
+    performBulkGroupChange();
+  };
+
+  // Single group change function
+  const handleSingleGroupChange = () => {
+    setShowConfirmSingleGroupChange(true);
+  };
+
+  // Thực hiện cập nhật nhóm đơn sau xác nhận
+  const doSingleGroupChange = () => {
+    setShowConfirmSingleGroupChange(false);
+    performSingleGroupChange();
+  };
+
+  useEffect(() => {
+    if (!showUploadDialog) {
+      setUploadFiles([]);
+      setUploadProgress(0);
+    }
+  }, [showUploadDialog]);
 
   return (
     <DashboardLayout>
@@ -544,11 +607,11 @@ export default function AudioManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tất cả nhóm</SelectItem>
-                  <SelectItem value="greetings">Lời chào</SelectItem>
-                  <SelectItem value="promotions">Khuyến mãi</SelectItem>
-                  <SelectItem value="tips">Mẹo vặt</SelectItem>
-                  <SelectItem value="announcements">Thông báo</SelectItem>
-                  <SelectItem value="music">Nhạc</SelectItem>
+                  {audioGroups.map(group => (
+                    <SelectItem key={group.id} value={group.name}>
+                      {formatGroup(group.name)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -618,9 +681,10 @@ export default function AudioManagement() {
                 accessorKey: "displayName",
                 cell: ({ row }) => {
                   const file = row.original as AudioFile;
-                  const color = file.group === "greetings" ? "text-primary" :
-                                file.group === "promotions" ? "text-accent" :
-                                file.group === "tips" ? "text-success" : "text-neutral-dark";
+                  const groupName = getAudioGroupNameById(file.audioGroupId);
+                  const color = groupName === "greetings" ? "text-primary" :
+                                groupName === "promotions" ? "text-accent" :
+                                groupName === "tips" ? "text-success" : "text-neutral-dark";
                   
                   return (
                     <div className="flex items-center">
@@ -639,14 +703,15 @@ export default function AudioManagement() {
               },
               {
                 header: "Nhóm",
-                accessorKey: "group",
+                accessorKey: "audioGroupId",
                 cell: ({ row }) => {
-                  const group = row.getValue("group") as string;
-                  const badgeClass = getGroupBadgeClass(group);
+                  const groupId = row.getValue("audioGroupId") as number;
+                  const groupName = getAudioGroupNameById(groupId);
+                  const badgeClass = getGroupBadgeClass(groupName);
                   
                   return (
                     <Badge variant="outline" className={badgeClass}>
-                      {formatGroup(group)}
+                      {formatGroup(groupName)}
                     </Badge>
                   );
                 },
@@ -755,11 +820,13 @@ export default function AudioManagement() {
             ]}
             data={filteredFiles}
             isLoading={isLoading}
+            serverSidePagination={{
+              totalItems: pagination.total,
+              currentPage: pagination.page,
+              onPageChange: (p) => setPage(p)
+            }}
+            pageSize={pageSize}
           />
-          
-
-          
-          {/* Bulk Actions */}
           {selectedFiles.length > 0 && (
             <div className="mt-4 p-4 bg-white rounded-lg shadow">
               <h3 className="font-semibold mb-4">Thao tác hàng loạt ({selectedFiles.length} file được chọn)</h3>
@@ -772,7 +839,6 @@ export default function AudioManagement() {
                   <Trash2 className="mr-2 h-4 w-4" />
                   Xóa file đã chọn
                 </Button>
-                
                 <Button 
                   variant="outline" 
                   onClick={handleBulkGroupChange}
@@ -781,7 +847,6 @@ export default function AudioManagement() {
                   <FolderEdit className="mr-2 h-4 w-4" />
                   Thay đổi nhóm
                 </Button>
-                
                 <Button 
                   variant="outline" 
                   onClick={handleBulkDownload}
@@ -821,11 +886,11 @@ export default function AudioManagement() {
                   <SelectValue placeholder="Chọn nhóm" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="greetings">Lời chào</SelectItem>
-                  <SelectItem value="promotions">Khuyến mãi</SelectItem>
-                  <SelectItem value="tips">Mẹo vặt</SelectItem>
-                  <SelectItem value="announcements">Thông báo</SelectItem>
-                  <SelectItem value="music">Nhạc</SelectItem>
+                  {audioGroups.map(group => (
+                    <SelectItem key={group.id} value={group.name}>
+                      {formatGroup(group.name)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -878,8 +943,8 @@ export default function AudioManagement() {
           {selectedFile && (
             <div className="space-y-4">
               <div className="flex items-center justify-center">
-                <Badge variant="outline" className={getGroupBadgeClass(selectedFile.group)}>
-                  {formatGroup(selectedFile.group)}
+                <Badge variant="outline" className={getGroupBadgeClass(getAudioGroupNameById(selectedFile.audioGroupId))}>
+                  {formatGroup(getAudioGroupNameById(selectedFile.audioGroupId))}
                 </Badge>
               </div>
               
@@ -957,17 +1022,27 @@ export default function AudioManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Hiển thị danh sách tên file đã chọn */}
+            <div className="space-y-2">
+              <Label>Danh sách file đã chọn</Label>
+              <div className="max-h-32 overflow-y-auto border rounded p-2 bg-neutral-lightest">
+                {selectedFiles.map(file => (
+                  <div key={file.id} className="text-sm text-neutral-dark py-0.5">
+                    {file.displayName}
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Nhóm hiện tại</Label>
               <div className="flex flex-wrap gap-2">
-                {Array.from(new Set(selectedFiles.map(file => file.group))).map(group => (
+                {Array.from(new Set(selectedFiles.map(file => getAudioGroupNameById(file.audioGroupId)))).map(group => (
                   <Badge key={group} className={getGroupBadgeClass(group)}>
                     {formatGroup(group)}
                   </Badge>
                 ))}
               </div>
             </div>
-            
             <div className="space-y-2">
               <Label>Chọn nhóm mới</Label>
               <Select value={bulkChangeGroup} onValueChange={setBulkChangeGroup}>
@@ -975,21 +1050,31 @@ export default function AudioManagement() {
                   <SelectValue placeholder="Chọn nhóm" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="greetings">Lời chào</SelectItem>
-                  <SelectItem value="promotions">Khuyến mãi</SelectItem>
-                  <SelectItem value="tips">Mẹo vặt</SelectItem>
-                  <SelectItem value="announcements">Thông báo</SelectItem>
-                  <SelectItem value="music">Nhạc</SelectItem>
+                  {audioGroups.map(group => (
+                    <SelectItem key={group.id} value={group.name}>
+                      {formatGroup(group.name)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowBulkGroupChangeDialog(false)}>Hủy</Button>
-            <Button onClick={performBulkGroupChange}>Cập nhật nhóm</Button>
+            <Button onClick={confirmBulkGroupChange}>Cập nhật nhóm</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Xác nhận cập nhật nhóm hàng loạt */}
+      <ConfirmDialog
+        open={showConfirmBulkGroupChange}
+        onOpenChange={setShowConfirmBulkGroupChange}
+        title="Xác nhận cập nhật nhóm"
+        description={`Bạn có chắc chắn muốn cập nhật nhóm cho ${selectedFiles.length} file đã chọn?`}
+        confirmText="Cập nhật"
+        cancelText="Hủy"
+        onConfirm={doBulkGroupChange}
+      />
       
       {/* Single Group Change Dialog */}
       <Dialog open={showSingleGroupChangeDialog} onOpenChange={setShowSingleGroupChangeDialog}>
@@ -1007,14 +1092,12 @@ export default function AudioManagement() {
                   <Label className="text-neutral-medium mb-1 block">Tên file</Label>
                   <div className="font-medium text-sm">{selectedFile.displayName}</div>
                 </div>
-                
                 <div className="space-y-2">
                   <Label>Nhóm hiện tại</Label>
-                  <Badge className={getGroupBadgeClass(selectedFile.group)}>
-                    {formatGroup(selectedFile.group)}
+                  <Badge className={getGroupBadgeClass(getAudioGroupNameById(selectedFile.audioGroupId))}>
+                    {formatGroup(getAudioGroupNameById(selectedFile.audioGroupId))}
                   </Badge>
                 </div>
-                
                 <div className="space-y-2">
                   <Label>Chọn nhóm mới</Label>
                   <Select value={singleChangeGroup} onValueChange={setSingleChangeGroup}>
@@ -1022,11 +1105,11 @@ export default function AudioManagement() {
                       <SelectValue placeholder="Chọn nhóm" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="greetings">Lời chào</SelectItem>
-                      <SelectItem value="promotions">Khuyến mãi</SelectItem>
-                      <SelectItem value="tips">Mẹo vặt</SelectItem>
-                      <SelectItem value="announcements">Thông báo</SelectItem>
-                      <SelectItem value="music">Nhạc</SelectItem>
+                      {audioGroups.map(group => (
+                        <SelectItem key={group.id} value={group.name}>
+                          {formatGroup(group.name)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1035,10 +1118,20 @@ export default function AudioManagement() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSingleGroupChangeDialog(false)}>Hủy</Button>
-            <Button onClick={performSingleGroupChange}>Cập nhật nhóm</Button>
+            <Button onClick={handleSingleGroupChange}>Cập nhật nhóm</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Xác nhận cập nhật nhóm đơn */}
+      <ConfirmDialog
+        open={showConfirmSingleGroupChange}
+        onOpenChange={setShowConfirmSingleGroupChange}
+        title="Xác nhận cập nhật nhóm"
+        description={selectedFile ? `Bạn có chắc chắn muốn cập nhật nhóm cho file "${selectedFile.displayName}"?` : "Bạn có chắc chắn muốn cập nhật nhóm?"}
+        confirmText="Cập nhật"
+        cancelText="Hủy"
+        onConfirm={doSingleGroupChange}
+      />
       
       {/* Single File Download Confirmation Dialog */}
       <ConfirmDialog

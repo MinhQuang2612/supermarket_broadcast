@@ -29,6 +29,9 @@ import {
   broadcastAssignments,
   BroadcastAssignment,
   InsertBroadcastAssignment,
+  SupermarketType,
+  AudioGroup,
+  InsertAudioGroup,
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -84,6 +87,7 @@ export interface IStorage {
   updateSupermarketStatus(id: number, status: string): Promise<void>;
   updateSupermarketCurrentProgram(id: number, programName: string | null): Promise<void>;
   getSupermarketCount(): Promise<number>;
+  getAllSupermarketTypes(): Promise<SupermarketType[]>;
   
   // Audio file operations
   createAudioFile(audioFile: InsertAudioFile): Promise<AudioFile>;
@@ -119,6 +123,15 @@ export interface IStorage {
   updateBroadcastAssignment(id: number, assignment: Partial<InsertBroadcastAssignment>): Promise<BroadcastAssignment>;
   deleteBroadcastAssignment(id: number): Promise<void>;
   
+  // Audio Group operations
+  createAudioGroup(groupData: InsertAudioGroup): Promise<AudioGroup>;
+  getAudioGroup(id: number): Promise<AudioGroup | undefined>;
+  getAudioGroupByName(name: string): Promise<AudioGroup | undefined>;
+  getAllAudioGroups(): Promise<AudioGroup[]>;
+  updateAudioGroup(id: number, groupData: Partial<InsertAudioGroup>): Promise<AudioGroup>;
+  deleteAudioGroup(id: number): Promise<void>;
+  updateAudioGroupFrequency(id: number, frequency: number): Promise<void>;
+  
   // Session storage
   sessionStore: session.Store;
 }
@@ -134,6 +147,7 @@ export class MemStorage implements IStorage {
   private broadcastProgramsMap: Map<number, BroadcastProgram>;
   private playlistsMap: Map<number, Playlist>;
   private broadcastAssignmentsMap: Map<number, BroadcastAssignment>;
+  private audioGroupsMap: Map<number, AudioGroup>;
   
   // Current IDs
   private userIdCounter: number;
@@ -146,6 +160,7 @@ export class MemStorage implements IStorage {
   private broadcastProgramIdCounter: number;
   private playlistIdCounter: number;
   private broadcastAssignmentIdCounter: number;
+  private audioGroupIdCounter: number;
   
   // Session store
   sessionStore: session.Store;
@@ -162,6 +177,7 @@ export class MemStorage implements IStorage {
     this.broadcastProgramsMap = new Map();
     this.playlistsMap = new Map();
     this.broadcastAssignmentsMap = new Map();
+    this.audioGroupsMap = new Map();
     
     // Initialize ID counters
     this.userIdCounter = 1;
@@ -174,6 +190,7 @@ export class MemStorage implements IStorage {
     this.broadcastProgramIdCounter = 1;
     this.playlistIdCounter = 1;
     this.broadcastAssignmentIdCounter = 1;
+    this.audioGroupIdCounter = 1;
     
     // Initialize session store
     this.sessionStore = new MemoryStore({
@@ -466,6 +483,14 @@ export class MemStorage implements IStorage {
     return this.supermarketsMap.size;
   }
 
+  async getAllSupermarketTypes(): Promise<SupermarketType[]> {
+    return [
+      { id: 1, name: "general", displayName: "Siêu thị lớn" },
+      { id: 2, name: "mini", displayName: "Siêu thị mini" },
+      { id: 3, name: "hyper", displayName: "Siêu thị hyper" },
+    ];
+  }
+
   // Audio file operations
   async createAudioFile(audioFileData: InsertAudioFile): Promise<AudioFile> {
     const id = this.audioFileIdCounter++;
@@ -662,6 +687,62 @@ export class MemStorage implements IStorage {
 
   async deleteBroadcastAssignment(id: number): Promise<void> {
     this.broadcastAssignmentsMap.delete(id);
+  }
+
+  // Audio Group operations
+  async createAudioGroup(groupData: InsertAudioGroup): Promise<AudioGroup> {
+    const id = this.audioGroupIdCounter++;
+    const createdAt = new Date();
+    
+    const group: AudioGroup = {
+      ...groupData,
+      id,
+      createdAt,
+    };
+    
+    this.audioGroupsMap.set(id, group);
+    return group;
+  }
+
+  async getAudioGroup(id: number): Promise<AudioGroup | undefined> {
+    return this.audioGroupsMap.get(id);
+  }
+
+  async getAudioGroupByName(name: string): Promise<AudioGroup | undefined> {
+    return Array.from(this.audioGroupsMap.values()).find(
+      (group) => group.name === name
+    );
+  }
+
+  async getAllAudioGroups(): Promise<AudioGroup[]> {
+    return Array.from(this.audioGroupsMap.values());
+  }
+
+  async updateAudioGroup(id: number, groupData: Partial<InsertAudioGroup>): Promise<AudioGroup> {
+    const existingGroup = this.audioGroupsMap.get(id);
+    if (!existingGroup) {
+      throw new Error("Audio group not found");
+    }
+    
+    const updatedGroup: AudioGroup = {
+      ...existingGroup,
+      ...groupData,
+    };
+    
+    this.audioGroupsMap.set(id, updatedGroup);
+    return updatedGroup;
+  }
+
+  async deleteAudioGroup(id: number): Promise<void> {
+    this.audioGroupsMap.delete(id);
+  }
+
+  async updateAudioGroupFrequency(id: number, frequency: number): Promise<void> {
+    const group = this.audioGroupsMap.get(id);
+    if (group) {
+      group.frequency = frequency;
+      this.audioGroupsMap.set(id, group);
+    }
   }
 }
 

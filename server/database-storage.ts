@@ -2,12 +2,15 @@ import { IStorage } from './storage';
 import { db } from './db';
 import { 
   users, activityLogs, regions, provinces, communes, supermarkets, audioFiles, 
-  broadcastPrograms, playlists, broadcastAssignments,
-  User, ActivityLog, Region, Province, Commune, Supermarket, AudioFile, 
-  BroadcastProgram, Playlist, BroadcastAssignment,
+  broadcastPrograms, playlists, broadcastAssignments, audioGroups, supermarketTypes,
   InsertUser, InsertActivityLog, InsertRegion, InsertProvince, InsertCommune,
-  InsertSupermarket, InsertAudioFile, InsertBroadcastProgram, 
-  InsertPlaylist, InsertBroadcastAssignment
+  InsertSupermarket, InsertAudioFile, InsertBroadcastProgram, InsertPlaylist, 
+  InsertBroadcastAssignment, InsertAudioGroup
+} from '@shared/schema';
+import type { 
+  User, ActivityLog, Region, Province, Commune, Supermarket, AudioFile, 
+  BroadcastProgram, Playlist, BroadcastAssignment, PlaylistItem, 
+  BroadcastProgramSettings, SupermarketType, AudioGroup 
 } from '@shared/schema';
 import { eq, and, desc, gte, sql } from 'drizzle-orm';
 import connectPg from "connect-pg-simple";
@@ -636,6 +639,74 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(broadcastAssignments)
       .where(eq(broadcastAssignments.id, id));
+  }
+
+  async getAllSupermarketTypes() {
+    try {
+      console.log("Storage: Fetching all supermarket types from database");
+      const types = await db.select().from(supermarketTypes);
+      console.log("Storage: Found supermarket types:", JSON.stringify(types));
+      return types;
+    } catch (error) {
+      console.error("Storage: Error fetching supermarket types:", error);
+      // Trả về mảng rỗng nếu có lỗi để tránh làm crash API
+      return [];
+    }
+  }
+
+  // Audio Group operations
+  async createAudioGroup(groupData: InsertAudioGroup): Promise<AudioGroup> {
+    const [group] = await db
+      .insert(audioGroups)
+      .values(groupData)
+      .returning();
+    
+    return group;
+  }
+
+  async getAudioGroup(id: number): Promise<AudioGroup | undefined> {
+    const [group] = await db
+      .select()
+      .from(audioGroups)
+      .where(eq(audioGroups.id, id));
+    
+    return group;
+  }
+
+  async getAudioGroupByName(name: string): Promise<AudioGroup | undefined> {
+    const [group] = await db
+      .select()
+      .from(audioGroups)
+      .where(eq(audioGroups.name, name));
+    
+    return group;
+  }
+
+  async getAllAudioGroups(): Promise<AudioGroup[]> {
+    return db.select().from(audioGroups);
+  }
+
+  async updateAudioGroup(id: number, groupData: Partial<InsertAudioGroup>): Promise<AudioGroup> {
+    const [group] = await db
+      .update(audioGroups)
+      .set(groupData)
+      .where(eq(audioGroups.id, id))
+      .returning();
+    
+    return group;
+  }
+
+  async deleteAudioGroup(id: number): Promise<void> {
+    await db
+      .delete(audioGroups)
+      .where(eq(audioGroups.id, id));
+  }
+
+  async updateAudioGroupFrequency(id: number, frequency: number): Promise<void> {
+    await db
+      .update(audioGroups)
+      .set({ frequency })
+      .where(eq(audioGroups.id, id));
   }
 }
 

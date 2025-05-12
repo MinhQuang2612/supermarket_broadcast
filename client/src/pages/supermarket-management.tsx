@@ -58,6 +58,7 @@ const formSchema = insertSupermarketSchema.extend({
   regionId: z.number().min(1, { message: "Vui lòng chọn khu vực" }),
   provinceId: z.number().min(1, { message: "Vui lòng chọn tỉnh/thành phố" }),
   communeId: z.number().min(1, { message: "Vui lòng chọn quận/huyện" }),
+  supermarketTypeId: z.number().min(1, { message: "Vui lòng chọn loại siêu thị" }),
 });
 
 type SupermarketFormValues = z.infer<typeof formSchema>;
@@ -170,6 +171,33 @@ export default function SupermarketManagement() {
     enabled: !!selectedProvinceId,
   });
 
+  // Fetch supermarket types
+  const { data: supermarketTypes = [] } = useQuery({
+    queryKey: ['/api/supermarket-types'],
+    queryFn: async () => {
+      try {
+        console.log("Fetching supermarket types...");
+        const res = await fetch('/api/supermarket-types');
+        if (!res.ok) {
+          console.error("Failed to fetch supermarket types:", res.status, res.statusText);
+          throw new Error('Failed to fetch supermarket types');
+        }
+        const data = await res.json();
+        console.log("Fetched supermarket types:", data);
+        return data;
+      } catch (error) {
+        console.error("Error fetching supermarket types:", error);
+        return [];
+      }
+    },
+  });
+
+  // Log supermarket types data for debugging
+  useEffect(() => {
+    console.log("Current supermarket types:", supermarketTypes);
+    console.log("Current supermarkets:", supermarkets);
+  }, [supermarketTypes, supermarkets]);
+
   // Form for creating/editing supermarkets
   const form = useForm<SupermarketFormValues>({
     resolver: zodResolver(formSchema),
@@ -180,6 +208,7 @@ export default function SupermarketManagement() {
       regionId: 0,
       provinceId: 0,
       communeId: 0,
+      supermarketTypeId: 0,
     },
   });
   
@@ -331,6 +360,7 @@ export default function SupermarketManagement() {
       regionId: 0,
       provinceId: 0,
       communeId: 0,
+      supermarketTypeId: 0,
     });
     setShowDialog(true);
   };
@@ -351,6 +381,7 @@ export default function SupermarketManagement() {
       regionId: supermarket.regionId || 0,
       provinceId: supermarket.provinceId || 0,
       communeId: supermarket.communeId || 0,
+      supermarketTypeId: supermarket.supermarketTypeId || 0,
     });
     setShowDialog(true);
   };
@@ -709,6 +740,19 @@ export default function SupermarketManagement() {
                 },
               },
               {
+                header: "Loại siêu thị",
+                accessorKey: "supermarketTypeId",
+                cell: ({ row }) => {
+                  const typeId = row.getValue("supermarketTypeId");
+                  const type = supermarketTypes.find((t: any) => t.id === typeId);
+                  return (
+                    <div className="text-sm text-neutral-dark">
+                      {type ? type.displayName : "—"}
+                    </div>
+                  );
+                },
+              },
+              {
                 header: "Thao tác",
                 id: "actions",
                 cell: ({ row }) => {
@@ -934,6 +978,34 @@ export default function SupermarketManagement() {
                           <SelectItem value="paused">Tạm dừng</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="supermarketTypeId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Loại siêu thị</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value ? String(field.value) : ''}
+                          onValueChange={v => field.onChange(Number(v))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn loại siêu thị" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {supermarketTypes.map((type: any) => (
+                              <SelectItem key={type.id} value={String(type.id)}>
+                                {type.displayName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

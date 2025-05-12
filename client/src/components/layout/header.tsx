@@ -6,9 +6,10 @@ import { useLocation } from "wouter";
 interface HeaderProps {
   title: string;
   onMobileMenuToggle?: () => void;
+  onOpenChangePassword?: () => void;
 }
 
-export default function Header({ title, onMobileMenuToggle }: HeaderProps) {
+export default function Header({ title, onMobileMenuToggle, onOpenChangePassword }: HeaderProps) {
   const [hasNotifications] = useState(true);
   
   // Determine page title based on current route
@@ -57,7 +58,7 @@ export default function Header({ title, onMobileMenuToggle }: HeaderProps) {
             <span className="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full"></span>
           )}
         </Button>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" onClick={onOpenChangePassword}>
           <Settings className="h-5 w-5 text-neutral-dark" />
         </Button>
       </div>

@@ -19,6 +19,7 @@ import {
   audioFiles
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 // Configure multer for file uploads
 const audioUpload = multer({
@@ -450,7 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Parse header
       const header = lines[0].split(',').map(item => item.trim());
-      const requiredFields = ['name', 'address', 'regionId', 'provinceId', 'communeId', 'status'];
+      const requiredFields = ['name', 'address', 'regionId', 'provinceId', 'communeId', 'status', 'supermarketTypeId'];
       
       // Check if all required fields are in the header
       const missingFields = requiredFields.filter(field => !header.includes(field));
@@ -518,7 +519,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           regionId: regionId,
           provinceId: provinceId,
           communeId: communeId,
-          status: rowData.status || 'active' // Use provided status or default to active
+          status: rowData.status || 'active', // Use provided status or default to active
+          supermarketTypeId: parseInt(rowData.supermarketTypeId)
         };
         
         // Validate the data
@@ -833,7 +835,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         duration: parseInt(req.body.duration) || 0, // In seconds
         sampleRate: sampleRate, // Add the sample rate
         fileType: req.file.mimetype,
-        group: req.body.group,
+        audioGroupId: parseInt(req.body.audioGroupId) || 1, // Sử dụng audioGroupId thay vì group, mặc định là 1 (music)
         status: "unused",
         uploadedBy: req.user.id,
       };
@@ -911,16 +913,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/audio-files/:id/group", isManagerOrAdmin, async (req, res, next) => {
     try {
       const audioFileId = parseInt(req.params.id);
-      const { group } = req.body;
+      const { audioGroupId } = req.body;
       
-      if (!group) {
-        return res.status(400).json({ message: "Nhóm không được để trống" });
+      if (!audioGroupId) {
+        return res.status(400).json({ message: "ID nhóm không được để trống" });
       }
       
       const audioFile = await storage.getAudioFile(audioFileId);
-      
       if (!audioFile) {
         return res.status(404).json({ message: "Không tìm thấy file âm thanh" });
+      }
+      
+      // Verify audio group exists
+      const audioGroup = await storage.getAudioGroup(audioGroupId);
+      if (!audioGroup) {
+        return res.status(404).json({ message: "Không tìm thấy nhóm audio" });
       }
       
       // Check if file is being used in playlists
@@ -930,16 +937,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Get old group for logging
+      const oldGroup = await storage.getAudioGroup(audioFile.audioGroupId);
+      const oldGroupName = oldGroup ? oldGroup.name : "Không có nhóm";
+      
       // Update the file's group in database
       await db.update(audioFiles)
-        .set({ group })
+        .set({ audioGroupId })
         .where(eq(audioFiles.id, audioFileId));
       
       // Log the activity
       await storage.createActivityLog({
         userId: req.user.id,
         action: "update_audio_group",
-        details: `Thay đổi nhóm của file "${audioFile.displayName}" từ "${audioFile.group}" thành "${group}"`,
+        details: `Thay đổi nhóm của file "${audioFile.displayName}" từ "${oldGroupName}" thành "${audioGroup.name}"`,
       });
       
       res.status(200).json({ message: "Cập nhật nhóm thành công" });
@@ -2106,6 +2117,388 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error resetting audio statuses:", error);
       next(error);
+    }
+  });
+
+  app.get("/api/supermarket-types", async (req, res, next) => {
+    try {
+      console.log("GET /api/supermarket-types - Đang xử lý request");
+      const types = await storage.getAllSupermarketTypes();
+      console.log("GET /api/supermarket-types - Đã lấy dữ liệu:", JSON.stringify(types));
+      
+      // Đảm bảo trả về mảng trống nếu không có dữ liệu
+      if (!types || !Array.isArray(types)) {
+        console.log("GET /api/supermarket-types - Không có dữ liệu hoặc không phải mảng, trả về mảng trống");
+        return res.json([]);
+      }
+      
+      res.json(types);
+      console.log("GET /api/supermarket-types - Đã trả về dữ liệu thành công");
+    } catch (error) {
+      console.error("GET /api/supermarket-types - Lỗi:", error);
+      // Trả về lỗi 500 với thông tin chi tiết
+      res.status(500).json({ 
+        message: "Lỗi khi lấy danh sách loại siêu thị", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
+
+  // Audio Group Routes
+  app.get("/api/audio-groups", isAuthenticated, async (req, res, next) => {
+    try {
+      const groups = await storage.getAllAudioGroups();
+      res.json(groups);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/audio-groups/:id", isAuthenticated, async (req, res, next) => {
+    try {
+      const groupId = parseInt(req.params.id);
+      const group = await storage.getAudioGroup(groupId);
+      
+      if (!group) {
+        return res.status(404).json({ message: "Không tìm thấy nhóm audio" });
+      }
+      
+      res.json(group);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/audio-groups", isManagerOrAdmin, async (req, res, next) => {
+    try {
+      const { name, frequency } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Tên nhóm không được để trống" });
+      }
+      
+      // Check if group already exists
+      const existingGroup = await storage.getAudioGroupByName(name);
+      if (existingGroup) {
+        return res.status(400).json({ message: "Nhóm audio với tên này đã tồn tại" });
+      }
+      
+      const group = await storage.createAudioGroup({ 
+        name, 
+        frequency: frequency || 1 
+      });
+      
+      // Log the activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "create_audio_group",
+        details: `Tạo nhóm audio mới: ${name}`,
+      });
+      
+      res.status(201).json(group);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.put("/api/audio-groups/:id", isManagerOrAdmin, async (req, res, next) => {
+    try {
+      const groupId = parseInt(req.params.id);
+      const { name, frequency } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Tên nhóm không được để trống" });
+      }
+      
+      const existingGroup = await storage.getAudioGroup(groupId);
+      if (!existingGroup) {
+        return res.status(404).json({ message: "Không tìm thấy nhóm audio" });
+      }
+      
+      // Check if new name already exists (if name is being changed)
+      if (name !== existingGroup.name) {
+        const nameExists = await storage.getAudioGroupByName(name);
+        if (nameExists) {
+          return res.status(400).json({ message: "Nhóm audio với tên này đã tồn tại" });
+        }
+      }
+      
+      const updatedGroup = await storage.updateAudioGroup(groupId, { name, frequency });
+      
+      // Log the activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "update_audio_group",
+        details: `Cập nhật nhóm audio: ${existingGroup.name} -> ${name}`,
+      });
+      
+      res.json(updatedGroup);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.delete("/api/audio-groups/:id", isManagerOrAdmin, async (req, res, next) => {
+    try {
+      const groupId = parseInt(req.params.id);
+      
+      const group = await storage.getAudioGroup(groupId);
+      if (!group) {
+        return res.status(404).json({ message: "Không tìm thấy nhóm audio" });
+      }
+      
+      // Check if group is being used by any audio files
+      const audioFiles = await storage.getAllAudioFiles();
+      const usedFiles = audioFiles.filter(file => file.audioGroupId === groupId);
+      
+      if (usedFiles.length > 0) {
+        return res.status(400).json({ 
+          message: "Không thể xóa nhóm đang được sử dụng bởi các file âm thanh",
+          usedCount: usedFiles.length
+        });
+      }
+      
+      await storage.deleteAudioGroup(groupId);
+      
+      // Log the activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "delete_audio_group",
+        details: `Xóa nhóm audio: ${group.name}`,
+      });
+      
+      res.status(200).json({ message: "Đã xóa nhóm thành công" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Update audio file group
+  app.patch("/api/audio-files/:id/group", isManagerOrAdmin, async (req, res, next) => {
+    try {
+      const audioFileId = parseInt(req.params.id);
+      const { audioGroupId } = req.body;
+      
+      if (!audioGroupId) {
+        return res.status(400).json({ message: "ID nhóm không được để trống" });
+      }
+      
+      const audioFile = await storage.getAudioFile(audioFileId);
+      if (!audioFile) {
+        return res.status(404).json({ message: "Không tìm thấy file âm thanh" });
+      }
+      
+      // Verify audio group exists
+      const audioGroup = await storage.getAudioGroup(audioGroupId);
+      if (!audioGroup) {
+        return res.status(404).json({ message: "Không tìm thấy nhóm audio" });
+      }
+      
+      // Check if file is being used in playlists
+      if (audioFile.status === "used") {
+        return res.status(400).json({ 
+          message: "Không thể thay đổi nhóm của file đang được sử dụng trong playlist" 
+        });
+      }
+      
+      // Get old group for logging
+      const oldGroup = await storage.getAudioGroup(audioFile.audioGroupId);
+      const oldGroupName = oldGroup ? oldGroup.name : "Không có nhóm";
+      
+      // Update the file's group in database
+      await db.update(audioFiles)
+        .set({ audioGroupId })
+        .where(eq(audioFiles.id, audioFileId));
+      
+      // Log the activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "update_audio_group",
+        details: `Thay đổi nhóm của file "${audioFile.displayName}" từ "${oldGroupName}" thành "${audioGroup.name}"`,
+      });
+      
+      res.status(200).json({ message: "Cập nhật nhóm thành công" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Thêm migration script
+  app.post("/api/audio-groups/migrate", isAdmin, async (req, res, next) => {
+    try {
+      // 1. Lấy tất cả audio files
+      const allFiles = await storage.getAllAudioFiles();
+      
+      // 2. Tạo bản đồ tracking các group names đã được tạo
+      const groupMap = new Map<string, number>();
+      
+      // 3. Lấy tất cả audio groups hiện có
+      const existingGroups = await storage.getAllAudioGroups();
+      existingGroups.forEach(group => {
+        groupMap.set(group.name, group.id);
+      });
+      
+      // 4. Danh sách các group cần tạo
+      const defaultGroups = ['greetings', 'promotions', 'tips', 'announcements', 'music'];
+      
+      // 5. Tạo các nhóm mặc định nếu chưa tồn tại
+      for (const groupName of defaultGroups) {
+        if (!groupMap.has(groupName)) {
+          const newGroup = await storage.createAudioGroup({
+            name: groupName,
+            frequency: 1
+          });
+          groupMap.set(groupName, newGroup.id);
+          
+          // Log việc tạo nhóm
+          await storage.createActivityLog({
+            userId: req.user.id,
+            action: "create_audio_group",
+            details: `Tạo nhóm audio mặc định: ${groupName}`,
+          });
+        }
+      }
+      
+      // 6. Cập nhật tất cả các audio files
+      const results = {
+        total: allFiles.length,
+        updated: 0,
+        errors: 0,
+        skipped: 0
+      };
+      
+      for (const file of allFiles) {
+        try {
+          // Kiểm tra xem file có trường group cũ không
+          if ((file as any).group) {
+            const groupName = (file as any).group;
+            
+            // Kiểm tra xem nhóm có tồn tại không
+            if (!groupMap.has(groupName)) {
+              // Tạo nhóm mới nếu chưa tồn tại
+              const newGroup = await storage.createAudioGroup({
+                name: groupName,
+                frequency: 1
+              });
+              groupMap.set(groupName, newGroup.id);
+              
+              // Log việc tạo nhóm
+              await storage.createActivityLog({
+                userId: req.user.id,
+                action: "create_audio_group",
+                details: `Tạo nhóm audio từ migration: ${groupName}`,
+              });
+            }
+            
+            // Cập nhật file với audioGroupId mới
+            await db.update(audioFiles)
+              .set({ audioGroupId: groupMap.get(groupName) })
+              .where(eq(audioFiles.id, file.id));
+            
+            results.updated++;
+          } else if (!file.audioGroupId) {
+            // Nếu không có group cũ và không có audioGroupId mới, gán nhóm 'music' mặc định
+            await db.update(audioFiles)
+              .set({ audioGroupId: groupMap.get('music') })
+              .where(eq(audioFiles.id, file.id));
+            
+            results.updated++;
+          } else {
+            // File đã có audioGroupId
+            results.skipped++;
+          }
+        } catch (error) {
+          console.error(`Error updating file ${file.id}:`, error);
+          results.errors++;
+        }
+      }
+      
+      // 7. Log kết quả migration
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "migrate_audio_groups",
+        details: `Migration từ group sang audioGroupId: ${results.updated} files cập nhật, ${results.errors} lỗi, ${results.skipped} bỏ qua`,
+      });
+      
+      res.json({
+        message: "Migration thành công",
+        results
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // DEBUG route - temporary
+  app.get("/api/debug/check-audio-groups", async (req, res) => {
+    try {
+      // Kiểm tra xem bảng audio_groups có tồn tại không
+      const tableCheck = await db.execute(sql`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'audio_groups'
+        );
+      `);
+      
+      const tableExists = tableCheck.rows[0]?.exists || false;
+      
+      if (!tableExists) {
+        // Tạo bảng audio_groups nếu chưa tồn tại
+        await db.execute(sql`
+          -- Tạo bảng audio_groups
+          CREATE TABLE IF NOT EXISTS audio_groups (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            frequency INTEGER NOT NULL DEFAULT 1
+          );
+
+          -- Thêm trường mới vào bảng audio_files
+          ALTER TABLE audio_files ADD COLUMN IF NOT EXISTS audio_group_id INTEGER;
+
+          -- Tạo các nhóm audio mặc định
+          INSERT INTO audio_groups (name, frequency) VALUES
+            ('greetings', 1),
+            ('promotions', 1),
+            ('tips', 1),
+            ('announcements', 1),
+            ('music', 1)
+          ON CONFLICT (name) DO NOTHING;
+
+          -- Update audio_group_id dựa vào nhóm hiện tại
+          UPDATE audio_files SET audio_group_id = (
+            SELECT id FROM audio_groups WHERE name = audio_files.group
+          )
+          WHERE audio_files.group IS NOT NULL;
+
+          -- Đặt các file không có nhóm vào nhóm 'music'
+          UPDATE audio_files SET audio_group_id = (
+            SELECT id FROM audio_groups WHERE name = 'music'
+          )
+          WHERE audio_group_id IS NULL;
+
+          -- Đặt ràng buộc khóa ngoại (có thể bỏ qua nếu bạn không muốn)
+          ALTER TABLE audio_files 
+          ADD CONSTRAINT fk_audio_group 
+          FOREIGN KEY (audio_group_id) 
+          REFERENCES audio_groups(id);
+        `);
+        
+        return res.json({ 
+          message: "Bảng audio_groups đã được tạo thành công",
+          created: true 
+        });
+      }
+      
+      return res.json({ 
+        message: "Bảng audio_groups đã tồn tại",
+        created: false 
+      });
+    } catch (error) {
+      console.error("Lỗi khi kiểm tra/tạo bảng audio_groups:", error);
+      return res.status(500).json({ 
+        message: "Lỗi khi kiểm tra/tạo bảng audio_groups", 
+        error: error.message 
+      });
     }
   });
 

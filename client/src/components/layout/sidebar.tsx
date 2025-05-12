@@ -20,9 +20,10 @@ import {
 interface SidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
+  setCollapsed?: (collapsed: boolean) => void;
 }
 
-export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
+export default function Sidebar({ collapsed, onToggleCollapse, setCollapsed }: SidebarProps) {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
 
@@ -135,6 +136,10 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                       isActive ? "text-primary font-medium border-l-4 border-primary pl-1 sm:pl-2" : "",
                       collapsed && "justify-center"
                     )}
+                    onClick={e => {
+                      // Nếu sidebar đang thu nhỏ, không thay đổi trạng thái
+                      if (setCollapsed) setCollapsed(collapsed);
+                    }}
                   >
                     <span className={cn(
                       collapsed ? "" : "min-w-6",
