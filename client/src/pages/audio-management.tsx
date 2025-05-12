@@ -51,6 +51,8 @@ export default function AudioManagement() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [showChangeGroupDialog, setShowChangeGroupDialog] = useState(false);
+  const [newGroup, setNewGroup] = useState("");
   const [selectedFile, setSelectedFile] = useState<AudioFile | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<AudioFile[]>([]);
   const [groupFilter, setGroupFilter] = useState("all");
@@ -61,9 +63,11 @@ export default function AudioManagement() {
   const [uploadProgress, setUploadProgress] = useState(0);
   
   // Fetch audio files
-  const { data: audioFiles = [], isLoading } = useQuery<AudioFile[]>({
+  const { data: audioFilesData, isLoading } = useQuery<{ audioFiles: AudioFile[], pagination: any }>({
     queryKey: ['/api/audio-files'],
   });
+  
+  const audioFiles: AudioFile[] = audioFilesData?.audioFiles || [];
 
   // Upload audio mutation
   const uploadAudioMutation = useMutation({
@@ -180,6 +184,38 @@ export default function AudioManagement() {
     }
   };
 
+  // Change audio file group
+  const changeGroupMutation = useMutation({
+    mutationFn: async ({ id, group }: { id: number, group: string }) => {
+      await apiRequest("PATCH", `/api/audio-files/${id}/group`, { group });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/audio-files'] });
+      setShowChangeGroupDialog(false);
+      toast({
+        title: "Cập nhật thành công",
+        description: "Đã thay đổi nhóm cho file âm thanh",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Cập nhật thất bại",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Confirm change group
+  const confirmChangeGroup = () => {
+    if (selectedFile && newGroup) {
+      changeGroupMutation.mutate({
+        id: selectedFile.id,
+        group: newGroup
+      });
+    }
+  };
+  
   // Upload files
   const handleUpload = async () => {
     if (uploadFiles.length === 0) return;
@@ -222,13 +258,16 @@ export default function AudioManagement() {
     }
   };
 
-  // Handle file selection for download/preview/delete
-  const handleFileAction = (file: AudioFile, action: "preview" | "delete") => {
+  // Handle file selection for download/preview/delete/change-group
+  const handleFileAction = (file: AudioFile, action: "preview" | "delete" | "change-group") => {
     setSelectedFile(file);
     if (action === "preview") {
       setShowPreviewDialog(true);
     } else if (action === "delete") {
       setShowDeleteDialog(true);
+    } else if (action === "change-group") {
+      setNewGroup(file.group);
+      setShowChangeGroupDialog(true);
     }
   };
 
