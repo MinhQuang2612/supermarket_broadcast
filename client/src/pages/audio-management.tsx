@@ -53,8 +53,11 @@ export default function AudioManagement() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [showBulkGroupChangeDialog, setShowBulkGroupChangeDialog] = useState(false);
+  const [showBulkDownloadDialog, setShowBulkDownloadDialog] = useState(false);
   const [selectedFile, setSelectedFile] = useState<AudioFile | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<AudioFile[]>([]);
+  const [bulkChangeGroup, setBulkChangeGroup] = useState("greetings");
   const [groupFilter, setGroupFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
