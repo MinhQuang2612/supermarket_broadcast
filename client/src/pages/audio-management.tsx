@@ -1080,36 +1080,26 @@ export default function AudioManagement() {
             <DialogTitle>Thay đổi nhóm file audio</DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div>
-              <Label className="text-base">Chọn nhóm mới</Label>
-              <Select
-                value={selectedGroup || ""}
-                onValueChange={(value) => setSelectedGroup(value)}
-              >
-                <SelectTrigger className="w-full mt-2">
-                  <SelectValue placeholder="Chọn nhóm mới" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Quảng cáo">Quảng cáo</SelectItem>
-                  <SelectItem value="Giải trí">Giải trí</SelectItem>
-                  <SelectItem value="Thông báo">Thông báo</SelectItem>
-                  <SelectItem value="Tin tức">Tin tức</SelectItem>
-                  <SelectItem value="Âm nhạc">Âm nhạc</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label className="text-base">File được chọn (1)</Label>
-              <div className="border rounded-md p-3 mt-2 bg-slate-50 flex items-center gap-2">
-                <Music className="h-4 w-4 text-blue-500" />
-                <span className="truncate">{selectedFile?.displayName || (selectedFile?.filename ? selectedFile.filename.split('-').pop() : '')}</span>
-              </div>
-            </div>
+          <div className="py-2">
+            <Label className="text-base">Chọn nhóm mới</Label>
+            <Select
+              value={selectedGroup || ""}
+              onValueChange={(value) => setSelectedGroup(value)}
+            >
+              <SelectTrigger className="w-full mt-2">
+                <SelectValue placeholder="Chọn nhóm mới" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="greetings">Lời chào</SelectItem>
+                <SelectItem value="promotions">Khuyến mãi</SelectItem>
+                <SelectItem value="tips">Mẹo vặt</SelectItem>
+                <SelectItem value="announcements">Thông báo</SelectItem>
+                <SelectItem value="music">Nhạc</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
-          <DialogFooter className="mt-4 gap-2">
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowSingleGroupChangeDialog(false)}>
               Hủy
             </Button>
