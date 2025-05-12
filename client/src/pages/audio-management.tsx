@@ -55,6 +55,7 @@ export default function AudioManagement() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [showDownloadDialog, setShowDownloadDialog] = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [showBulkGroupChangeDialog, setShowBulkGroupChangeDialog] = useState(false);
   const [showBulkDownloadDialog, setShowBulkDownloadDialog] = useState(false);
@@ -244,9 +245,26 @@ export default function AudioManagement() {
 
   // Download file
   const handleDownload = (file: AudioFile) => {
-    // Sử dụng URL có timestamp để tránh cache
-    const timestamp = new Date().getTime();
-    window.open(`/api/audio-files/${file.id}/stream?t=${timestamp}`, "_blank");
+    setSelectedFile(file);
+    setShowDownloadDialog(true);
+  };
+  
+  // Perform single file download
+  const performSingleDownload = () => {
+    if (!selectedFile) return;
+    
+    const link = document.createElement('a');
+    link.href = `/api/audio-files/${selectedFile.id}/download`;
+    link.download = selectedFile.displayName || `audio-${selectedFile.id}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setShowDownloadDialog(false);
+    toast({
+      title: "Tải xuống đã bắt đầu",
+      description: `File "${selectedFile.displayName}" đang được tải xuống`,
+    });
   };
 
   // Bulk delete selected files
@@ -874,6 +892,17 @@ export default function AudioManagement() {
         </DialogContent>
       </Dialog>
       
+      {/* Single File Download Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDownloadDialog}
+        onOpenChange={setShowDownloadDialog}
+        title="Tải xuống file audio"
+        description={selectedFile ? `Bạn có chắc chắn muốn tải xuống file "${selectedFile.displayName}" không?` : ""}
+        confirmText="Tải xuống"
+        cancelText="Hủy"
+        onConfirm={performSingleDownload}
+      />
+        
       {/* Bulk Download Confirmation Dialog */}
       <ConfirmDialog
         open={showBulkDownloadDialog}
