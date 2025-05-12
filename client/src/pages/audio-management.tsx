@@ -68,8 +68,8 @@ export default function AudioManagement() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   
-  // Fetch audio files with pagination
-  const { data: audioFilesData, isLoading } = useQuery<{
+  // Fetch audio files with pagination - enhanced to ensure all files are fetched
+  const { data: audioFilesData, isLoading, refetch: refetchAudioFiles } = useQuery<{
     audioFiles: AudioFile[],
     pagination: {
       total: number;
@@ -78,23 +78,46 @@ export default function AudioManagement() {
       totalPages: number;
     }
   }>({
-    queryKey: ['/api/audio-files', page, pageSize, groupFilter, statusFilter],
+    queryKey: ['/api/audio-files', page, pageSize, groupFilter, statusFilter, searchTerm],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      params.append('page', page.toString());
-      params.append('limit', pageSize.toString());
-      
-      if (groupFilter !== 'all') params.append('group', groupFilter);
-      if (statusFilter !== 'all') params.append('status', statusFilter);
-      
-      const response = await fetch(`/api/audio-files?${params.toString()}`);
-      return await response.json();
+      try {
+        const params = new URLSearchParams();
+        params.append('page', page.toString());
+        // Use a higher page size to ensure we get all files in one request
+        params.append('limit', '999'); // Using a high limit for better performance
+        
+        if (groupFilter !== 'all') params.append('group', groupFilter);
+        if (statusFilter !== 'all') params.append('status', statusFilter);
+        if (searchTerm.trim()) params.append('search', searchTerm.trim());
+        
+        console.log(`Fetching audio files with params: ${params.toString()}`);
+        const response = await fetch(`/api/audio-files?${params.toString()}`);
+        
+        if (!response.ok) {
+          throw new Error(`Lỗi khi tải danh sách file âm thanh: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`Loaded ${data.audioFiles.length} audio files out of ${data.pagination.total} total files`);
+        
+        // Validate returned data structure
+        if (!data.audioFiles || !Array.isArray(data.audioFiles)) {
+          console.error("Invalid data structure returned from API", data);
+          throw new Error("Cấu trúc dữ liệu không hợp lệ");
+        }
+        
+        return data;
+      } catch (error) {
+        console.error("Error fetching audio files:", error);
+        throw error;
+      }
     },
   });
   
   // Extract audio files array and pagination info
   const audioFiles = audioFilesData?.audioFiles || [];
   const totalPages = audioFilesData?.pagination?.totalPages || 1;
+  const totalFiles = audioFilesData?.pagination?.total || 0;
   
   // Handle page change
   const handlePageChange = (newPage: number) => {
