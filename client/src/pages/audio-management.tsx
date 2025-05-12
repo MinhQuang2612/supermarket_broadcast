@@ -320,7 +320,7 @@ export default function AudioManagement() {
   };
 
   // Filter files based on filters and search term
-  const filteredFiles = audioFiles.filter(file => {
+  const filteredFiles = audioFiles.filter((file: AudioFile) => {
     const matchesGroup = groupFilter === "all" || file.group === groupFilter;
     const matchesStatus = statusFilter === "all" || file.status === statusFilter;
     const matchesSearch = 
