@@ -437,7 +437,10 @@ export default function AudioManagement() {
     } else if (action === "delete") {
       setShowDeleteDialog(true);
     } else if (action === "edit-group") {
-      setSelectedGroup(file.group); // Đặt nhóm hiện tại của file
+      // Đặt nhóm hiện tại của file
+      const currentGroup = file.group || "";
+      console.log("Current file group:", currentGroup); // Debug log
+      setSelectedGroup(currentGroup);
       setShowSingleGroupChangeDialog(true);
     }
   };
@@ -1082,10 +1085,11 @@ export default function AudioManagement() {
           
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="single-file-group">Nhóm</Label>
+              <Label htmlFor="single-file-group">Nhóm hiện tại: {selectedFile?.group || 'Chưa có nhóm'}</Label>
               <Select
                 value={selectedGroup || ""}
                 onValueChange={(value) => setSelectedGroup(value)}
+                defaultValue={selectedFile?.group || ""}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Chọn nhóm" />
