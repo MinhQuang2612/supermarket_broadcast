@@ -1134,7 +1134,7 @@ export default function AudioManagement() {
             </div>
             
             <div>
-              <Label className="text-base">File được chọn</Label>
+              <Label className="text-base">File được chọn (1)</Label>
               <div className="border rounded-md p-3 mt-2 bg-slate-50 flex items-center">
                 <span className="text-blue-500 mr-2">🎵</span>
                 <span className="truncate">{selectedFile?.displayName || selectedFile?.filename || ''}</span>
