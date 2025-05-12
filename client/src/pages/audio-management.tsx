@@ -61,10 +61,10 @@ export default function AudioManagement() {
   const [uploadProgress, setUploadProgress] = useState(0);
   
   // Fetch audio files
-  const { data: audioFilesData, isLoading } = useQuery({
+  const { data: audioFilesData, isLoading } = useQuery<{ audioFiles: AudioFile[], pagination: any }>({
     queryKey: ['/api/audio-files'],
   });
-  const audioFiles = audioFilesData?.audioFiles || [];
+  const audioFiles: AudioFile[] = audioFilesData?.audioFiles || [];
 
   // Upload audio mutation
   const uploadAudioMutation = useMutation({
