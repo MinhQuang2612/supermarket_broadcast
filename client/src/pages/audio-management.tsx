@@ -309,10 +309,21 @@ export default function AudioManagement() {
     }
   };
   
-  // Xử lý chỉnh sửa nhóm cho file đơn lẻ
+  // State cho dialog xác nhận thay đổi nhóm cho file đơn lẻ
+  const [showSingleGroupChangeConfirmDialog, setShowSingleGroupChangeConfirmDialog] = useState(false);
+  
+  // Xử lý hiển thị xác nhận trước khi thay đổi nhóm cho file đơn lẻ
   const handleSingleGroupChange = () => {
     if (selectedFile && selectedGroup) {
       setShowSingleGroupChangeDialog(false);
+      setShowSingleGroupChangeConfirmDialog(true);
+    }
+  };
+  
+  // Xử lý xác nhận thay đổi nhóm cho file đơn lẻ
+  const confirmSingleGroupChange = () => {
+    if (selectedFile && selectedGroup) {
+      setShowSingleGroupChangeConfirmDialog(false);
       changeGroupMutation.mutate({
         ids: [selectedFile.id],
         group: selectedGroup
@@ -1071,6 +1082,17 @@ export default function AudioManagement() {
         title="Xác nhận tải xuống"
         description={`Bạn có chắc chắn muốn tải xuống file ${fileToDownload?.displayName || ''}?`}
         onConfirm={confirmSingleDownload}
+      />
+      
+      {/* Single File Group Change Confirmation Dialog */}
+      <ConfirmDialog
+        open={showSingleGroupChangeConfirmDialog}
+        onOpenChange={setShowSingleGroupChangeConfirmDialog}
+        title="Xác nhận thay đổi nhóm"
+        description={`Bạn có chắc chắn muốn thay đổi nhóm của file "${selectedFile?.displayName || ''}" thành "${formatGroup(selectedGroup)}"?`}
+        onConfirm={confirmSingleGroupChange}
+        confirmText="Xác nhận"
+        variant="default"
       />
     
       {/* Dialog thay đổi nhóm cho file đơn lẻ */}
