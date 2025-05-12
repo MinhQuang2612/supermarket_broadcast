@@ -61,7 +61,7 @@ export default function AudioManagement() {
   const [uploadProgress, setUploadProgress] = useState(0);
   
   // Fetch audio files
-  const { data: audioFiles = [], isLoading } = useQuery<AudioFile[]>({
+  const { data: audioFilesData, isLoading } = useQuery({
     queryKey: ['/api/audio-files'],
   });
 
