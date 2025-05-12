@@ -272,6 +272,9 @@ export default function AudioManagement() {
   // State for group change confirmation
   const [showGroupChangeConfirmDialog, setShowGroupChangeConfirmDialog] = useState(false);
   
+  // State for single file group change
+  const [showSingleGroupChangeDialog, setShowSingleGroupChangeDialog] = useState(false);
+  
   // Handle changing group for multiple files
   const handleChangeGroup = (group: string) => {
     if (selectedFiles.length > 0) {
@@ -299,6 +302,17 @@ export default function AudioManagement() {
     if (selectedFiles.length > 0 && selectedGroup) {
       changeGroupMutation.mutate({ 
         ids: selectedFiles.map(file => file.id),
+        group: selectedGroup
+      });
+    }
+  };
+  
+  // Xử lý chỉnh sửa nhóm cho file đơn lẻ
+  const handleSingleGroupChange = () => {
+    if (selectedFile && selectedGroup) {
+      setShowSingleGroupChangeDialog(false);
+      changeGroupMutation.mutate({
+        ids: [selectedFile.id],
         group: selectedGroup
       });
     }
@@ -413,13 +427,16 @@ export default function AudioManagement() {
     }
   };
 
-  // Handle file selection for download/preview/delete
-  const handleFileAction = (file: AudioFile, action: "preview" | "delete") => {
+  // Handle file selection for download/preview/delete/edit-group
+  const handleFileAction = (file: AudioFile, action: "preview" | "delete" | "edit-group") => {
     setSelectedFile(file);
     if (action === "preview") {
       setShowPreviewDialog(true);
     } else if (action === "delete") {
       setShowDeleteDialog(true);
+    } else if (action === "edit-group") {
+      setSelectedGroup(file.group); // Đặt nhóm hiện tại của file
+      setShowSingleGroupChangeDialog(true);
     }
   };
 
@@ -754,17 +771,29 @@ export default function AudioManagement() {
                       >
                         <Download className="h-4 w-4" />
                       </Button>
-                      
+
                       {(user?.role === "admin" || user?.role === "manager") && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleFileAction(file, "delete")}
-                          className="h-8 w-8 text-danger hover:text-danger-dark"
-                          disabled={file.status === "used"}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleFileAction(file, "edit-group")}
+                            className="h-8 w-8 text-primary hover:text-primary-dark"
+                            disabled={file.status === "used"}
+                          >
+                            <Tag className="h-4 w-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleFileAction(file, "delete")}
+                            className="h-8 w-8 text-danger hover:text-danger-dark"
+                            disabled={file.status === "used"}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   );
