@@ -521,16 +521,11 @@ export default function AudioManagement() {
     }
   };
 
-  // Filter files based on filters and search term
-  const filteredFiles = audioFiles.filter(file => {
-    const matchesGroup = groupFilter === "all" || file.group === groupFilter;
-    const matchesStatus = statusFilter === "all" || file.status === statusFilter;
-    const matchesSearch = 
-      file.displayName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      file.filename.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return matchesGroup && matchesStatus && matchesSearch;
-  });
+  // Server-side filtering is now used instead of client-side filtering
+  const filteredFiles = audioFiles;
+  
+  // We're keeping a simplified version just in case additional client-side filtering is needed
+  // All the heavy filtering happens in the API now with our improved query
 
   return (
     <DashboardLayout>

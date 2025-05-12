@@ -697,7 +697,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Audio file routes with pagination
+  // Audio file routes with pagination and enhanced filtering
   app.get("/api/audio-files", isAuthenticated, async (req, res, next) => {
     try {
       console.log(`===== GET AUDIO FILES (User: ${req.user.username}) =====`);
@@ -709,11 +709,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Pagination params: page=${page}, limit=${limit}, offset=${offset}`);
       
-      // Get group filter if provided
+      // Get all filters from query parameters
       const group = req.query.group as string;
-      if (group) {
-        console.log(`Filtering by group: ${group}`);
-      }
+      const status = req.query.status as string;
+      const search = req.query.search as string;
+      
+      // Log filters for debugging
+      if (group) console.log(`Filtering by group: ${group}`);
+      if (status) console.log(`Filtering by status: ${status}`);
+      if (search) console.log(`Searching for: "${search}"`);
       
       // Get all audio files
       const allAudioFiles = await storage.getAllAudioFiles();
@@ -724,13 +728,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Audio file IDs: ${allAudioFiles.map(file => file.id).sort((a, b) => a - b).join(', ')}`);
       }
       
+      // Apply ALL filters based on query parameters
+      let filteredAudioFiles = [...allAudioFiles];
+      
       // Apply group filter if provided
-      const filteredAudioFiles = group 
-        ? allAudioFiles.filter(file => file.group === group)
-        : allAudioFiles;
+      if (group) {
+        filteredAudioFiles = filteredAudioFiles.filter(file => file.group === group);
+        console.log(`After group filter: ${filteredAudioFiles.length} files match`);
+      }
+      
+      // Apply status filter if provided
+      if (status) {
+        filteredAudioFiles = filteredAudioFiles.filter(file => file.status === status);
+        console.log(`After status filter: ${filteredAudioFiles.length} files match`);
+      }
+      
+      // Apply search filter if provided
+      if (search && search.trim() !== '') {
+        const searchTerm = search.toLowerCase().trim();
+        filteredAudioFiles = filteredAudioFiles.filter(file => 
+          file.displayName.toLowerCase().includes(searchTerm) || 
+          file.filename.toLowerCase().includes(searchTerm)
+        );
+        console.log(`After search filter: ${filteredAudioFiles.length} files match "${searchTerm}"`);
+      }
       
       const totalCount = filteredAudioFiles.length;
-      console.log(`After filtering: ${filteredAudioFiles.length} files match criteria`);
+      console.log(`After applying all filters: ${filteredAudioFiles.length} files match criteria`);
       
       // Apply pagination (or return all if limit is very high)
       let paginatedAudioFiles;
