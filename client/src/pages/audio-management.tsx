@@ -131,6 +131,16 @@ export default function AudioManagement() {
   const totalPages = audioFilesData?.pagination?.totalPages || 1;
   const totalFiles = audioFilesData?.pagination?.total || 0;
   
+  // Sắp xếp lại file audio để các file cùng nhóm đứng cạnh nhau
+  const sortedAudioFiles = [...audioFiles].sort((a, b) => {
+    // Sắp xếp theo nhóm
+    if (a.group !== b.group) {
+      return a.group.localeCompare(b.group);
+    }
+    // Nếu cùng nhóm, sắp xếp theo tên
+    return a.displayName.localeCompare(b.displayName);
+  });
+  
   // Handle page change
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -565,7 +575,8 @@ export default function AudioManagement() {
   };
 
   // Server-side filtering is now used instead of client-side filtering
-  const filteredFiles = audioFiles;
+  // Sử dụng sortedAudioFiles để hiển thị các file được nhóm lại gần nhau
+  const filteredFiles = sortedAudioFiles;
   
   // We're keeping a simplified version just in case additional client-side filtering is needed
   // All the heavy filtering happens in the API now with our improved query
