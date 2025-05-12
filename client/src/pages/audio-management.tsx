@@ -1080,23 +1080,33 @@ export default function AudioManagement() {
             <DialogTitle>Thay đổi nhóm file audio</DialogTitle>
           </DialogHeader>
           
-          <div className="py-2">
-            <Label className="text-base">Chọn nhóm mới</Label>
-            <Select
-              value={selectedGroup || ""}
-              onValueChange={(value) => setSelectedGroup(value)}
-            >
-              <SelectTrigger className="w-full mt-2">
-                <SelectValue placeholder="Chọn nhóm mới" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="greetings">Lời chào</SelectItem>
-                <SelectItem value="promotions">Khuyến mãi</SelectItem>
-                <SelectItem value="tips">Mẹo vặt</SelectItem>
-                <SelectItem value="announcements">Thông báo</SelectItem>
-                <SelectItem value="music">Nhạc</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="py-2 space-y-4">
+            <div>
+              <Label className="text-base">Chọn nhóm mới</Label>
+              <Select
+                value={selectedGroup || ""}
+                onValueChange={(value) => setSelectedGroup(value)}
+              >
+                <SelectTrigger className="w-full mt-2">
+                  <SelectValue placeholder="Chọn nhóm mới" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="greetings">Lời chào</SelectItem>
+                  <SelectItem value="promotions">Khuyến mãi</SelectItem>
+                  <SelectItem value="tips">Mẹo vặt</SelectItem>
+                  <SelectItem value="announcements">Thông báo</SelectItem>
+                  <SelectItem value="music">Nhạc</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-base">File được chọn (1)</Label>
+              <div className="border rounded-md p-3 mt-2 bg-slate-50 flex items-center gap-2">
+                <Music className="h-4 w-4 text-blue-500" />
+                <span className="truncate">{selectedFile?.displayName || (selectedFile?.filename ? selectedFile.filename.split('-').pop() : '')}</span>
+              </div>
+            </div>
           </div>
           
           <DialogFooter className="gap-2">
