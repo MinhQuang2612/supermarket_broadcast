@@ -598,6 +598,50 @@ export default function AudioManagement() {
             </div>
           </div>
           
+          {/* Bulk Actions */}
+          {selectedFiles.length > 0 && (
+            <div className="bg-muted/30 p-3 rounded-md mb-4 flex flex-wrap gap-2 items-center">
+              <span className="text-sm font-medium mr-2">
+                Đã chọn {selectedFiles.length} file
+              </span>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setSelectedFiles([])}
+                className="h-8"
+              >
+                Bỏ chọn
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setShowGroupChangeDialog(true)}
+                className="h-8"
+              >
+                <Tag className="h-4 w-4 mr-1" />
+                Đổi nhóm
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setShowDownloadDialog(true)}
+                className="h-8"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Tải xuống
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={handleBulkDelete}
+                className="h-8 bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/20"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Xóa
+              </Button>
+            </div>
+          )}
+          
           {/* Audio Files Table */}
           <DataTable
             selectionOptions={{
