@@ -499,7 +499,7 @@ export default function AudioManagement() {
                 },
               },
               {
-                header: "",
+                header: "Thao tác",
                 id: "actions",
                 cell: ({ row }) => {
                   const file = row.original as AudioFile;
