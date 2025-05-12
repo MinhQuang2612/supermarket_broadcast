@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AudioFile } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -59,10 +59,20 @@ export default function AudioManagement() {
   const [groupFilter, setGroupFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadGroup, setUploadGroup] = useState("greetings");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  
+  // Effect for debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // 500ms delay
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
   
   // State for pagination
   const [page, setPage] = useState(1);
@@ -78,7 +88,7 @@ export default function AudioManagement() {
       totalPages: number;
     }
   }>({
-    queryKey: ['/api/audio-files', page, pageSize, groupFilter, statusFilter, searchTerm],
+    queryKey: ['/api/audio-files', page, pageSize, groupFilter, statusFilter, debouncedSearchTerm],
     queryFn: async () => {
       try {
         const params = new URLSearchParams();
@@ -88,7 +98,7 @@ export default function AudioManagement() {
         
         if (groupFilter !== 'all') params.append('group', groupFilter);
         if (statusFilter !== 'all') params.append('status', statusFilter);
-        if (searchTerm.trim()) params.append('search', searchTerm.trim());
+        if (debouncedSearchTerm.trim()) params.append('search', debouncedSearchTerm.trim());
         
         console.log(`Fetching audio files with params: ${params.toString()}`);
         const response = await fetch(`/api/audio-files?${params.toString()}`);
