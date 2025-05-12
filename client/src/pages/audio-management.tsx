@@ -770,9 +770,8 @@ export default function AudioManagement() {
               </div>
               
               <AudioPlayer 
-                audioUrl={`/api/audio-files/${selectedFile.id}/stream`} 
-                artistName="Audio File"
-                trackName={selectedFile.displayName}
+                src={`/api/audio-files/${selectedFile.id}/stream`} 
+                title={selectedFile.displayName}
               />
               
               <div className="grid grid-cols-2 gap-2 text-sm">
