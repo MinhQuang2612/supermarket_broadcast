@@ -42,6 +42,12 @@ interface DataTableProps {
     sortDirection: 'asc' | 'desc' | null;
     onSortChange: (key: string, direction: 'asc' | 'desc' | null) => void;
   };
+  // Thêm hỗ trợ cho tính năng chọn tất cả
+  selectionOptions?: {
+    selectedItems: any[];
+    onSelectAll: (checked: boolean) => void;
+    selectionKey?: string; // Khóa để so sánh các item (mặc định là "id")
+  };
 }
 
 export default function DataTable({
@@ -52,6 +58,7 @@ export default function DataTable({
   pageSize = 10,
   serverSidePagination,
   serverSideSorting,
+  selectionOptions,
 }: DataTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortKey, setSortKey] = useState<string | null>(serverSideSorting?.sortKey || null);
