@@ -131,14 +131,24 @@ export default function AudioManagement() {
   const totalPages = audioFilesData?.pagination?.totalPages || 1;
   const totalFiles = audioFilesData?.pagination?.total || 0;
   
-  // Sắp xếp lại file audio để các file cùng nhóm đứng cạnh nhau
-  const sortedAudioFiles = [...audioFiles].sort((a, b) => {
-    // Sắp xếp theo nhóm
-    if (a.group !== b.group) {
-      return a.group.localeCompare(b.group);
+  // Filter audio files based on search term, group and status
+  const filteredFiles = audioFiles.filter((file) => {
+    // Group filter
+    if (groupFilter !== "all" && file.group !== groupFilter) {
+      return false;
     }
-    // Nếu cùng nhóm, sắp xếp theo tên
-    return a.displayName.localeCompare(b.displayName);
+    
+    // Status filter
+    if (statusFilter !== "all" && file.status !== statusFilter) {
+      return false;
+    }
+    
+    // Search term filter (case insensitive)
+    if (searchTerm && !file.displayName.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+    
+    return true;
   });
   
   // Handle page change
@@ -574,12 +584,34 @@ export default function AudioManagement() {
     }
   };
 
-  // Server-side filtering is now used instead of client-side filtering
-  // Sử dụng sortedAudioFiles để hiển thị các file được nhóm lại gần nhau
-  const filteredFiles = sortedAudioFiles;
+  // State for update status dialog
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
   
-  // We're keeping a simplified version just in case additional client-side filtering is needed
-  // All the heavy filtering happens in the API now with our improved query
+  // Update status for selected files
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ ids, status }: { ids: number[], status: string }) => {
+      await Promise.all(ids.map(id => 
+        apiRequest("PATCH", `/api/audio-files/${id}/status`, { status })
+      ));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/audio-files'] });
+      setShowStatusDialog(false);
+      setSelectedFiles([]);
+      toast({
+        title: "Cập nhật thành công",
+        description: `Đã cập nhật trạng thái của ${selectedFiles.length} file âm thanh`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Cập nhật thất bại",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <DashboardLayout>
