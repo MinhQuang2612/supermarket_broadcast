@@ -17,6 +17,8 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -560,14 +562,24 @@ export default function AudioManagement() {
                         <Download className="h-4 w-4 text-primary" />
                       </Button>
                       {(user?.role === "admin" || user?.role === "manager") && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleFileAction(file, "delete")}
-                          title="Xóa"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleFileAction(file, "change-group")}
+                            title="Thay đổi nhóm"
+                          >
+                            <FolderEdit className="h-4 w-4 text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleFileAction(file, "delete")}
+                            title="Xóa"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   );
@@ -748,6 +760,67 @@ export default function AudioManagement() {
         onConfirm={confirmBulkDelete}
         destructive
       />
+      
+      {/* Change Group Dialog */}
+      <Dialog open={showChangeGroupDialog} onOpenChange={setShowChangeGroupDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Thay đổi nhóm file audio</DialogTitle>
+            <DialogDescription>
+              Chọn nhóm mới
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <Select value={newGroup} onValueChange={setNewGroup}>
+              <SelectTrigger>
+                <SelectValue placeholder="Chọn nhóm mới" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="greetings">Lời chào</SelectItem>
+                <SelectItem value="promotions">Khuyến mãi</SelectItem>
+                <SelectItem value="tips">Mẹo vặt</SelectItem>
+                <SelectItem value="announcements">Thông báo</SelectItem>
+                <SelectItem value="music">Nhạc</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {selectedFile && (
+              <div className="p-3 bg-neutral-50 rounded-md">
+                <div className="flex items-center gap-2 mb-2">
+                  <Music className="h-5 w-5 text-neutral-medium" />
+                  <span className="font-medium">File được chọn (1)</span>
+                </div>
+                <div className="text-sm text-neutral-dark">
+                  {selectedFile.displayName}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter className="flex flex-row justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowChangeGroupDialog(false)}
+            >
+              Hủy
+            </Button>
+            <Button 
+              onClick={confirmChangeGroup}
+              disabled={changeGroupMutation.isPending}
+            >
+              {changeGroupMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang cập nhật...
+                </>
+              ) : (
+                "Cập nhật nhóm"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
