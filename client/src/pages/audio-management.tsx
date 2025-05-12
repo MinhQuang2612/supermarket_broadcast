@@ -487,13 +487,13 @@ export default function AudioManagement() {
               },
               {
                 header: "Ngày tạo",
-                accessorKey: "createdAt",
+                accessorKey: "uploadedAt",
                 cell: ({ row }) => {
-                  const date = row.getValue("createdAt") as string;
+                  const date = row.getValue("uploadedAt");
                   
                   return (
                     <div className="text-sm text-neutral-dark">
-                      {format(new Date(date), "dd/MM/yyyy HH:mm")}
+                      {date ? format(new Date(date as string), "dd/MM/yyyy HH:mm") : "N/A"}
                     </div>
                   );
                 },
@@ -664,7 +664,7 @@ export default function AudioManagement() {
                 <div>{formatFileSize(selectedFile.fileSize)}</div>
                 
                 <div className="text-neutral-medium">Ngày tạo:</div>
-                <div>{format(new Date(selectedFile.createdAt), "dd/MM/yyyy HH:mm")}</div>
+                <div>{format(new Date(selectedFile.uploadedAt), "dd/MM/yyyy HH:mm")}</div>
                 
                 <div className="text-neutral-medium">Trạng thái:</div>
                 <div>
