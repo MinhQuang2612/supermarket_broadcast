@@ -1,6 +1,20 @@
+# Node modules
 node_modules
+
+# Build output
 dist
+
+# macOS system file
 .DS_Store
+
+# Vite generated public assets
 server/public
+
+# Vite config variants
 vite.config.ts.*
+
+# Compressed files
 *.tar.gz
+
+# Environment variables
+.env
