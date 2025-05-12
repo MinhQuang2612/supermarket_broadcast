@@ -1077,22 +1077,26 @@ export default function AudioManagement() {
       <Dialog open={showSingleGroupChangeDialog} onOpenChange={setShowSingleGroupChangeDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Thay đổi nhóm cho file</DialogTitle>
+            <DialogTitle>Thay đổi nhóm file audio</DialogTitle>
             <DialogDescription>
-              Chọn nhóm mới cho file {selectedFile?.filename}
+              Chọn nhóm mới cho file {selectedFile?.displayName || (selectedFile?.filename ? selectedFile.filename.split('-').pop() : '')}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="single-file-group">Nhóm hiện tại: {selectedFile?.group || 'Chưa có nhóm'}</Label>
+          <div className="space-y-4">
+            <div>
+              {selectedFile?.group && (
+                <div className="mb-2">
+                  <Label className="text-base">Nhóm hiện tại: <span className="font-medium">{selectedFile.group}</span></Label>
+                </div>
+              )}
+              <Label className="text-base">Chọn nhóm mới</Label>
               <Select
                 value={selectedGroup || ""}
                 onValueChange={(value) => setSelectedGroup(value)}
-                defaultValue={selectedFile?.group || ""}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn nhóm" />
+                <SelectTrigger className="w-full mt-2">
+                  <SelectValue placeholder="Chọn nhóm mới" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Quảng cáo">Quảng cáo</SelectItem>
@@ -1103,14 +1107,22 @@ export default function AudioManagement() {
                 </SelectContent>
               </Select>
             </div>
+            
+            <div>
+              <Label className="text-base">File được chọn (1)</Label>
+              <div className="border rounded-md p-3 mt-2 bg-slate-50 flex items-center gap-2">
+                <Music className="h-4 w-4 text-primary" />
+                <span className="truncate">{selectedFile?.displayName || (selectedFile?.filename ? selectedFile.filename.split('-').pop() : '')}</span>
+              </div>
+            </div>
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="mt-4 gap-2">
             <Button variant="outline" onClick={() => setShowSingleGroupChangeDialog(false)}>
               Hủy
             </Button>
-            <Button onClick={handleSingleGroupChange} disabled={!selectedGroup}>
-              Lưu thay đổi
+            <Button onClick={handleSingleGroupChange} disabled={!selectedGroup} className="bg-blue-500 hover:bg-blue-600">
+              Cập nhật nhóm
             </Button>
           </DialogFooter>
         </DialogContent>
