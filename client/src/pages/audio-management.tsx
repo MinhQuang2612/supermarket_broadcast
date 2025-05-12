@@ -775,28 +775,6 @@ export default function AudioManagement() {
             isLoading={isLoading}
           />
           
-          {/* System Actions */}
-          {(user?.role === "admin" || user?.role === "manager") && (
-            <div className="mt-4 p-4 bg-muted rounded-lg border border-muted-foreground/20">
-              <h3 className="font-semibold mb-4">Quản lý hệ thống</h3>
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  variant="outline"
-                  className="bg-white"
-                  onClick={() => setShowStatusUpdateDialog(true)}
-                  disabled={isUpdatingStatus || resetStatusMutation.isPending}
-                >
-                  <RefreshCcw className="mr-2 h-4 w-4" />
-                  {isUpdatingStatus ? "Đang cập nhật..." : "Cập nhật trạng thái file"}
-                </Button>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Cập nhật trạng thái sẽ kiểm tra tất cả file audio và đánh dấu file nào đang được sử dụng trong playlist.
-                Sử dụng tính năng này nếu bạn không thể xóa, tải xuống hoặc thay đổi nhóm của file audio.
-              </p>
-            </div>
-          )}
-          
           {/* Bulk Actions */}
           {selectedFiles.length > 0 && (
             <div className="mt-4 p-4 bg-white rounded-lg shadow">
