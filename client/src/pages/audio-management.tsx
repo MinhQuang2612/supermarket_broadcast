@@ -455,24 +455,6 @@ export default function AudioManagement() {
                   <SelectItem value="unused">Chưa sử dụng</SelectItem>
                 </SelectContent>
               </Select>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={selectAllFiles}
-                title="Chọn tất cả file"
-              >
-                <CheckSquare className="mr-1 h-4 w-4" />
-                Chọn tất cả
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={deselectAllFiles}
-                title="Bỏ chọn tất cả file"
-              >
-                <Square className="mr-1 h-4 w-4" />
-                Bỏ chọn
-              </Button>
             </div>
             
             <div className="relative">
@@ -485,6 +467,28 @@ export default function AudioManagement() {
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-medium" />
             </div>
+          </div>
+          
+          {/* Select/Deselect Buttons */}
+          <div className="flex items-center space-x-2 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={selectAllFiles}
+              className="flex items-center"
+            >
+              <CheckSquare className="mr-2 h-4 w-4" />
+              Chọn tất cả
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={deselectAllFiles}
+              className="flex items-center"
+            >
+              <Square className="mr-2 h-4 w-4" />
+              Bỏ chọn
+            </Button>
           </div>
           
           {/* Audio Files Table */}
