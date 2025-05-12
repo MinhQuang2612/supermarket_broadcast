@@ -600,6 +600,10 @@ export default function AudioManagement() {
           
           {/* Audio Files Table */}
           <DataTable
+            selectionOptions={{
+              selectedItems: selectedFiles,
+              onSelectAll: handleSelectAll
+            }}
             columns={[
               {
                 header: "",

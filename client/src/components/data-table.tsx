@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PaginationMetadata } from "@/types/pagination";
 
 interface Column {
@@ -236,33 +237,58 @@ export default function DataTable({
         <Table>
           <TableHeader>
             <TableRow>
-              {columns.map((column) => (
-                <TableHead 
-                  key={column.id || column.accessorKey} 
-                  className={`font-medium text-xs uppercase tracking-wider bg-neutral-50 py-3 ${column.sortable ? 'cursor-pointer group' : ''}`}
-                  onClick={() => column.sortable && column.accessorKey && handleSort(column.accessorKey)}
-                >
-                  <div className="flex items-center">
-                    {column.header}
-                    {column.sortable && column.accessorKey && (
-                      <div className="ml-2">
-                        {sortKey === column.accessorKey ? (
-                          sortDirection === 'asc' ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : sortDirection === 'desc' ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : null
-                        ) : (
-                          <div className="opacity-0 group-hover:opacity-50 h-4 w-4 flex flex-col items-center">
-                            <ChevronUp className="h-2 w-4" />
-                            <ChevronDown className="h-2 w-4" />
-                          </div>
-                        )}
+              {columns.map((column) => {
+                // Xử lý cột chọn tất cả nếu có selectionOptions
+                if (column.id === 'select' && selectionOptions) {
+                  // Cột đặc biệt cho checkbox "chọn tất cả"
+                  return (
+                    <TableHead 
+                      key="select-all" 
+                      className="font-medium text-xs uppercase tracking-wider bg-neutral-50 py-3"
+                    >
+                      <div className="flex items-center justify-center">
+                        <Checkbox
+                          checked={data.length > 0 && selectionOptions.selectedItems.length === data.length}
+                          onCheckedChange={(checked) => {
+                            if (typeof checked === 'boolean') {
+                              selectionOptions.onSelectAll(checked);
+                            }
+                          }}
+                        />
                       </div>
-                    )}
-                  </div>
-                </TableHead>
-              ))}
+                    </TableHead>
+                  );
+                }
+                
+                // Cột thông thường
+                return (
+                  <TableHead 
+                    key={column.id || column.accessorKey} 
+                    className={`font-medium text-xs uppercase tracking-wider bg-neutral-50 py-3 ${column.sortable ? 'cursor-pointer group' : ''}`}
+                    onClick={() => column.sortable && column.accessorKey && handleSort(column.accessorKey)}
+                  >
+                    <div className="flex items-center">
+                      {column.header}
+                      {column.sortable && column.accessorKey && (
+                        <div className="ml-2">
+                          {sortKey === column.accessorKey ? (
+                            sortDirection === 'asc' ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : sortDirection === 'desc' ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : null
+                          ) : (
+                            <div className="opacity-0 group-hover:opacity-50 h-4 w-4 flex flex-col items-center">
+                              <ChevronUp className="h-2 w-4" />
+                              <ChevronDown className="h-2 w-4" />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </TableHead>
+                );
+              })}
             </TableRow>
           </TableHeader>
           <TableBody>
