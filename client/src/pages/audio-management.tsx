@@ -64,6 +64,7 @@ export default function AudioManagement() {
   const { data: audioFilesData, isLoading } = useQuery({
     queryKey: ['/api/audio-files'],
   });
+  const audioFiles = audioFilesData?.audioFiles || [];
 
   // Upload audio mutation
   const uploadAudioMutation = useMutation({
