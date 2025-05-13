@@ -716,7 +716,7 @@ export default function SupermarketManagement() {
                   const badgeClass = status === "active"
                     ? "bg-green-100 text-green-800"
                     : "bg-yellow-100 text-yellow-800";
-                  const label = status === "active" ? "Đang hoạt động" : "Tạm dừng";
+                  const label = status === "active" ? "Hoạt động" : "Tạm dừng";
                   
                   return (
                     <Badge variant="outline" className={badgeClass}>
@@ -725,20 +725,20 @@ export default function SupermarketManagement() {
                   );
                 },
               },
-              {
-                header: "Chương trình",
-                accessorKey: "currentProgram",
-                sortable: true,
-                cell: ({ row }) => {
-                  const program = row.getValue("currentProgram") as string | undefined;
+              // {
+              //   header: "Chương trình",
+              //   accessorKey: "currentProgram",
+              //   sortable: true,
+              //   cell: ({ row }) => {
+              //     const program = row.getValue("currentProgram") as string | undefined;
                   
-                  return (
-                    <div className="text-sm text-neutral-dark">
-                      {program || "—"}
-                    </div>
-                  );
-                },
-              },
+              //     return (
+              //       <div className="text-sm text-neutral-dark">
+              //         {program || "—"}
+              //       </div>
+              //     );
+              //   },
+              // },
               {
                 header: "Loại siêu thị",
                 accessorKey: "supermarketTypeId",
