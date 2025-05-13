@@ -97,7 +97,10 @@ export default function SupermarketManagement() {
   
   // Fetch supermarkets with pagination
   const { data, isLoading } = useQuery({
-    queryKey: ['/api/supermarkets', page, pageSize, sortKey, sortDirection, regionFilter, statusFilter, searchTerm],
+    queryKey: ['/api/supermarkets', 
+      page, pageSize, sortKey, sortDirection, regionFilter, statusFilter, searchTerm, 
+      supermarketTypeFilter
+    ],
     queryFn: async ({ queryKey }) => {
       const [endpoint, pageNum, pageSizeNum, sort, direction, region, status, search] = queryKey;
       
