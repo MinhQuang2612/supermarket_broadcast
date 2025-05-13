@@ -714,8 +714,8 @@ export default function SupermarketManagement() {
                 cell: ({ row }) => {
                   const status = row.getValue("status") as string;
                   const badgeClass = status === "active"
-                    ? "bg-success-light/20 text-success"
-                    : "bg-warning-light/20 text-warning";
+                    ? "bg-green-100 text-green-800"
+                    : "bg-yellow-100 text-yellow-800";
                   const label = status === "active" ? "Đang hoạt động" : "Tạm dừng";
                   
                   return (
