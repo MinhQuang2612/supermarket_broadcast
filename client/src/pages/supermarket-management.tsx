@@ -79,6 +79,7 @@ export default function SupermarketManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [supermarketTypeFilter, setSupermarketTypeFilter] = useState("all");
   
   // Chosen IDs for cascading selection
   const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
@@ -641,6 +642,19 @@ export default function SupermarketManagement() {
                   <SelectItem value="all">Tất cả trạng thái</SelectItem>
                   <SelectItem value="active">Đang hoạt động</SelectItem>
                   <SelectItem value="paused">Tạm dừng</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={supermarketTypeFilter} onValueChange={setSupermarketTypeFilter}>
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Tất cả loại siêu thị" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả loại siêu thị</SelectItem>
+                  {supermarketTypes.map((type: any) => (
+                    <SelectItem key={type.id} value={type.name}>
+                      {type.displayName}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
