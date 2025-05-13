@@ -14,7 +14,8 @@ import {
   ListChecks,
   Settings,
   LogOut,
-  Menu
+  Menu,
+  Plus
 } from "lucide-react";
 
 interface SidebarProps {
@@ -54,30 +55,9 @@ export default function Sidebar({ collapsed, onToggleCollapse, setCollapsed }: S
       icon: <Music className="h-5 w-5" />,
     },
     {
-      title: "Quản lý chương trình phát",
-      href: "/broadcast-programs",
-      icon: <Radio className="h-5 w-5" />,
-    },
-    {
       title: "Tạo danh sách phát",
       href: "/playlists",
-      icon: <ListOrdered className="h-5 w-5" />,
-    },
-    {
-      title: "Nghe thử chương trình",
-      href: "/playlist-preview",
-      icon: <Headphones className="h-5 w-5" />,
-    },
-    {
-      title: "Phân bổ chương trình",
-      href: "/broadcast-assignments",
-      icon: <ListChecks className="h-5 w-5" />,
-    },
-    {
-      title: "Quản lý hệ thống",
-      href: "/system-management",
-      icon: <Settings className="h-5 w-5" />,
-      roles: ["admin"],
+      icon: <Plus className="h-5 w-5" />,
     },
   ];
 

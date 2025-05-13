@@ -300,13 +300,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(supermarkets.id, id));
   }
 
-  async updateSupermarketCurrentProgram(id: number, programName: string | null): Promise<void> {
-    await db
-      .update(supermarkets)
-      .set({ currentProgram: programName })
-      .where(eq(supermarkets.id, id));
-  }
-
   async getSupermarketCount(): Promise<number> {
     const result = await db.select({ count: sql<number>`count(*)` }).from(supermarkets);
     return result[0].count;
@@ -379,45 +372,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Broadcast program operations
-  async createBroadcastProgram(programData: InsertBroadcastProgram): Promise<BroadcastProgram> {
+  async createBroadcastProgram(programData: { name: string, dates: string[] }): Promise<BroadcastProgram> {
     try {
-      // Sử dụng cách tiếp cận truyền thống với Drizzle ORM
       const [program] = await db
         .insert(broadcastPrograms)
-        .values(programData)
+        .values({ name: programData.name, dates: programData.dates })
         .returning();
-      
       return program;
-    } catch (drizzleError) {
-      console.error("Drizzle insert error:", drizzleError);
-      
-      // Fallback: Sử dụng SQL thuần
-      try {
-        console.log("Fallback to raw SQL for broadcast program creation");
-        const dateStr = programData.date instanceof Date 
-          ? programData.date.toISOString() 
-          : new Date(programData.date as string).toISOString();
-        
-        const result = await pool.query(
-          `INSERT INTO broadcast_programs (name, date, settings, created_by, created_at) 
-           VALUES ($1, $2, $3, $4, NOW()) 
-           RETURNING *`,
-          [
-            programData.name,
-            dateStr,
-            JSON.stringify(programData.settings),
-            programData.createdBy
-          ]
-        );
-        
-        if (result.rows && result.rows.length > 0) {
-          return result.rows[0] as BroadcastProgram;
-        }
-        throw new Error("Failed to insert broadcast program with raw SQL");
-      } catch (sqlError) {
-        console.error("Raw SQL insert error:", sqlError);
-        throw new Error(`Không thể tạo chương trình phát: ${sqlError.message || drizzleError.message}`);
-      }
+    } catch (error) {
+      console.error("Error inserting broadcast program:", error);
+      throw new Error("Không thể tạo chương trình phát");
     }
   }
 
