@@ -2,15 +2,14 @@ import { IStorage } from './storage';
 import { db } from './db';
 import { 
   users, activityLogs, regions, provinces, communes, supermarkets, audioFiles, 
-  broadcastPrograms, playlists, broadcastAssignments, audioGroups, supermarketTypes,
+  broadcastPrograms, playlists, audioGroups, supermarketTypes,
   InsertUser, InsertActivityLog, InsertRegion, InsertProvince, InsertCommune,
   InsertSupermarket, InsertAudioFile, InsertBroadcastProgram, InsertPlaylist, 
-  InsertBroadcastAssignment, InsertAudioGroup
+  InsertAudioGroup
 } from '@shared/schema';
 import type { 
   User, ActivityLog, Region, Province, Commune, Supermarket, AudioFile, 
-  BroadcastProgram, Playlist, BroadcastAssignment, PlaylistItem, 
-  BroadcastProgramSettings, SupermarketType, AudioGroup 
+  BroadcastProgram, Playlist, AudioGroup 
 } from '@shared/schema';
 import { eq, and, desc, gte, sql } from 'drizzle-orm';
 import connectPg from "connect-pg-simple";
@@ -19,7 +18,7 @@ import { pool } from './db';
 
 const PostgresSessionStore = connectPg(session);
 
-export class DatabaseStorage implements IStorage {
+export class DatabaseStorage {
   sessionStore: session.Store;
 
   constructor() {
@@ -341,31 +340,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(audioFiles.id, id));
   }
 
-  async isAudioFileUsed(id: number): Promise<boolean> {
-    // Check if the audio file is used in any playlist
-    try {
-      // Đơn giản hóa logic kiểm tra - lấy tất cả playlist và kiểm tra trong JavaScript
-      const allPlaylists = await db.select().from(playlists);
-      
-      // Kiểm tra trong từng playlist có item nào chứa audioFileId giống với tham số id không
-      for (const playlist of allPlaylists) {
-        if (!playlist.items || !Array.isArray(playlist.items)) continue;
-        
-        const hasAudioFile = playlist.items.some(
-          (item: PlaylistItem) => item && item.audioFileId === id
-        );
-        
-        if (hasAudioFile) return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error("Error checking if audio file is used:", error);
-      // Nếu có lỗi, cho phép xóa để tránh blocking người dùng
-      return false;
-    }
-  }
-
   async getAudioFileCount(): Promise<number> {
     const result = await db.select({ count: sql<number>`count(*)` }).from(audioFiles);
     return result[0].count;
@@ -438,12 +412,6 @@ export class DatabaseStorage implements IStorage {
           paramIndex++;
         }
         
-        if (programData.settings) {
-          updates.push(`settings = $${paramIndex}`);
-          values.push(JSON.stringify(programData.settings));
-          paramIndex++;
-        }
-        
         if (updates.length === 0) {
           throw new Error("No fields to update");
         }
@@ -463,7 +431,7 @@ export class DatabaseStorage implements IStorage {
         throw new Error("Failed to update broadcast program with raw SQL");
       } catch (sqlError) {
         console.error("Raw SQL update error:", sqlError);
-        throw new Error(`Không thể cập nhật chương trình phát: ${sqlError.message || drizzleError.message}`);
+        throw new Error(`Không thể cập nhật chương trình phát: ${((sqlError as any).message) || ((drizzleError as any).message)}`);
       }
     }
   }
@@ -498,124 +466,14 @@ export class DatabaseStorage implements IStorage {
     return playlist;
   }
 
-  async getPlaylistByProgramId(programId: number): Promise<Playlist | undefined> {
-    try {
-      console.log("Storage: Getting playlist for program ID:", programId);
-      
-      const [playlist] = await db
-        .select()
-        .from(playlists)
-        .where(eq(playlists.broadcastProgramId, programId));
-      
-      console.log("Storage: Found playlist:", playlist);
-      
-      return playlist;
-    } catch (error) {
-      console.error("Error in getPlaylistByProgramId:", error);
-      throw error;
-    }
-  }
-
   async getAllPlaylists(): Promise<Playlist[]> {
     return db.select().from(playlists);
-  }
-
-  async updatePlaylist(id: number, playlistData: Partial<InsertPlaylist>): Promise<Playlist> {
-    try {
-      console.log("Database updatePlaylist - ID:", id);
-      console.log("Database updatePlaylist - Data:", JSON.stringify(playlistData));
-      
-      // Validate the id
-      if (isNaN(id) || id <= 0) {
-        throw new Error(`Invalid playlist ID: ${id}`);
-      }
-      
-      const [playlist] = await db
-        .update(playlists)
-        .set({
-          items: playlistData.items
-        })
-        .where(eq(playlists.id, id))
-        .returning();
-      
-      console.log("Database updatePlaylist - Result:", JSON.stringify(playlist));
-      return playlist;
-    } catch (error) {
-      console.error("Error updating playlist:", error);
-      throw error;
-    }
   }
 
   async deletePlaylist(id: number): Promise<void> {
     await db
       .delete(playlists)
       .where(eq(playlists.id, id));
-  }
-
-  // Broadcast assignment operations
-  async createBroadcastAssignment(assignmentData: InsertBroadcastAssignment): Promise<BroadcastAssignment> {
-    const [assignment] = await db
-      .insert(broadcastAssignments)
-      .values(assignmentData)
-      .returning();
-    
-    return assignment;
-  }
-
-  async getBroadcastAssignment(id: number): Promise<BroadcastAssignment | undefined> {
-    const [assignment] = await db
-      .select()
-      .from(broadcastAssignments)
-      .where(eq(broadcastAssignments.id, id));
-    
-    return assignment;
-  }
-
-  async getAllBroadcastAssignments(): Promise<BroadcastAssignment[]> {
-    return db.select().from(broadcastAssignments);
-  }
-
-  async getSupermarketBroadcastAssignments(supermarketId: number): Promise<BroadcastAssignment[]> {
-    return db
-      .select()
-      .from(broadcastAssignments)
-      .where(eq(broadcastAssignments.supermarketId, supermarketId));
-  }
-
-  async getBroadcastProgramAssignments(programId: number): Promise<BroadcastAssignment[]> {
-    return db
-      .select()
-      .from(broadcastAssignments)
-      .where(eq(broadcastAssignments.broadcastProgramId, programId));
-  }
-
-  async updateBroadcastAssignment(id: number, assignmentData: Partial<InsertBroadcastAssignment>): Promise<BroadcastAssignment> {
-    const [assignment] = await db
-      .update(broadcastAssignments)
-      .set(assignmentData)
-      .where(eq(broadcastAssignments.id, id))
-      .returning();
-    
-    return assignment;
-  }
-
-  async deleteBroadcastAssignment(id: number): Promise<void> {
-    await db
-      .delete(broadcastAssignments)
-      .where(eq(broadcastAssignments.id, id));
-  }
-
-  async getAllSupermarketTypes() {
-    try {
-      console.log("Storage: Fetching all supermarket types from database");
-      const types = await db.select().from(supermarketTypes);
-      console.log("Storage: Found supermarket types:", JSON.stringify(types));
-      return types;
-    } catch (error) {
-      console.error("Storage: Error fetching supermarket types:", error);
-      // Trả về mảng rỗng nếu có lỗi để tránh làm crash API
-      return [];
-    }
   }
 
   // Audio Group operations

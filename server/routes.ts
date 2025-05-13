@@ -15,6 +15,7 @@ import {
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import { PlaylistManager } from './playlist-algorithm.js';
 
 // Configure multer for file uploads
 const audioUpload = multer({
@@ -1105,6 +1106,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(groups);
     } catch (error) {
       next(error);
+    }
+  });
+
+  app.post('/api/generate-playlist', async (req, res) => {
+    try {
+      const items = req.body.items;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ message: 'items phải là mảng' });
+      }
+      const manager = new PlaylistManager();
+      manager.processInputData(items);
+      const playlistObj = manager.getPlaylist();
+      res.json({ playlist: playlistObj });
+    } catch (error) {
+      res.status(500).json({ message: 'Lỗi xử lý playlist', error: error.message });
     }
   });
 

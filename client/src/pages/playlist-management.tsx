@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/dashboard-layout';
-import { Table, Button, Modal, Select, Typography, Space, Row, Col, message, Badge } from 'antd';
+import { Table, Button, Modal, Select, Typography, Space, Row, Col, message, Badge, InputNumber } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { Input } from '@/components/ui/input';
 import MultiDatePicker, { DateObject } from 'react-multi-date-picker';
@@ -22,29 +22,55 @@ const PlaylistManagement: React.FC = () => {
   const [selectedAudioRowKeys, setSelectedAudioRowKeys] = useState<React.Key[]>([]);
   const [audioSearch, setAudioSearch] = useState('');
   const [audioGroupFilter, setAudioGroupFilter] = useState<number[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addModalFiles, setAddModalFiles] = useState<any[]>([]);
+  const [addFrequency, setAddFrequency] = useState<number | undefined>(undefined);
+  const [addTimeSlot, setAddTimeSlot] = useState('');
+  const [editMode, setEditMode] = useState<'add' | 'edit-single' | 'edit-multi'>('add');
+  const [editIndexes, setEditIndexes] = useState<number[]>([]);
 
-  // Fetch audio files from API
+  // State phân trang cho audio có sẵn
+  const [audioPage, setAudioPage] = useState(1);
+  const [audioPageSize, setAudioPageSize] = useState(10);
+  const [audioTotal, setAudioTotal] = useState(0);
+
+  // State phân trang cho danh sách phát hiện tại
+  const [playlistPage, setPlaylistPage] = useState(1);
+  const [playlistPageSize, setPlaylistPageSize] = useState(10);
+  const [playlistTotal, setPlaylistTotal] = useState(0);
+
+  // Fetch audio files from API (phân trang)
   useEffect(() => {
-    fetch('/api/audio-files')
+    setLoading(true);
+    const params = new URLSearchParams();
+    params.append('page', audioPage.toString());
+    params.append('limit', audioPageSize.toString());
+    fetch(`/api/audio-files?${params.toString()}`)
       .then(res => res.json())
       .then(data => {
         if (data.audioFiles) setAudioFiles(data.audioFiles);
         else if (Array.isArray(data)) setAudioFiles(data);
+        if (data.pagination) setAudioTotal(data.pagination.total);
+        setLoading(false);
       });
-  }, []);
+  }, [audioPage, audioPageSize]);
 
-  // Fetch playlists from API
+  // Fetch playlists from API (phân trang)
   const fetchPlaylists = () => {
     setLoading(true);
-    fetch('/api/broadcast-programs')
+    const params = new URLSearchParams();
+    params.append('page', playlistPage.toString());
+    params.append('limit', playlistPageSize.toString());
+    fetch(`/api/broadcast-programs?${params.toString()}`)
       .then(res => res.json())
       .then(data => {
         setPlaylists(Array.isArray(data) ? data : []);
+        if (data.pagination) setPlaylistTotal(data.pagination.total);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   };
-  useEffect(fetchPlaylists, []);
+  useEffect(fetchPlaylists, [playlistPage, playlistPageSize]);
 
   // Fetch audio groups
   useEffect(() => {
@@ -98,9 +124,7 @@ const PlaylistManagement: React.FC = () => {
 
   // Hàm thêm audio vào playlist
   const handleAddAudioToPlaylist = (audio: any) => {
-    if (!playlistItems.some((item: any) => item.id === audio.id)) {
-      setPlaylistItems([...playlistItems, { ...audio, time: `00:00` }]);
-    }
+    openAddModal([audio]);
   };
 
   // Hàm tạo tự động playlist (ví dụ: lấy tất cả audio có sẵn)
@@ -159,7 +183,7 @@ const PlaylistManagement: React.FC = () => {
   // Tùy chỉnh rowSelection để không highlight row
   const audioRowSelection = {
     selectedRowKeys: selectedAudioRowKeys,
-    onChange: setSelectedAudioRowKeys,
+    onChange: (newSelectedRowKeys: React.Key[]) => setSelectedAudioRowKeys(newSelectedRowKeys),
     columnTitle: <span>Chọn</span>,
     renderCell: (checked: boolean, record: any, index: number, originNode: React.ReactNode) => originNode,
     preserveSelectedRowKeys: true,
@@ -168,7 +192,7 @@ const PlaylistManagement: React.FC = () => {
   };
   const playlistRowSelection = {
     selectedRowKeys: selectedPlaylistRowKeys,
-    onChange: setSelectedPlaylistRowKeys,
+    onChange: (newSelectedRowKeys: React.Key[]) => setSelectedPlaylistRowKeys(newSelectedRowKeys),
     columnTitle: <span>Chọn</span>,
     renderCell: (checked: boolean, record: any, index: number, originNode: React.ReactNode) => originNode,
     preserveSelectedRowKeys: true,
@@ -177,8 +201,135 @@ const PlaylistManagement: React.FC = () => {
   };
 
   // Hàm chọn tất cả và bỏ chọn cho audio có sẵn
-  const handleSelectAllAudio = () => setSelectedAudioRowKeys(filteredAudioFiles.map(f => f.id));
+  const handleSelectAllAudio = () => setSelectedAudioRowKeys(Array.from(new Set([...selectedAudioRowKeys, ...filteredAudioFiles.map(f => f.id)])));
   const handleDeselectAllAudio = () => setSelectedAudioRowKeys([]);
+
+  // Hàm mở modal thêm file (1 hoặc nhiều)
+  const openAddModal = (files: any[]) => {
+    setAddModalFiles(files);
+    setAddFrequency(undefined);
+    setAddTimeSlot('');
+    setShowAddModal(true);
+  };
+
+  // Hàm chọn tất cả và bỏ chọn cho danh sách phát hiện tại
+  const handleSelectAllPlaylist = () => setSelectedPlaylistRowKeys(Array.from(new Set([...selectedPlaylistRowKeys, ...playlistItems.map(f => f.id)])));
+  const handleDeselectAllPlaylist = () => setSelectedPlaylistRowKeys([]);
+
+  // Hàm xóa file khỏi playlistItems
+  const handleDeletePlaylistItem = (id: number) => {
+    setPlaylistItems(prev => prev.filter(item => item.id !== id));
+    // Nếu audioFiles chưa có file này thì thêm lại
+    const removed = playlistItems.find(item => item.id === id);
+    if (removed && !audioFiles.some(f => f.id === id)) {
+      setAudioFiles(prev => [...prev, removed]);
+    }
+    // Xoá khỏi selectedPlaylistRowKeys nếu có
+    setSelectedPlaylistRowKeys(prev => prev.filter(key => key !== id));
+  };
+
+  // Hàm mở modal sửa file đơn
+  const handleEditPlaylistItem = (record: any, idx: number) => {
+    setEditMode('edit-single');
+    setAddModalFiles([record]);
+    setAddFrequency(record.frequency ?? 1);
+    setAddTimeSlot(record.timeSlot || '');
+    setEditIndexes([idx]);
+    setShowAddModal(true);
+  };
+
+  // Hàm mở modal sửa nhiều file
+  const handleEditMulti = () => {
+    const indexes = playlistItems.map((item, idx) => selectedPlaylistRowKeys.includes(item.id) ? idx : -1).filter(idx => idx !== -1);
+    const files = indexes.map(idx => playlistItems[idx]);
+    setEditMode('edit-multi');
+    setAddModalFiles(files);
+    setAddFrequency(undefined);
+    setAddTimeSlot('');
+    setEditIndexes(indexes);
+    setShowAddModal(true);
+  };
+
+  // Sửa lại handleAddModalOk để dùng cho cả sửa đơn, sửa nhiều, thêm mới
+  const handleAddModalOk = () => {
+    if (!addModalFiles.length) return;
+    if (editMode === 'edit-single' && editIndexes.length === 1) {
+      setPlaylistItems(prev => prev.map((item, idx) => idx === editIndexes[0]
+        ? { ...item, frequency: addFrequency ?? 1, timeSlot: addTimeSlot }
+        : item
+      ));
+    } else if (editMode === 'edit-multi' && editIndexes.length > 0) {
+      setPlaylistItems(prev => prev.map((item, idx) =>
+        editIndexes.includes(idx)
+          ? { ...item, frequency: addFrequency ?? item.frequency ?? 1, timeSlot: addTimeSlot }
+          : item
+      ));
+    } else {
+      const newItems = addModalFiles.map(file => ({
+        ...file,
+        frequency: addFrequency ?? file.frequency ?? 1,
+        timeSlot: addTimeSlot,
+      }));
+      setPlaylistItems(prev => [...prev, ...newItems]);
+      setAudioFiles(prev => prev.filter(f => !addModalFiles.some(a => a.id === f.id)));
+      setSelectedAudioRowKeys(prev => prev.filter(id => !addModalFiles.some(f => f.id === id)));
+    }
+    setShowAddModal(false);
+    setSelectedAudioRowKeys([]);
+    setEditIndexes([]);
+    setEditMode('add');
+  };
+
+  // Hàm bấm Thêm khi đã chọn nhiều file
+  const handleAddSelectedAudios = () => {
+    const files = filteredAudioFiles.filter(f => selectedAudioRowKeys.includes(f.id));
+    if (files.length > 0) openAddModal(files);
+  };
+
+  const handleCheckAndSavePlaylist = async () => {
+    if (!selectedPlaylistId) {
+      message.error('Bạn cần chọn chương trình phát!');
+      return;
+    }
+    // Chuẩn bị dữ liệu input
+    const arrFile = playlistItems.map(item => ({
+      name: item.displayName,
+      type: getGroupName(item.audioGroupId) === 'Nhạc' ? 'Music' : getGroupName(item.audioGroupId),
+      frequency: item.frequency ?? 1,
+      time_slot: item.timeSlot || '',
+      duration: item.duration,
+    }));
+
+    // Gọi API backend để xử lý playlist
+    const res = await fetch('/api/generate-playlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: arrFile }),
+    });
+    if (!res.ok) {
+      message.error('Lỗi xử lý playlist!');
+      return;
+    }
+    const { playlist: playlistObj } = await res.json();
+
+    // Lưu từng dòng xuống DB
+    for (const [time, data] of Object.entries(playlistObj)) {
+      const d = data as any;
+      await fetch('/api/playlists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          broadcastProgramId: selectedPlaylistId,
+          name: d.name,
+          type: d.type,
+          frequency: d.frequency,
+          timeSlot: d.time_slot || '',
+          duration: d.duration,
+        }),
+      });
+    }
+    message.success('Lưu playlist thành công!');
+  };
 
   return (
     <DashboardLayout>
@@ -267,7 +418,33 @@ const PlaylistManagement: React.FC = () => {
                 <div style={{ marginBottom: 20 }}>
                   <Title level={5} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span>Danh sách phát hiện tại</span>
-                    <Button onClick={handleAutoGeneratePlaylist} icon={<PlusOutlined />}>Tạo tự động</Button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Button
+                        type={selectedPlaylistRowKeys.length === playlistItems.length && playlistItems.length > 0 ? 'primary' : 'default'}
+                        onClick={handleSelectAllPlaylist}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                      >
+                        <span style={{ fontSize: 18, marginRight: 4 }}>☑️</span> Chọn tất cả
+                      </Button>
+                      <Button
+                        type={selectedPlaylistRowKeys.length === 0 ? 'default' : 'primary'}
+                        onClick={handleDeselectAllPlaylist}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                      >
+                        <span style={{ fontSize: 18, marginRight: 4 }}>☐</span> Bỏ chọn
+                      </Button>
+                      <span style={{ marginLeft: 12, fontWeight: 500 }}>
+                        Đã chọn: {selectedPlaylistRowKeys.length}
+                      </span>
+                      <Button onClick={handleAutoGeneratePlaylist} icon={<PlusOutlined />} style={{ marginLeft: 12 }}>Tạo tự động</Button>
+                      <Button
+                        type="primary"
+                        style={{ marginLeft: 12, background: '#52c41a', borderColor: '#52c41a' }}
+                        onClick={handleCheckAndSavePlaylist}
+                      >
+                        Kiểm tra & Lưu playlist
+                      </Button>
+                    </div>
                   </Title>
                   <Table
                     rowSelection={playlistRowSelection}
@@ -276,13 +453,25 @@ const PlaylistManagement: React.FC = () => {
                       { title: 'STT', dataIndex: 'stt', key: 'stt', render: (_: any, __: any, idx: number) => idx + 1, align: 'center', width: 60 },
                       { title: 'Tên file', dataIndex: 'displayName', key: 'displayName', width: 180 },
                       { title: 'Nhóm', dataIndex: 'audioGroupId', key: 'audioGroupId', render: (id: number) => renderGroupBadge(id), width: 120 },
-                      { title: 'Tần suất', dataIndex: 'audioGroupId', key: 'frequency', render: (id: number) => getFrequency(id), align: 'center', width: 90 },
+                      { title: 'Tần suất', dataIndex: 'frequency', key: 'frequency', render: (val: number, record: any) => val ?? 1, align: 'center', width: 90 },
                       { title: 'Duration', dataIndex: 'duration', key: 'duration', render: (val: number) => formatDuration(val), align: 'center', width: 90 },
                       { title: 'Khung giờ', dataIndex: 'timeSlot', key: 'timeSlot', render: (val: string) => val || '', align: 'center', width: 120 },
-                      { title: 'Thao tác', key: 'actions', align: 'center', render: (_: any, record: any) => <Button danger>Xóa</Button>, width: 80 },
+                      { title: 'Thao tác', key: 'actions', align: 'center', width: 120, render: (_: any, record: any, idx: number) => (
+                        <Space>
+                          <Button type="link" style={{ color: '#fa541c', border: '1px solid #fa541c' }} onClick={() => handleDeletePlaylistItem(record.id)}>Xóa</Button>
+                          <Button type="link" style={{ color: '#1677ff', border: '1px solid #1677ff' }} onClick={() => handleEditPlaylistItem(record, idx)}>Sửa</Button>
+                        </Space>
+                      ) },
                     ]}
                     rowKey="id"
-                    pagination={false}
+                    pagination={{
+                      current: playlistPage,
+                      pageSize: playlistPageSize,
+                      total: playlistTotal,
+                      showSizeChanger: true,
+                      onChange: (page, pageSize) => { setPlaylistPage(page); setPlaylistPageSize(pageSize); },
+                      showTotal: (total) => `Tổng ${total} file`,
+                    }}
                     style={{ background: '#fff', borderRadius: 8, minWidth: 700 }}
                     scroll={{ x: 700 }}
                     locale={{ emptyText: 'Chưa có file audio nào trong playlist' }}
@@ -290,7 +479,7 @@ const PlaylistManagement: React.FC = () => {
                   />
                   {selectedPlaylistRowKeys.length > 1 && (
                     <div style={{ textAlign: 'right', marginTop: 12 }}>
-                      <Button type="primary">Sửa tất cả</Button>
+                      <Button type="primary" onClick={handleEditMulti}>Sửa tất cả</Button>
                     </div>
                   )}
                 </div>
@@ -341,10 +530,17 @@ const PlaylistManagement: React.FC = () => {
                   { title: 'TÊN FILE', dataIndex: 'displayName', key: 'displayName', width: 180 },
                   { title: 'NHÓM', dataIndex: 'audioGroupId', key: 'audioGroupId', render: (id: number) => renderGroupBadge(id), width: 120 },
                   { title: 'THỜI LƯỢNG', dataIndex: 'duration', key: 'duration', align: 'center', render: (val: number) => formatDuration(val), width: 90 },
-                  { title: 'Thao tác', key: 'actions', align: 'center', render: (_: any, record: any) => <Button type="primary" onClick={() => handleAddAudioToPlaylist(record)}>Thêm</Button>, width: 80 },
+                  { title: 'Thao tác', key: 'actions', align: 'center', render: (_: any, record: any) => <Button type="primary" onClick={() => selectedAudioRowKeys.length > 1 ? handleAddSelectedAudios() : handleAddAudioToPlaylist(record)}>Thêm</Button>, width: 80 },
                 ]}
                 rowKey="id"
-                pagination={false}
+                pagination={{
+                  current: audioPage,
+                  pageSize: audioPageSize,
+                  total: audioTotal,
+                  showSizeChanger: true,
+                  onChange: (page, pageSize) => { setAudioPage(page); setAudioPageSize(pageSize); },
+                  showTotal: (total) => `Tổng ${total} file`,
+                }}
                 style={{ background: '#fff', borderRadius: 8, minWidth: 500 }}
                 scroll={{ x: 500 }}
                 locale={{ emptyText: 'Không có file audio nào' }}
@@ -353,6 +549,33 @@ const PlaylistManagement: React.FC = () => {
             </div>
           </Col>
         </Row>
+        <Modal
+          open={showAddModal}
+          onCancel={() => { setShowAddModal(false); setEditMode('add'); setEditIndexes([]); }}
+          onOk={handleAddModalOk}
+          okText="Lưu"
+          cancelText="Hủy"
+          title={editMode === 'edit-single' ? 'Sửa file trong danh sách phát' : editMode === 'edit-multi' ? 'Sửa nhiều file trong danh sách phát' : addModalFiles.length > 1 ? 'Thêm nhiều file vào danh sách phát' : 'Thêm file vào danh sách phát'}
+        >
+          {editMode === 'edit-multi' && (
+            <div style={{ color: '#faad14', marginBottom: 12 }}>
+              <b>Chú ý:</b> Thao tác này sẽ cập nhật cho tất cả các file đã được chọn
+            </div>
+          )}
+          {editMode === 'add' && addModalFiles.length > 1 && (
+            <div style={{ color: '#faad14', marginBottom: 12 }}>
+              <b>Chú ý:</b> Thao tác này sẽ cập nhật cho tất cả các file đã được chọn
+            </div>
+          )}
+          <div style={{ marginBottom: 16 }}>
+            <span>Tần suất: </span>
+            <InputNumber min={1} value={addFrequency} onChange={v => setAddFrequency(v === null ? undefined : v)} placeholder="Tần suất" style={{ width: 120 }} />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <span>Khung giờ: </span>
+            <Input value={addTimeSlot} onChange={e => setAddTimeSlot(e.target.value)} placeholder="Khung giờ" style={{ width: 200 }} />
+          </div>
+        </Modal>
       </div>
     </DashboardLayout>
   );

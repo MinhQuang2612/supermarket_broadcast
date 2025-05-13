@@ -18,7 +18,6 @@ export const usersRelations = relations(users, ({ many }) => ({
   activityLogs: many(activityLogs),
   uploadedAudioFiles: many(audioFiles, { relationName: "uploadedBy" }),
   createdPrograms: many(broadcastPrograms, { relationName: "createdBy" }),
-  assignedBroadcasts: many(broadcastAssignments, { relationName: "assignedBy" }),
 }));
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -126,7 +125,6 @@ export const supermarkets = pgTable("supermarkets", {
 });
 
 export const supermarketsRelations = relations(supermarkets, ({ many, one }) => ({
-  broadcastAssignments: many(broadcastAssignments),
   commune: one(communes, {
     fields: [supermarkets.communeId],
     references: [communes.id],
@@ -208,8 +206,6 @@ export const broadcastPrograms = pgTable("broadcast_programs", {
 });
 
 export const broadcastProgramsRelations = relations(broadcastPrograms, ({ many }) => ({
-  playlists: many(playlists),
-  assignments: many(broadcastAssignments, { relationName: "programAssignments" }),
 }));
 
 // Create base schema và sau đó ghi đè định nghĩa cho trường date
@@ -227,57 +223,18 @@ export const insertBroadcastProgramSchema = baseBroadcastProgramSchema.extend({
 // Playlists
 export const playlists = pgTable("playlists", {
   id: serial("id").primaryKey(),
-  broadcastProgramId: integer("broadcast_program_id").notNull().references(() => broadcastPrograms.id),
-  items: json("items").notNull().$type<PlaylistItem[]>(), // Array of playlist items with audio file IDs and times
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  broadcastProgramId: integer("broadcast_program_id")
+    .notNull()
+    .references(() => broadcastPrograms.id),
+  name: text("name").notNull(),
+  type: text("type").notNull(),
+  frequency: integer("frequency").notNull(),
+  timeSlot: text("time_slot"),
+  duration: integer("duration").notNull(),
 });
-
-export const playlistsRelations = relations(playlists, ({ one }) => ({
-  broadcastProgram: one(broadcastPrograms, {
-    fields: [playlists.broadcastProgramId],
-    references: [broadcastPrograms.id],
-  }),
-}));
 
 export const insertPlaylistSchema = createInsertSchema(playlists).omit({
   id: true,
-  createdAt: true,
-});
-
-// Supermarket broadcast assignments
-export const broadcastAssignments = pgTable("broadcast_assignments", {
-  id: serial("id").primaryKey(),
-  supermarketId: integer("supermarket_id").notNull().references(() => supermarkets.id),
-  broadcastProgramId: integer("broadcast_program_id").notNull().references(() => broadcastPrograms.id),
-  playlistId: integer("playlist_id").references(() => playlists.id), // Playlist cụ thể được gán cho siêu thị này (có thể null)
-  assignedBy: integer("assigned_by").notNull().references(() => users.id),
-  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
-});
-
-export const broadcastAssignmentsRelations = relations(broadcastAssignments, ({ one }) => ({
-  supermarket: one(supermarkets, {
-    fields: [broadcastAssignments.supermarketId],
-    references: [supermarkets.id],
-  }),
-  broadcastProgram: one(broadcastPrograms, {
-    fields: [broadcastAssignments.broadcastProgramId],
-    references: [broadcastPrograms.id],
-    relationName: "programAssignments",
-  }),
-  playlist: one(playlists, {
-    fields: [broadcastAssignments.playlistId],
-    references: [playlists.id],
-  }),
-  assigner: one(users, {
-    fields: [broadcastAssignments.assignedBy],
-    references: [users.id],
-    relationName: "assignedBy",
-  }),
-}));
-
-export const insertBroadcastAssignmentSchema = createInsertSchema(broadcastAssignments).omit({
-  id: true,
-  assignedAt: true,
 });
 
 // Type definitions
@@ -305,41 +262,14 @@ export type AudioFile = typeof audioFiles.$inferSelect;
 export type InsertBroadcastProgram = z.infer<typeof insertBroadcastProgramSchema>;
 export type BroadcastProgram = typeof broadcastPrograms.$inferSelect;
 
-export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
-export type Playlist = typeof playlists.$inferSelect;
-
-export type InsertBroadcastAssignment = z.infer<typeof insertBroadcastAssignmentSchema>;
-export type BroadcastAssignment = typeof broadcastAssignments.$inferSelect;
-
 export type InsertSupermarketType = z.infer<typeof insertSupermarketTypeSchema>;
 export type SupermarketType = typeof supermarketTypes.$inferSelect;
 
 export type InsertAudioGroup = z.infer<typeof insertAudioGroupSchema>;
 export type AudioGroup = typeof audioGroups.$inferSelect;
 
-// Group frequency settings interface
-export interface GroupFrequencySettings {
-  enabled: boolean;
-  frequencyMinutes: number;
-  maxPlays: number;
-  startTime: string;
-  endTime: string;
-}
-
-export interface BroadcastProgramSettings {
-  greetings?: GroupFrequencySettings;
-  promotions?: GroupFrequencySettings;
-  tips?: GroupFrequencySettings;
-  announcements?: GroupFrequencySettings;
-  music?: GroupFrequencySettings;
-  // Dynamically allow any audio group by name
-  [audioGroupName: string]: GroupFrequencySettings | undefined;
-}
-
-export interface PlaylistItem {
-  audioFileId: number;
-  playTime: string; // HH:MM format
-}
+export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
+export type Playlist = typeof playlists.$inferSelect;
 
 export const insertSupermarketTypeSchema = createInsertSchema(supermarketTypes).omit({
   id: true,
