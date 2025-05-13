@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -121,7 +121,6 @@ export const supermarkets = pgTable("supermarkets", {
   provinceId: integer("province_id").notNull().references(() => provinces.id),
   regionId: integer("region_id").notNull().references(() => regions.id),
   status: text("status").notNull().default("active"), // "active", "paused"
-  currentProgram: text("current_program"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   supermarketTypeId: integer("supermarket_type_id").notNull().references(() => supermarketTypes.id),
 });
@@ -204,18 +203,11 @@ export const insertAudioFileSchema = createInsertSchema(audioFiles).omit({
 export const broadcastPrograms = pgTable("broadcast_programs", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  date: timestamp("date").notNull(),
-  settings: json("settings").notNull().$type<BroadcastProgramSettings>(), // JSON with frequency settings for each audio group
-  createdBy: integer("created_by").notNull().references(() => users.id),
+  dates: date("dates").array().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const broadcastProgramsRelations = relations(broadcastPrograms, ({ one, many }) => ({
-  creator: one(users, {
-    fields: [broadcastPrograms.createdBy],
-    references: [users.id],
-    relationName: "createdBy",
-  }),
+export const broadcastProgramsRelations = relations(broadcastPrograms, ({ many }) => ({
   playlists: many(playlists),
   assignments: many(broadcastAssignments, { relationName: "programAssignments" }),
 }));

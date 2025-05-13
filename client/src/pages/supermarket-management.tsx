@@ -726,20 +726,6 @@ export default function SupermarketManagement() {
                 },
               },
               {
-                header: "Chương trình",
-                accessorKey: "currentProgram",
-                sortable: true,
-                cell: ({ row }) => {
-                  const program = row.getValue("currentProgram") as string | undefined;
-                  
-                  return (
-                    <div className="text-sm text-neutral-dark">
-                      {program || "—"}
-                    </div>
-                  );
-                },
-              },
-              {
                 header: "Loại siêu thị",
                 accessorKey: "supermarketTypeId",
                 cell: ({ row }) => {
