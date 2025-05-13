@@ -530,6 +530,15 @@ export class DatabaseStorage {
       .set({ frequency })
       .where(eq(audioGroups.id, id));
   }
+
+  // Thêm lại hàm getPlaylistByProgramId
+  async getPlaylistByProgramId(broadcastProgramId: number): Promise<Playlist | undefined> {
+    const [playlist] = await db
+      .select()
+      .from(playlists)
+      .where(eq(playlists.broadcastProgramId, broadcastProgramId));
+    return playlist;
+  }
 }
 
 // Export a singleton instance of the database storage

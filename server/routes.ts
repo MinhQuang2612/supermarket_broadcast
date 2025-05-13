@@ -1085,16 +1085,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!broadcastProgramId || !Array.isArray(items)) {
         return res.status(400).json({ message: "broadcastProgramId và items là bắt buộc" });
       }
-      // Kiểm tra đã có playlist cho chương trình này chưa
+      // Xóa playlist cũ nếu có
       let playlist = await storage.getPlaylistByProgramId(broadcastProgramId);
       if (playlist) {
-        // Update
-        playlist = await storage.updatePlaylist(playlist.id, { items });
-      } else {
-        // Create
-        playlist = await storage.createPlaylist({ broadcastProgramId, items });
+        await storage.deletePlaylist(playlist.id);
       }
-      res.status(201).json(playlist);
+      // Lưu từng item của playlist vào DB
+      const insertedItems = [];
+      for (const item of items) {
+        // Đảm bảo truyền đúng các trường, map time_slot -> timeSlot
+        const dbItem = {
+          broadcastProgramId,
+          name: item.name,
+          type: item.type,
+          frequency: item.frequency || 1,
+          timeSlot: item.time_slot || item.timeSlot || null,
+          duration: item.duration
+        };
+        const inserted = await storage.createPlaylist(dbItem);
+        insertedItems.push(inserted);
+      }
+      // Sau khi lưu playlist, backend tự chạy lại giải thuật để lấy playlistObj (object thời gian phát)
+      const { PlaylistManager } = await import('./playlist-algorithm.js');
+      const manager = new PlaylistManager();
+      manager.processInputData(items);
+      const playlistObj = manager.getPlaylist();
+      // Tính tổng thời gian phát
+      let tongThoiGianPhat = 0;
+      const toSeconds = (t) => {
+        const [h, m, s] = t.split(':').map(Number);
+        return h * 3600 + m * 60 + s;
+      };
+      for (const key of Object.keys(playlistObj)) {
+        const [start, end] = key.split('-');
+        tongThoiGianPhat += toSeconds(end) - toSeconds(start);
+      }
+      playlistObj['tong_thoi_gian_phat'] = tongThoiGianPhat;
+      fs.writeFileSync('server/playlist.json', JSON.stringify(playlistObj, null, 2), 'utf8');
+      res.status(201).json({ message: "Đã lưu playlist", items: insertedItems });
     } catch (error) {
       next(error);
     }
