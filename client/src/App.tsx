@@ -10,6 +10,7 @@ import UserManagement from "@/pages/user-management";
 import SupermarketManagement from "@/pages/supermarket-management";
 import AudioManagement from "@/pages/audio-management";
 import PlaylistManagement from './pages/playlist-management';
+import BroadcastManagement from './pages/broadcast-management';
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "@/hooks/use-auth";
 
@@ -21,6 +22,7 @@ function Router() {
       <ProtectedRoute path="/supermarkets" component={SupermarketManagement} />
       <ProtectedRoute path="/audio-files" component={AudioManagement} />
       <ProtectedRoute path="/playlists" component={PlaylistManagement} />
+      <ProtectedRoute path="/broadcast-management" component={BroadcastManagement} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

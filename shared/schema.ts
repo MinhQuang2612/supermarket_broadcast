@@ -2,6 +2,7 @@ import { pgTable, text, serial, integer, boolean, timestamp, json, date } from "
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
+import { primaryKey } from "drizzle-orm/pg-core";
 
 // User model
 export const users = pgTable("users", {
@@ -222,20 +223,26 @@ export const insertBroadcastProgramSchema = baseBroadcastProgramSchema.extend({
 
 // Playlists
 export const playlists = pgTable("playlists", {
-  id: serial("id").primaryKey(),
-  broadcastProgramId: integer("broadcast_program_id")
-    .notNull()
-    .references(() => broadcastPrograms.id),
+  playlistItemId: serial("playlist_item_id").primaryKey(),
+  audioId: integer("audio_id").notNull(), // id của file audio
+  broadcastProgramId: integer("broadcast_program_id").notNull().references(() => broadcastPrograms.id),
   name: text("name").notNull(),
-  type: text("type").notNull(),
-  frequency: integer("frequency").notNull(),
+  frequency: integer("frequency").notNull().default(1),
   timeSlot: text("time_slot"),
-  duration: integer("duration").notNull(),
 });
 
-export const insertPlaylistSchema = createInsertSchema(playlists).omit({
-  id: true,
+export const insertPlaylistSchema = createInsertSchema(playlists);
+
+// Playlist details
+export const playlistDetails = pgTable("playlist_details", {
+  id: serial("id").primaryKey(),
+  audioFileId: integer("audio_file_id").notNull().references(() => audioFiles.id),
+  broadcastProgramId: integer("broadcast_program_id").notNull().references(() => broadcastPrograms.id),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
 });
+
+export const insertPlaylistDetailSchema = createInsertSchema(playlistDetails).omit({ id: true });
 
 // Type definitions
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -270,6 +277,9 @@ export type AudioGroup = typeof audioGroups.$inferSelect;
 
 export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
 export type Playlist = typeof playlists.$inferSelect;
+
+export type InsertPlaylistDetail = z.infer<typeof insertPlaylistDetailSchema>;
+export type PlaylistDetail = typeof playlistDetails.$inferSelect;
 
 export const insertSupermarketTypeSchema = createInsertSchema(supermarketTypes).omit({
   id: true,

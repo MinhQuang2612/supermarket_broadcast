@@ -34,6 +34,8 @@ export default function Header({ title, onMobileMenuToggle, onOpenChangePassword
     pageTitle = "Phân bổ chương trình";
   } else if (location === "/system-management") {
     pageTitle = "Quản lý hệ thống";
+  } else if (location === "/broadcast-management") {
+    pageTitle = "Quản lý chương trình phát";
   }
 
   return (

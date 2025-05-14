@@ -26,9 +26,6 @@ import {
   playlists,
   Playlist,
   InsertPlaylist,
-  broadcastAssignments,
-  BroadcastAssignment,
-  InsertBroadcastAssignment,
   SupermarketType,
   AudioGroup,
   InsertAudioGroup,
@@ -120,7 +117,6 @@ export class MemStorage implements IStorage {
   private audioFilesMap: Map<number, AudioFile>;
   private broadcastProgramsMap: Map<number, BroadcastProgram>;
   private playlistsMap: Map<number, Playlist>;
-  private broadcastAssignmentsMap: Map<number, BroadcastAssignment>;
   private audioGroupsMap: Map<number, AudioGroup>;
   
   // Current IDs
@@ -133,7 +129,6 @@ export class MemStorage implements IStorage {
   private audioFileIdCounter: number;
   private broadcastProgramIdCounter: number;
   private playlistIdCounter: number;
-  private broadcastAssignmentIdCounter: number;
   private audioGroupIdCounter: number;
   
   // Session store
@@ -150,7 +145,6 @@ export class MemStorage implements IStorage {
     this.audioFilesMap = new Map();
     this.broadcastProgramsMap = new Map();
     this.playlistsMap = new Map();
-    this.broadcastAssignmentsMap = new Map();
     this.audioGroupsMap = new Map();
     
     // Initialize ID counters
@@ -163,7 +157,6 @@ export class MemStorage implements IStorage {
     this.audioFileIdCounter = 1;
     this.broadcastProgramIdCounter = 1;
     this.playlistIdCounter = 1;
-    this.broadcastAssignmentIdCounter = 1;
     this.audioGroupIdCounter = 1;
     
     // Initialize session store
@@ -191,13 +184,13 @@ export class MemStorage implements IStorage {
   async createUser(userData: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
     const createdAt = new Date();
-    
     const user: User = {
       ...userData,
       id,
       createdAt,
+      role: userData.role ?? 'user',
+      status: userData.status ?? 'active',
     };
-    
     this.usersMap.set(id, user);
     return user;
   }
@@ -399,13 +392,12 @@ export class MemStorage implements IStorage {
   async createSupermarket(supermarketData: InsertSupermarket): Promise<Supermarket> {
     const id = this.supermarketIdCounter++;
     const createdAt = new Date();
-    
     const supermarket: Supermarket = {
       ...supermarketData,
       id,
       createdAt,
+      status: supermarketData.status ?? 'active',
     };
-    
     this.supermarketsMap.set(id, supermarket);
     return supermarket;
   }
@@ -461,13 +453,13 @@ export class MemStorage implements IStorage {
   async createAudioFile(audioFileData: InsertAudioFile): Promise<AudioFile> {
     const id = this.audioFileIdCounter++;
     const uploadedAt = new Date();
-    
     const audioFile: AudioFile = {
       ...audioFileData,
       id,
       uploadedAt,
+      status: audioFileData.status ?? 'unused',
+      sampleRate: audioFileData.sampleRate ?? null,
     };
-    
     this.audioFilesMap.set(id, audioFile);
     return audioFile;
   }
@@ -493,10 +485,9 @@ export class MemStorage implements IStorage {
   }
 
   async isAudioFileUsed(id: number): Promise<boolean> {
-    // Check if the audio file is used in any playlist
-    for (const playlist of this.playlistsMap.values()) {
-      const items = JSON.parse(JSON.stringify(playlist.items)); // Convert from JSON type
-      if (items.some((item: any) => item.audioFileId === id)) {
+    // Kiểm tra nếu có playlist nào có id trùng với id audio
+    for (const playlist of Array.from(this.playlistsMap.values())) {
+      if (playlist.id === id) {
         return true;
       }
     }
@@ -510,14 +501,11 @@ export class MemStorage implements IStorage {
   // Audio Group operations
   async createAudioGroup(groupData: InsertAudioGroup): Promise<AudioGroup> {
     const id = this.audioGroupIdCounter++;
-    const createdAt = new Date();
-    
     const group: AudioGroup = {
       ...groupData,
       id,
-      createdAt,
+      frequency: groupData.frequency ?? 1,
     };
-    
     this.audioGroupsMap.set(id, group);
     return group;
   }

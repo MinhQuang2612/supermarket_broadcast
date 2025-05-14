@@ -1054,11 +1054,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API lấy danh sách chương trình phát
+  // API lấy danh sách chương trình phát (có phân trang, tìm kiếm, sort)
   app.get("/api/broadcast-programs", async (req, res, next) => {
     try {
-      const programs = await storage.getAllBroadcastPrograms();
-      res.json(programs);
+      let programs = await storage.getAllBroadcastPrograms();
+      // Lọc theo search
+      const search = req.query.search ? String(req.query.search).toLowerCase() : null;
+      if (search) {
+        programs = programs.filter(p => p.name.toLowerCase().includes(search));
+      }
+      // Sort
+      const sortKey = req.query.sortKey as string || null;
+      const sortDirection = req.query.sortDirection as 'asc' | 'desc' || 'asc';
+      if (sortKey) {
+        programs = programs.sort((a, b) => {
+          let aValue = a[sortKey];
+          let bValue = b[sortKey];
+          if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+          if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+          if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+          if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+      // Phân trang
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+      const total = programs.length;
+      const totalPages = Math.ceil(total / pageSize);
+      const offset = (page - 1) * pageSize;
+      const paginated = programs.slice(offset, offset + pageSize);
+      res.json({
+        programs: paginated,
+        pagination: { total, page, pageSize, totalPages }
+      });
     } catch (error) {
       next(error);
     }
@@ -1073,6 +1102,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const program = await storage.createBroadcastProgram({ name, dates });
       res.status(201).json(program);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // API cập nhật chương trình phát
+  app.put("/api/broadcast-programs/:id", isManagerOrAdmin, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { name, dates } = req.body;
+      if (!name && !dates) {
+        return res.status(400).json({ message: "Phải có ít nhất tên hoặc ngày phát sóng để cập nhật" });
+      }
+      const updateData = {};
+      if (name) updateData.name = name;
+      if (dates) updateData.dates = dates;
+      const updated = await storage.updateBroadcastProgram(id, updateData);
+      res.json(updated);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // API xoá chương trình phát
+  app.delete("/api/broadcast-programs/:id", isManagerOrAdmin, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteBroadcastProgram(id);
+      res.status(204).send();
     } catch (error) {
       next(error);
     }
@@ -1095,12 +1153,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const item of items) {
         // Đảm bảo truyền đúng các trường, map time_slot -> timeSlot
         const dbItem = {
+          id: item.id, // id audio
           broadcastProgramId,
           name: item.name,
-          type: item.type,
           frequency: item.frequency || 1,
           timeSlot: item.time_slot || item.timeSlot || null,
-          duration: item.duration
         };
         const inserted = await storage.createPlaylist(dbItem);
         insertedItems.push(inserted);

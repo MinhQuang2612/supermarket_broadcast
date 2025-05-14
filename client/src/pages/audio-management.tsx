@@ -570,6 +570,32 @@ export default function AudioManagement() {
     performSingleGroupChange();
   };
 
+  // Mutation cập nhật trạng thái used/unused cho audio files
+  const updateStatusMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/audio-files/update-status', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/audio-files'] });
+      toast({
+        title: 'Đã cập nhật trạng thái',
+        description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Cập nhật trạng thái thất bại',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   useEffect(() => {
     if (!showUploadDialog) {
       setUploadFiles([]);
@@ -657,6 +683,16 @@ export default function AudioManagement() {
             >
               <Square className="mr-2 h-4 w-4" />
               Bỏ chọn
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateStatusMutation.mutate()}
+              loading={updateStatusMutation.isPending}
+              className="flex items-center"
+            >
+              <Tag className="mr-2 h-4 w-4" />
+              Cập nhật trạng thái
             </Button>
           </div>
           

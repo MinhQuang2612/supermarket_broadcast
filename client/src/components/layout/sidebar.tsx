@@ -15,7 +15,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  Plus
+  Plus,
+  Play
 } from "lucide-react";
 
 interface SidebarProps {
@@ -55,10 +56,16 @@ export default function Sidebar({ collapsed, onToggleCollapse, setCollapsed }: S
       icon: <Music className="h-5 w-5" />,
     },
     {
+      title: "Quản lý chương trình phát",
+      href: "/broadcast-management",
+      icon: <Play className="h-5 w-5" />,
+    },
+    {
       title: "Tạo danh sách phát",
       href: "/playlists",
       icon: <Plus className="h-5 w-5" />,
     },
+    
   ];
 
   // Filter menu items based on user role

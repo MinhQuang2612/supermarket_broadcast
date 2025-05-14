@@ -457,11 +457,11 @@ export class DatabaseStorage {
     return playlist;
   }
 
-  async getPlaylist(id: number): Promise<Playlist | undefined> {
+  async getPlaylist(audioId: number): Promise<Playlist | undefined> {
     const [playlist] = await db
       .select()
       .from(playlists)
-      .where(eq(playlists.id, id));
+      .where(eq(playlists.audioId, audioId));
     
     return playlist;
   }
@@ -470,10 +470,21 @@ export class DatabaseStorage {
     return db.select().from(playlists);
   }
 
-  async deletePlaylist(id: number): Promise<void> {
-    await db
-      .delete(playlists)
-      .where(eq(playlists.id, id));
+  // Lấy tất cả playlist items theo broadcastProgramId
+  async getPlaylistItemsByProgramId(broadcastProgramId: number) {
+    return db.select().from(playlists).where(eq(playlists.broadcastProgramId, broadcastProgramId));
+  }
+
+  async getPlaylistByPlaylistItemId(playlistItemId: number): Promise<Playlist | undefined> {
+    const [playlist] = await db
+      .select()
+      .from(playlists)
+      .where(eq(playlists.playlistItemId, playlistItemId));
+    return playlist;
+  }
+
+  async deletePlaylist(playlistItemId: number): Promise<void> {
+    await db.delete(playlists).where(eq(playlists.playlistItemId, playlistItemId));
   }
 
   // Audio Group operations
@@ -538,6 +549,29 @@ export class DatabaseStorage {
       .from(playlists)
       .where(eq(playlists.broadcastProgramId, broadcastProgramId));
     return playlist;
+  }
+
+  // Kiểm tra file audio có đang được sử dụng trong playlists không
+  async isAudioFileUsed(id: number): Promise<boolean> {
+    const result = await db
+      .select()
+      .from(playlists)
+      .where(eq(playlists.id, id))
+      .limit(1);
+    return result.length > 0;
+  }
+
+  // Lấy tất cả loại siêu thị
+  async getAllSupermarketTypes(): Promise<any[]> {
+    return db.select().from(supermarketTypes);
+  }
+
+  // API để xóa toàn bộ playlists và reset ID sequence
+  async resetAllPlaylists(): Promise<void> {
+    const allPlaylists = await this.getAllPlaylists();
+    for (const playlist of allPlaylists) {
+      await this.deletePlaylist(playlist.playlistItemId);
+    }
   }
 }
 
